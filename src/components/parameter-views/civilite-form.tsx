@@ -118,7 +118,7 @@ export default function CiviliteForm({ civilite, onSubmit, onCancel, isEditing =
             fontWeight: 'bold',
             color: '#1a202c'
           }}>
-            {isEditing ? '✏️ Modifier la Civilité' : '➕ Ajouter une Civilité'}
+            {isEditing ? '✏️ Modifier la Civilité' : <><span style={{ color: 'white' }}>+</span> Ajouter une Civilité</>}
           </h2>
           <button
             onClick={onCancel}
@@ -280,15 +280,15 @@ export default function CiviliteForm({ civilite, onSubmit, onCancel, isEditing =
                 fontSize: '0.875rem',
                 fontWeight: '600',
                 color: 'white',
-                backgroundColor: '#ff8c00',
+                backgroundColor: '#F97316',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e67e00'
+                e.currentTarget.style.backgroundColor = '#F97316'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#ff8c00'
+                e.currentTarget.style.backgroundColor = '#F97316'
               }}
             >
               {isEditing ? 'Modifier' : 'Ajouter'}

@@ -136,7 +136,7 @@ export default function CiviliteView() {
     <div style={{ 
       height: '100vh', 
       backgroundColor: 'white', 
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       position: 'relative',
       overflowY: 'auto',
       display: 'flex',
@@ -150,16 +150,18 @@ export default function CiviliteView() {
       }}>
         <h1 style={{
           margin: 0,
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          color: '#1a202c'
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: '#1a202c',
+          letterSpacing: '-0.025em'
         }}>
           Gestion des civilités
         </h1>
         <p style={{
           margin: '0.5rem 0 0 0',
           color: '#718096',
-          fontSize: '0.875rem'
+          fontSize: '1rem',
+          fontWeight: '400'
         }}>
           Programme de gestion des civilités
         </p>
@@ -167,7 +169,7 @@ export default function CiviliteView() {
 
       {/* Barre verte avec titre */}
       <div style={{
-        backgroundColor: '#059669',
+        backgroundColor: '#28A325',
         color: 'white',
         padding: '0.5rem 2rem',
         fontSize: '1rem',
@@ -227,7 +229,7 @@ export default function CiviliteView() {
                   padding: '0.5rem 2.5rem 0.5rem 1rem',
                   border: '1px solid #e2e8f0',
                   borderRadius: '6px',
-                  fontSize: '0.875rem',
+                  fontSize: '0.9rem',
                   width: '250px',
                   outline: 'none'
                 }}
@@ -236,7 +238,7 @@ export default function CiviliteView() {
                 position: 'absolute',
                 right: '0.75rem',
                 color: '#a0aec0',
-                fontSize: '0.875rem'
+                fontSize: '0.9rem'
               }}>
                 Q
               </span>
@@ -254,12 +256,12 @@ export default function CiviliteView() {
           <button
             onClick={openAddForm}
             style={{
-              background: '#ff8c00',
+              background: '#F97316',
               color: 'white',
               border: 'none',
               padding: '0.5rem 1rem',
               borderRadius: '6px',
-              fontSize: '0.875rem',
+              fontSize: '0.9rem',
               fontWeight: '600',
               cursor: 'pointer',
               display: 'flex',
@@ -267,7 +269,7 @@ export default function CiviliteView() {
               gap: '0.5rem'
             }}
           >
-            ➕ Ajouter
+            <span style={{ color: 'white' }}>+</span> Ajouter
           </button>
         </div>
 
@@ -284,18 +286,18 @@ export default function CiviliteView() {
           <table style={{
             width: '100%',
             borderCollapse: 'collapse',
-            fontSize: '0.875rem'
+            fontSize: '0.9rem'
           }}>
             <thead>
               <tr style={{
-                background: '#f7fafc',
+                background: '#f8fafc',
                 borderBottom: '1px solid #e2e8f0'
               }}>
                 <th style={{
                   padding: '1rem',
                   textAlign: 'left',
                   fontWeight: '600',
-                  color: '#4a5568',
+                  color: '#374151',
                   borderBottom: '1px solid #e2e8f0'
                 }}>
                   #
@@ -304,7 +306,7 @@ export default function CiviliteView() {
                   padding: '1rem',
                   textAlign: 'left',
                   fontWeight: '600',
-                  color: '#4a5568',
+                  color: '#374151',
                   borderBottom: '1px solid #e2e8f0'
                 }}>
                   Code
@@ -313,7 +315,7 @@ export default function CiviliteView() {
                   padding: '1rem',
                   textAlign: 'left',
                   fontWeight: '600',
-                  color: '#4a5568',
+                  color: '#374151',
                   borderBottom: '1px solid #e2e8f0'
                 }}>
                   Libellé
@@ -322,10 +324,10 @@ export default function CiviliteView() {
                   padding: '1rem',
                   textAlign: 'left',
                   fontWeight: '600',
-                  color: '#4a5568',
+                  color: '#374151',
                   borderBottom: '1px solid #e2e8f0'
                 }}>
-                  Options
+                  Action
                 </th>
               </tr>
             </thead>
@@ -334,16 +336,13 @@ export default function CiviliteView() {
                 const isLastRow = index === currentCivilites.length - 1;
                 return (
                 <tr key={civilite.id} style={{
-                  borderBottom: '1px solid #f7fafc',
+                  borderBottom: '1px solid #e2e8f0',
                   background: index % 2 === 0 ? 'white' : '#fafafa'
                 }}>
-                  <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ color: '#4a5568' }}>▶</span>
-                      <input type="checkbox" />
-                    </div>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                    <span style={{ color: '#6b7280' }}>▶</span>
                   </td>
-                  <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                     <span style={{
                       fontFamily: 'Monaco, monospace',
                       fontWeight: '600',
@@ -356,29 +355,29 @@ export default function CiviliteView() {
                       {civilite.code}
                     </span>
                   </td>
-                  <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                     {civilite.libelle}
                   </td>
-                  <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc', position: 'relative' }} className="action-menu">
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', position: 'relative' }} className="action-menu">
                     <button
                       onClick={() => toggleActionMenu(civilite.id.toString())}
                       style={{
                         padding: '0.5rem 0.75rem',
-                        backgroundColor: '#ff8c00',
+                        backgroundColor: '#F97316',
                         color: 'white',
                         border: 'none',
                         borderRadius: '0.375rem',
                         cursor: 'pointer',
-                        fontSize: '0.875rem',
+                        fontSize: '0.9rem',
                         fontWeight: '500',
                         transition: 'background-color 0.2s',
                         minWidth: '40px'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#e67e00'
+                        e.currentTarget.style.backgroundColor = '#F97316'
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#ff8c00'
+                        e.currentTarget.style.backgroundColor = '#F97316'
                       }}
                     >
                       ⋯
@@ -411,7 +410,7 @@ export default function CiviliteView() {
                             border: 'none',
                             textAlign: 'left',
                             cursor: 'pointer',
-                            fontSize: '0.875rem',
+                            fontSize: '0.9rem',
                             borderBottom: '1px solid #f3f4f6',
                             transition: 'background-color 0.2s'
                           }}
@@ -434,7 +433,7 @@ export default function CiviliteView() {
                             border: 'none',
                             textAlign: 'left',
                             cursor: 'pointer',
-                            fontSize: '0.875rem',
+                            fontSize: '0.9rem',
                             transition: 'background-color 0.2s'
                           }}
                           onMouseEnter={(e) => {
@@ -466,7 +465,7 @@ export default function CiviliteView() {
         }}>
             <div style={{
                 color: '#6b7280',
-                fontSize: '0.875rem'
+                fontSize: '0.9rem'
             }}>
                 Affichage de 1 à {Math.min(5, currentCivilites.length)} sur {currentCivilites.length} résultats
             </div>
@@ -483,7 +482,7 @@ export default function CiviliteView() {
                         border: 'none',
                         borderRadius: '0.375rem',
                         cursor: 'not-allowed',
-                        fontSize: '0.875rem',
+                        fontSize: '0.9rem',
                         transition: 'all 0.2s'
                     }}
                     disabled
@@ -498,7 +497,7 @@ export default function CiviliteView() {
                         border: 'none',
                         borderRadius: '0.375rem',
                         cursor: 'not-allowed',
-                        fontSize: '0.875rem',
+                        fontSize: '0.9rem',
                         transition: 'all 0.2s'
                     }}
                     disabled
@@ -507,10 +506,10 @@ export default function CiviliteView() {
                 </button>
                 <span style={{
                     padding: '0.5rem 0.75rem',
-                    backgroundColor: '#059669',
+                    backgroundColor: '#28A325',
                     color: 'white',
                     borderRadius: '0.375rem',
-                    fontSize: '0.875rem',
+                    fontSize: '0.9rem',
                     fontWeight: '500'
                 }}>
                     1
@@ -520,7 +519,7 @@ export default function CiviliteView() {
                     backgroundColor: '#f3f4f6',
                     color: '#374151',
                     borderRadius: '0.375rem',
-                    fontSize: '0.875rem',
+                    fontSize: '0.9rem',
                     fontWeight: '500',
                     cursor: 'pointer'
                 }}>
@@ -529,12 +528,12 @@ export default function CiviliteView() {
                 <button
                     style={{
                         padding: '0.5rem 0.75rem',
-                        backgroundColor: '#059669',
+                        backgroundColor: '#28A325',
                         color: 'white',
                         border: 'none',
                         borderRadius: '0.375rem',
                         cursor: 'pointer',
-                        fontSize: '0.875rem',
+                        fontSize: '0.9rem',
                         transition: 'all 0.2s'
                     }}
                 >
@@ -543,12 +542,12 @@ export default function CiviliteView() {
                 <button
                     style={{
                         padding: '0.5rem 0.75rem',
-                        backgroundColor: '#059669',
+                        backgroundColor: '#28A325',
                         color: 'white',
                         border: 'none',
                         borderRadius: '0.375rem',
                         cursor: 'pointer',
-                        fontSize: '0.875rem',
+                        fontSize: '0.9rem',
                         transition: 'all 0.2s'
                     }}
                 >
@@ -565,7 +564,7 @@ export default function CiviliteView() {
                             padding: '0.5rem',
                             border: '1px solid #d1d5db',
                             borderRadius: '0.375rem',
-                            fontSize: '0.875rem',
+                            fontSize: '0.9rem',
                             backgroundColor: 'white'
                         }}
                     >

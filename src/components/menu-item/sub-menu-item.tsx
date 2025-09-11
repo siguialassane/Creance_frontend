@@ -23,13 +23,13 @@ padding-left: 1rem;
 padding-top: 0.5rem;
 padding-bottom: 0.5rem;
 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-background-color: ${props => props.$isSelected ? 'rgba(34, 197, 94, 0.15)' : 'transparent'};
+background-color: ${props => props.$isSelected ? 'rgba(46, 160, 67, 0.25)' : 'transparent'};
 margin-bottom: 0.5rem;
 border-radius: 6px;
 display: block;
 cursor: pointer;
-border: ${props => props.$isSelected ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid transparent'};
-box-shadow: ${props => props.$isSelected ? '0 2px 8px rgba(34, 197, 94, 0.2)' : 'none'};
+border: ${props => props.$isSelected ? '1px solid rgba(46, 160, 67, 0.5)' : '1px solid transparent'};
+box-shadow: ${props => props.$isSelected ? '0 2px 8px rgba(46, 160, 67, 0.3)' : 'none'};
 transform: ${props => props.$isHovered ? 'translateX(4px)' : 'translateX(0px)'};
 position: relative;
 

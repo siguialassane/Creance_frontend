@@ -109,7 +109,7 @@ export default function ParameterView({ subMenu, title }: ParameterViewProps) {
                         {title}
                     </Text>
                     <Button
-                        leftIcon={<AddIcon />}
+                        leftIcon={<AddIcon color="white" />}
                         colorScheme="green"
                         onClick={handleAdd}
                         _hover={{ transform: 'translateY(-2px)' }}

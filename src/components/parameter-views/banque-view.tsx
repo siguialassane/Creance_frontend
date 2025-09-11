@@ -120,7 +120,7 @@ export default function BanqueView() {
     <div style={{ 
       height: '100vh', 
       backgroundColor: 'white', 
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       position: 'relative',
       overflowY: 'auto',
       display: 'flex',
@@ -134,16 +134,18 @@ export default function BanqueView() {
       }}>
         <h1 style={{
           margin: 0,
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          color: '#1a202c'
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: '#1a202c',
+          letterSpacing: '-0.025em'
         }}>
           Gestion des banques
         </h1>
         <p style={{
           margin: '0.5rem 0 0 0',
           color: '#718096',
-          fontSize: '0.875rem'
+          fontSize: '1rem',
+          fontWeight: '400'
         }}>
           Programme de gestion des banques
         </p>
@@ -151,7 +153,7 @@ export default function BanqueView() {
 
       {/* Barre verte avec titre */}
       <div style={{
-        backgroundColor: '#059669',
+        backgroundColor: '#28A325',
         color: 'white',
         padding: '0.5rem 2rem',
         fontSize: '1rem',
@@ -211,7 +213,7 @@ export default function BanqueView() {
                   padding: '0.5rem 2.5rem 0.5rem 1rem',
                   border: '1px solid #e2e8f0',
                   borderRadius: '6px',
-                  fontSize: '0.875rem',
+                  fontSize: '0.9rem',
                   width: '250px',
                   outline: 'none'
                 }}
@@ -220,7 +222,7 @@ export default function BanqueView() {
                 position: 'absolute',
                 right: '0.75rem',
                 color: '#a0aec0',
-                fontSize: '0.875rem'
+                fontSize: '0.9rem'
               }}>
                 Q
               </span>
@@ -230,7 +232,7 @@ export default function BanqueView() {
               border: 'none',
               cursor: 'pointer',
               fontSize: '1.25rem',
-              color: '#4a5568'
+              color: '#6b7280'
             }}>
               🔄
             </button>
@@ -238,12 +240,12 @@ export default function BanqueView() {
           <button
             onClick={() => setShowForm(true)}
             style={{
-              background: '#ff8c00',
+              background: '#F97316',
               color: 'white',
               border: 'none',
               padding: '0.5rem 1rem',
               borderRadius: '6px',
-              fontSize: '0.875rem',
+              fontSize: '0.9rem',
               fontWeight: '600',
               cursor: 'pointer',
               display: 'flex',
@@ -251,7 +253,7 @@ export default function BanqueView() {
               gap: '0.5rem'
             }}
           >
-            ➕ Ajouter
+            <span style={{ color: 'white' }}>+</span> Ajouter
           </button>
         </div>
 
@@ -268,18 +270,18 @@ export default function BanqueView() {
             <table style={{
               width: '100%',
               borderCollapse: 'collapse',
-              fontSize: '0.875rem'
+              fontSize: '0.9rem'
             }}>
               <thead>
                 <tr style={{
-                  background: '#f7fafc',
+                  background: '#f8fafc',
                   borderBottom: '1px solid #e2e8f0'
                 }}>
                   <th style={{
                     padding: '1rem',
                     textAlign: 'left',
                     fontWeight: '600',
-                    color: '#4a5568',
+                    color: '#374151',
                     borderBottom: '1px solid #e2e8f0'
                   }}>
                     #
@@ -289,7 +291,7 @@ export default function BanqueView() {
                       padding: '1rem',
                       textAlign: 'left',
                       fontWeight: '600',
-                      color: '#4a5568',
+                      color: '#374151',
                       borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
@@ -307,7 +309,7 @@ export default function BanqueView() {
                       padding: '1rem',
                       textAlign: 'left',
                       fontWeight: '600',
-                      color: '#4a5568',
+                      color: '#374151',
                       borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
@@ -325,7 +327,7 @@ export default function BanqueView() {
                       padding: '1rem',
                       textAlign: 'left',
                       fontWeight: '600',
-                      color: '#4a5568',
+                      color: '#374151',
                       borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
@@ -343,7 +345,7 @@ export default function BanqueView() {
                       padding: '1rem',
                       textAlign: 'left',
                       fontWeight: '600',
-                      color: '#4a5568',
+                      color: '#374151',
                       borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
@@ -360,10 +362,10 @@ export default function BanqueView() {
                     padding: '1rem',
                     textAlign: 'left',
                     fontWeight: '600',
-                    color: '#4a5568',
+                    color: '#374151',
                     borderBottom: '1px solid #e2e8f0'
                   }}>
-                    Options
+                    Action
                   </th>
                 </tr>
               </thead>
@@ -372,16 +374,13 @@ export default function BanqueView() {
                   const isLastRow = index === currentBanques.length - 1;
                   return (
                   <tr key={banque.id} style={{
-                    borderBottom: '1px solid #f7fafc',
+                    borderBottom: '1px solid #e2e8f0',
                     background: index % 2 === 0 ? 'white' : '#fafafa'
                   }}>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ color: '#4a5568' }}>▶</span>
-                        <input type="checkbox" />
-                      </div>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                      <span style={{ color: '#6b7280' }}>▶</span>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                       <span style={{
                         fontFamily: 'Monaco, monospace',
                         fontWeight: '600',
@@ -394,41 +393,41 @@ export default function BanqueView() {
                         {banque.code}
                       </span>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                       <div style={{ fontWeight: '600', color: '#1a202c' }}>
                         {banque.libelle}
                       </div>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
-                      <div style={{ color: '#374151' }}>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                      <div style={{ color: '#6b7280' }}>
                         {banque.responsable}
                       </div>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
-                      <div style={{ color: '#374151' }}>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                      <div style={{ color: '#6b7280' }}>
                         {banque.adresse}
                       </div>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc', position: 'relative' }} className="action-menu">
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', position: 'relative' }} className="action-menu">
                       <button
                         onClick={() => toggleActionMenu(banque.id.toString())}
                         style={{
                           padding: '0.5rem 0.75rem',
-                          backgroundColor: '#ff8c00',
+                          backgroundColor: '#F97316',
                           color: 'white',
                           border: 'none',
                           borderRadius: '0.375rem',
                           cursor: 'pointer',
-                          fontSize: '0.875rem',
+                          fontSize: '0.9rem',
                           fontWeight: '500',
                           transition: 'background-color 0.2s',
                           minWidth: '40px'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#e67e00'
+                          e.currentTarget.style.backgroundColor = '#F97316'
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#ff8c00'
+                          e.currentTarget.style.backgroundColor = '#F97316'
                         }}
                       >
                         ⋯
@@ -461,7 +460,7 @@ export default function BanqueView() {
                               border: 'none',
                               textAlign: 'left',
                               cursor: 'pointer',
-                              fontSize: '0.875rem',
+                              fontSize: '0.9rem',
                               borderBottom: '1px solid #f3f4f6',
                               transition: 'background-color 0.2s'
                             }}
@@ -484,7 +483,7 @@ export default function BanqueView() {
                               border: 'none',
                               textAlign: 'left',
                               cursor: 'pointer',
-                              fontSize: '0.875rem',
+                              fontSize: '0.9rem',
                               transition: 'background-color 0.2s'
                             }}
                             onMouseEnter={(e) => {
@@ -516,7 +515,7 @@ export default function BanqueView() {
           }}>
               <div style={{
                   color: '#6b7280',
-                  fontSize: '0.875rem'
+                  fontSize: '0.9rem'
               }}>
                   Affichage de 1 à {Math.min(5, currentBanques.length)} sur {currentBanques.length} résultats
               </div>
@@ -533,7 +532,7 @@ export default function BanqueView() {
                           border: 'none',
                           borderRadius: '0.375rem',
                           cursor: 'not-allowed',
-                          fontSize: '0.875rem',
+                          fontSize: '0.9rem',
                           transition: 'all 0.2s'
                       }}
                       disabled
@@ -548,7 +547,7 @@ export default function BanqueView() {
                           border: 'none',
                           borderRadius: '0.375rem',
                           cursor: 'not-allowed',
-                          fontSize: '0.875rem',
+                          fontSize: '0.9rem',
                           transition: 'all 0.2s'
                       }}
                       disabled
@@ -557,10 +556,10 @@ export default function BanqueView() {
                   </button>
                   <span style={{
                       padding: '0.5rem 0.75rem',
-                      backgroundColor: '#059669',
+                      backgroundColor: '#28A325',
                       color: 'white',
                       borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
+                      fontSize: '0.9rem',
                       fontWeight: '500'
                   }}>
                       1
@@ -570,7 +569,7 @@ export default function BanqueView() {
                       backgroundColor: '#f3f4f6',
                       color: '#374151',
                       borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
+                      fontSize: '0.9rem',
                       fontWeight: '500',
                       cursor: 'pointer'
                   }}>
@@ -579,12 +578,12 @@ export default function BanqueView() {
                   <button
                       style={{
                           padding: '0.5rem 0.75rem',
-                          backgroundColor: '#059669',
+                          backgroundColor: '#28A325',
                           color: 'white',
                           border: 'none',
                           borderRadius: '0.375rem',
                           cursor: 'pointer',
-                          fontSize: '0.875rem',
+                          fontSize: '0.9rem',
                           transition: 'all 0.2s'
                       }}
                   >
@@ -593,12 +592,12 @@ export default function BanqueView() {
                   <button
                       style={{
                           padding: '0.5rem 0.75rem',
-                          backgroundColor: '#059669',
+                          backgroundColor: '#28A325',
                           color: 'white',
                           border: 'none',
                           borderRadius: '0.375rem',
                           cursor: 'pointer',
-                          fontSize: '0.875rem',
+                          fontSize: '0.9rem',
                           transition: 'all 0.2s'
                       }}
                   >
@@ -615,7 +614,7 @@ export default function BanqueView() {
                               padding: '0.5rem',
                               border: '1px solid #d1d5db',
                               borderRadius: '0.375rem',
-                              fontSize: '0.875rem',
+                              fontSize: '0.9rem',
                               backgroundColor: 'white'
                           }}
                       >

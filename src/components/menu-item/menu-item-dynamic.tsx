@@ -36,7 +36,7 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
     const menuItemStyle = {
         padding: '14px 20px',
         backgroundColor: isSelected 
-            ? 'rgba(34, 197, 94, 0.15)' 
+            ? 'rgba(34, 197, 94, 0.2)' 
             : isHovered 
                 ? 'rgba(255, 255, 255, 0.08)' 
                 : 'transparent',
@@ -49,7 +49,7 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
             ? `1px solid ${colors.green}` 
             : '1px solid transparent',
         boxShadow: isSelected 
-            ? '0 4px 12px rgba(34, 197, 94, 0.2)' 
+            ? '0 4px 12px rgba(46, 160, 67, 0.3)' 
             : isHovered 
                 ? '0 2px 8px rgba(0, 0, 0, 0.1)' 
                 : 'none',
@@ -199,7 +199,8 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
                                 height: '20px',
                                 borderRadius: '50%',
                                 backgroundColor: isSelected ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
-                                transition: 'background-color 0.2s ease'
+                                transition: 'background-color 0.2s ease',
+                                marginLeft: '8px'
                             }}
                             animate={{
                                 rotate: isSelected && !isClose ? 90 : 0,
