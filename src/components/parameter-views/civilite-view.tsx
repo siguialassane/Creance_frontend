@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import CiviliteForm from './civilite-form'
+import { NotificationManager } from '../notification/notification'
+import { ConfirmationModal } from '../confirmation/confirmation-modal'
 
 interface Civilite {
   id: number
@@ -28,6 +30,14 @@ const civilitesData: Civilite[] = [
   { id: 15, code: "AMB", libelle: "Ambassadeur" }
 ]
 
+interface Notification {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  title: string
+  message: string
+  duration?: number
+}
+
 export default function CiviliteView() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -38,6 +48,18 @@ export default function CiviliteView() {
   const [editingCivilite, setEditingCivilite] = useState<Civilite | null>(null)
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null)
   const [currentYear, setCurrentYear] = useState(2024)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  })
 
   // Filtrage et tri des données
   const filteredCivilites = useMemo(() => {
@@ -91,21 +113,82 @@ export default function CiviliteView() {
     setCurrentPage(1)
   }
 
+  // Fonction pour ajouter une notification
+  const addNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string, duration = 5000) => {
+    const id = `notif_${Math.random().toString(36).substr(2, 9)}_${notifications.length}`
+    setNotifications(prev => [...prev, { id, type, title, message, duration }])
+  }
+
+  // Fonction pour supprimer une notification
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id))
+  }
+
+  // Fonction pour afficher une confirmation
+  const showConfirmation = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm
+    })
+  }
+
+  // Fonction pour fermer la confirmation
+  const closeConfirmation = () => {
+    setConfirmationModal({
+      isOpen: false,
+      title: '',
+      message: '',
+      onConfirm: () => {}
+    })
+  }
+
   const handleAddCivilite = (civilite: any) => {
-    console.log('Ajouter civilité:', civilite)
-    setShowForm(false)
+    try {
+      console.log('Ajouter civilité:', civilite)
+      setShowForm(false)
+      addNotification('success', 'Civilité créée', `La civilité "${civilite.libelle}" a été créée avec succès.`)
+    } catch (error) {
+      console.error('Erreur lors de la création:', error)
+      addNotification('error', 'Erreur de création', 'Une erreur est survenue lors de la création de la civilité.')
+    }
   }
 
   const handleEditCivilite = (civilite: any) => {
-    console.log('Modifier civilité:', civilite)
-    setShowForm(false)
-    setEditingCivilite(null)
-    setShowActionMenu(null)
+    try {
+      console.log('Modifier civilité:', civilite)
+      setShowForm(false)
+      setEditingCivilite(null)
+      setShowActionMenu(null)
+      addNotification('success', 'Civilité modifiée', `La civilité "${civilite.libelle}" a été modifiée avec succès.`)
+    } catch (error) {
+      console.error('Erreur lors de la modification:', error)
+      addNotification('error', 'Erreur de modification', 'Une erreur est survenue lors de la modification de la civilité.')
+    }
   }
 
   const handleDeleteCivilite = (id: number) => {
-    console.log('Supprimer civilité:', id)
-    setShowActionMenu(null)
+    const civilite = civilitesData.find(c => c.id === id)
+    if (civilite) {
+      showConfirmation(
+        'Confirmer la suppression',
+        `Êtes-vous sûr de vouloir supprimer la civilité "${civilite.libelle}" ? Cette action est irréversible.`,
+        () => {
+          try {
+            console.log('Supprimer civilité:', id)
+            setShowActionMenu(null)
+            closeConfirmation()
+            addNotification('success', 'Civilité supprimée', `La civilité "${civilite.libelle}" a été supprimée avec succès.`)
+          } catch (error) {
+            console.error('Erreur lors de la suppression:', error)
+            addNotification('error', 'Erreur de suppression', 'Une erreur est survenue lors de la suppression de la civilité.')
+          }
+        }
+      )
+    } else {
+      addNotification('error', 'Erreur', 'Civilité introuvable.')
+    }
   }
 
   const toggleActionMenu = (id: string) => {
@@ -598,10 +681,31 @@ export default function CiviliteView() {
         <CiviliteForm
           civilite={editingCivilite}
           onSubmit={editingCivilite ? handleEditCivilite : handleAddCivilite}
-          onCancel={closeForm}
+          onCancel={() => {
+            closeForm()
+            addNotification('info', 'Action annulée', editingCivilite ? 'Modification annulée.' : 'Création annulée.')
+          }}
           isEditing={!!editingCivilite}
         />
       )}
+
+      {/* Gestionnaire de notifications */}
+      <NotificationManager
+        notifications={notifications}
+        onRemoveNotification={removeNotification}
+      />
+
+      {/* Modal de confirmation */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        type="danger"
+        onConfirm={confirmationModal.onConfirm}
+        onCancel={closeConfirmation}
+      />
     </div>
   )
 }

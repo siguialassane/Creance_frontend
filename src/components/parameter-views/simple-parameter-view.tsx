@@ -1,6 +1,16 @@
 "use client"
 
 import { useState, useEffect, useMemo } from 'react'
+import { NotificationManager } from '../notification/notification'
+import { ConfirmationModal } from '../confirmation/confirmation-modal'
+
+interface Notification {
+    id: string
+    type: 'success' | 'error' | 'warning' | 'info'
+    title: string
+    message: string
+    duration?: number
+}
 
 interface SimpleParameterViewProps {
     title: string
@@ -22,6 +32,18 @@ export default function SimpleParameterView({ title, description, data: initialD
     const [showForm, setShowForm] = useState(false)
     const [showActionMenu, setShowActionMenu] = useState<string | null>(null)
     const [currentYear, setCurrentYear] = useState(2024)
+    const [notifications, setNotifications] = useState<Notification[]>([])
+    const [confirmationModal, setConfirmationModal] = useState<{
+        isOpen: boolean
+        title: string
+        message: string
+        onConfirm: () => void
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {}
+    })
 
     // Données de démonstration si aucune donnée n'est fournie
     useEffect(() => {
@@ -45,6 +67,37 @@ export default function SimpleParameterView({ title, description, data: initialD
         )
     }, [searchTerm, data])
 
+    // Fonction pour ajouter une notification
+    const addNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string, duration = 5000) => {
+        const id = `notif_${Math.random().toString(36).substr(2, 9)}_${notifications.length}`
+        setNotifications(prev => [...prev, { id, type, title, message, duration }])
+    }
+
+    // Fonction pour supprimer une notification
+    const removeNotification = (id: string) => {
+        setNotifications(prev => prev.filter(notif => notif.id !== id))
+    }
+
+    // Fonction pour afficher une confirmation
+    const showConfirmation = (title: string, message: string, onConfirm: () => void) => {
+        setConfirmationModal({
+            isOpen: true,
+            title,
+            message,
+            onConfirm
+        })
+    }
+
+    // Fonction pour fermer la confirmation
+    const closeConfirmation = () => {
+        setConfirmationModal({
+            isOpen: false,
+            title: '',
+            message: '',
+            onConfirm: () => {}
+        })
+    }
+
     const handleAdd = () => {
         setEditingItem(null)
         setFormData({ code: '', libelle: '' })
@@ -59,10 +112,26 @@ export default function SimpleParameterView({ title, description, data: initialD
     }
 
     const handleDelete = (id: string) => {
-        setData(data.filter(item => item.id !== id))
-        // Notification silencieuse - on pourrait ajouter un toast ici
-        console.log('Élément supprimé avec succès')
-        setShowActionMenu(null)
+        const item = data.find(d => d.id === id)
+        if (item) {
+            showConfirmation(
+                'Confirmer la suppression',
+                `Êtes-vous sûr de vouloir supprimer l'élément "${item.libelle}" ? Cette action est irréversible.`,
+                () => {
+                    try {
+                        setData(data.filter(item => item.id !== id))
+                        setShowActionMenu(null)
+                        closeConfirmation()
+                        addNotification('success', 'Élément supprimé', `L'élément "${item.libelle}" a été supprimé avec succès.`)
+                    } catch (error) {
+                        console.error('Erreur lors de la suppression:', error)
+                        addNotification('error', 'Erreur de suppression', 'Une erreur est survenue lors de la suppression.')
+                    }
+                }
+            )
+        } else {
+            addNotification('error', 'Erreur', 'Élément introuvable.')
+        }
     }
 
     const toggleActionMenu = (id: string) => {
@@ -83,38 +152,39 @@ export default function SimpleParameterView({ title, description, data: initialD
 
     const handleSave = () => {
         if (!formData.code.trim() || !formData.libelle.trim()) {
-            // Validation silencieuse - on pourrait ajouter un toast ici
-            console.log('Le code et le libellé sont obligatoires')
+            addNotification('warning', 'Validation requise', 'Le code et le libellé sont obligatoires.')
             return
         }
 
-        if (editingItem) {
-            // Modification
-            setData(data.map(item =>
-                item.id === editingItem.id
-                    ? { ...item, ...formData }
-                    : item
-            ))
-            // Notification silencieuse - on pourrait ajouter un toast ici
-            console.log('Élément modifié avec succès')
-        } else {
-            // Vérifier si le code existe déjà
-            if (data.some(item => item.code === formData.code)) {
-                // Validation silencieuse - on pourrait ajouter un toast ici
-                console.log('Ce code existe déjà')
-                return
-            }
+        try {
+            if (editingItem) {
+                // Modification
+                setData(data.map(item =>
+                    item.id === editingItem.id
+                        ? { ...item, ...formData }
+                        : item
+                ))
+                addNotification('success', 'Élément modifié', `L'élément "${formData.libelle}" a été modifié avec succès.`)
+            } else {
+                // Vérifier si le code existe déjà
+                if (data.some(item => item.code === formData.code)) {
+                    addNotification('warning', 'Code existant', 'Ce code existe déjà. Veuillez en choisir un autre.')
+                    return
+                }
 
-            // Ajout
-            const newItem = {
-                id: `new_${data.length + 1}`,
-                ...formData
+                // Ajout
+                const newItem = {
+                    id: `new_${data.length + 1}`,
+                    ...formData
+                }
+                setData([...data, newItem])
+                addNotification('success', 'Élément créé', `L'élément "${formData.libelle}" a été créé avec succès.`)
             }
-            setData([...data, newItem])
-            // Notification silencieuse - on pourrait ajouter un toast ici
-            console.log('Élément ajouté avec succès')
+            setShowForm(false)
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde:', error)
+            addNotification('error', 'Erreur de sauvegarde', 'Une erreur est survenue lors de la sauvegarde.')
         }
-        setShowForm(false)
     }
 
     return (
@@ -759,7 +829,10 @@ export default function SimpleParameterView({ title, description, data: initialD
                             }}>
                                 <button
                                     type="button"
-                                    onClick={() => setShowForm(false)}
+                                    onClick={() => {
+                                        setShowForm(false)
+                                        addNotification('info', 'Action annulée', editingItem ? 'Modification annulée.' : 'Création annulée.')
+                                    }}
                                     style={{
                                         padding: '0.75rem 1.5rem',
                                         backgroundColor: 'white',
@@ -810,6 +883,24 @@ export default function SimpleParameterView({ title, description, data: initialD
                     </div>
                 </div>
             )}
+
+            {/* Gestionnaire de notifications */}
+            <NotificationManager
+                notifications={notifications}
+                onRemoveNotification={removeNotification}
+            />
+
+            {/* Modal de confirmation */}
+            <ConfirmationModal
+                isOpen={confirmationModal.isOpen}
+                title={confirmationModal.title}
+                message={confirmationModal.message}
+                confirmText="Supprimer"
+                cancelText="Annuler"
+                type="danger"
+                onConfirm={confirmationModal.onConfirm}
+                onCancel={closeConfirmation}
+            />
         </div>
     )
 }

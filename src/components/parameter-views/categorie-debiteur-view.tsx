@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import CategorieDebiteurForm from './categorie-debiteur-form'
+import { NotificationManager } from '../notification/notification'
+import { ConfirmationModal } from '../confirmation/confirmation-modal'
 
 interface CategorieDebiteur {
   id: number
@@ -28,6 +30,14 @@ const categoriesData: CategorieDebiteur[] = [
   { id: 15, code: "CAT015", libelle: "Chômeurs" }
 ]
 
+interface Notification {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  title: string
+  message: string
+  duration?: number
+}
+
 export default function CategorieDebiteurView() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -38,6 +48,18 @@ export default function CategorieDebiteurView() {
   const [editingCategorie, setEditingCategorie] = useState<CategorieDebiteur | null>(null)
   const [currentYear, setCurrentYear] = useState(2024)
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  })
 
   // Filtrage et tri des données
   const filteredCategories = useMemo(() => {
@@ -91,19 +113,80 @@ export default function CategorieDebiteurView() {
     setCurrentPage(1)
   }
 
+  // Fonction pour ajouter une notification
+  const addNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string, duration = 5000) => {
+    const id = `notif_${Math.random().toString(36).substr(2, 9)}_${notifications.length}`
+    setNotifications(prev => [...prev, { id, type, title, message, duration }])
+  }
+
+  // Fonction pour supprimer une notification
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id))
+  }
+
+  // Fonction pour afficher une confirmation
+  const showConfirmation = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm
+    })
+  }
+
+  // Fonction pour fermer la confirmation
+  const closeConfirmation = () => {
+    setConfirmationModal({
+      isOpen: false,
+      title: '',
+      message: '',
+      onConfirm: () => {}
+    })
+  }
+
   const handleAddCategorie = (categorie: any) => {
-    console.log('Ajouter catégorie:', categorie)
-    setShowForm(false)
+    try {
+      console.log('Ajouter catégorie:', categorie)
+      setShowForm(false)
+      addNotification('success', 'Catégorie créée', `La catégorie "${categorie.libelle}" a été créée avec succès.`)
+    } catch (error) {
+      console.error('Erreur lors de la création:', error)
+      addNotification('error', 'Erreur de création', 'Une erreur est survenue lors de la création de la catégorie.')
+    }
   }
 
   const handleEditCategorie = (categorie: any) => {
-    console.log('Modifier catégorie:', categorie)
-    setShowForm(false)
-    setEditingCategorie(null)
+    try {
+      console.log('Modifier catégorie:', categorie)
+      setShowForm(false)
+      setEditingCategorie(null)
+      addNotification('success', 'Catégorie modifiée', `La catégorie "${categorie.libelle}" a été modifiée avec succès.`)
+    } catch (error) {
+      console.error('Erreur lors de la modification:', error)
+      addNotification('error', 'Erreur de modification', 'Une erreur est survenue lors de la modification de la catégorie.')
+    }
   }
 
   const handleDeleteCategorie = (id: number) => {
-    console.log('Supprimer catégorie:', id)
+    const categorie = categoriesData.find(cat => cat.id === id)
+    if (categorie) {
+      showConfirmation(
+        'Confirmer la suppression',
+        `Êtes-vous sûr de vouloir supprimer la catégorie "${categorie.libelle}" ? Cette action est irréversible.`,
+        () => {
+          try {
+            console.log('Supprimer catégorie:', id)
+            closeConfirmation()
+            addNotification('success', 'Catégorie supprimée', `La catégorie "${categorie.libelle}" a été supprimée avec succès.`)
+          } catch (error) {
+            console.error('Erreur lors de la suppression:', error)
+            addNotification('error', 'Erreur de suppression', 'Une erreur est survenue lors de la suppression de la catégorie.')
+          }
+        }
+      )
+    } else {
+      addNotification('error', 'Erreur', 'Catégorie introuvable.')
+    }
   }
 
   // Gestion du menu d'actions
@@ -635,10 +718,29 @@ export default function CategorieDebiteurView() {
           onCancel={() => {
             setShowForm(false)
             setEditingCategorie(null)
+            addNotification('info', 'Action annulée', editingCategorie ? 'Modification annulée.' : 'Création annulée.')
           }}
           isEditing={!!editingCategorie}
         />
       )}
+
+      {/* Gestionnaire de notifications */}
+      <NotificationManager
+        notifications={notifications}
+        onRemoveNotification={removeNotification}
+      />
+
+      {/* Modal de confirmation */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        type="danger"
+        onConfirm={confirmationModal.onConfirm}
+        onCancel={closeConfirmation}
+      />
     </div>
   )
 }

@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import BanqueForm from './banque-form'
+import { NotificationManager } from '../notification/notification'
+import { ConfirmationModal } from '../confirmation/confirmation-modal'
 
 interface Banque {
   id: number
@@ -25,6 +27,14 @@ const banquesData: Banque[] = [
   { id: 10, code: "B010", libelle: "Citi Bank", responsable: "Mme Konan", adresse: "Abidjan, Plateau" }
 ]
 
+interface Notification {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  title: string
+  message: string
+  duration?: number
+}
+
 export default function BanqueView() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -35,6 +45,18 @@ export default function BanqueView() {
   const [editingBanque, setEditingBanque] = useState<Banque | null>(null)
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null)
   const [currentYear, setCurrentYear] = useState(2024)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  })
 
   // Filtrage et tri des données
   const filteredBanques = useMemo(() => {
@@ -90,21 +112,82 @@ export default function BanqueView() {
     setCurrentPage(1)
   }
 
+  // Fonction pour ajouter une notification
+  const addNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string, duration = 5000) => {
+    const id = `notif_${Math.random().toString(36).substr(2, 9)}_${notifications.length}`
+    setNotifications(prev => [...prev, { id, type, title, message, duration }])
+  }
+
+  // Fonction pour supprimer une notification
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id))
+  }
+
+  // Fonction pour afficher une confirmation
+  const showConfirmation = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm
+    })
+  }
+
+  // Fonction pour fermer la confirmation
+  const closeConfirmation = () => {
+    setConfirmationModal({
+      isOpen: false,
+      title: '',
+      message: '',
+      onConfirm: () => {}
+    })
+  }
+
   const handleAddBanque = (banque: any) => {
-    console.log('Ajouter banque:', banque)
-    setShowForm(false)
+    try {
+      console.log('Ajouter banque:', banque)
+      setShowForm(false)
+      addNotification('success', 'Banque créée', `La banque "${banque.libelle}" a été créée avec succès.`)
+    } catch (error) {
+      console.error('Erreur lors de la création:', error)
+      addNotification('error', 'Erreur de création', 'Une erreur est survenue lors de la création de la banque.')
+    }
   }
 
   const handleEditBanque = (banque: any) => {
-    console.log('Modifier banque:', banque)
-    setShowForm(false)
-    setEditingBanque(null)
-    setShowActionMenu(null)
+    try {
+      console.log('Modifier banque:', banque)
+      setShowForm(false)
+      setEditingBanque(null)
+      setShowActionMenu(null)
+      addNotification('success', 'Banque modifiée', `La banque "${banque.libelle}" a été modifiée avec succès.`)
+    } catch (error) {
+      console.error('Erreur lors de la modification:', error)
+      addNotification('error', 'Erreur de modification', 'Une erreur est survenue lors de la modification de la banque.')
+    }
   }
 
   const handleDeleteBanque = (id: number) => {
-    console.log('Supprimer banque:', id)
-    setShowActionMenu(null)
+    const banque = banquesData.find(b => b.id === id)
+    if (banque) {
+      showConfirmation(
+        'Confirmer la suppression',
+        `Êtes-vous sûr de vouloir supprimer la banque "${banque.libelle}" ? Cette action est irréversible.`,
+        () => {
+          try {
+            console.log('Supprimer banque:', id)
+            setShowActionMenu(null)
+            closeConfirmation()
+            addNotification('success', 'Banque supprimée', `La banque "${banque.libelle}" a été supprimée avec succès.`)
+          } catch (error) {
+            console.error('Erreur lors de la suppression:', error)
+            addNotification('error', 'Erreur de suppression', 'Une erreur est survenue lors de la suppression de la banque.')
+          }
+        }
+      )
+    } else {
+      addNotification('error', 'Erreur', 'Banque introuvable.')
+    }
   }
 
   const toggleActionMenu = (id: string) => {
@@ -651,10 +734,29 @@ export default function BanqueView() {
           onCancel={() => {
             setShowForm(false)
             setEditingBanque(null)
+            addNotification('info', 'Action annulée', editingBanque ? 'Modification annulée.' : 'Création annulée.')
           }}
           isEditing={!!editingBanque}
         />
       )}
+
+      {/* Gestionnaire de notifications */}
+      <NotificationManager
+        notifications={notifications}
+        onRemoveNotification={removeNotification}
+      />
+
+      {/* Modal de confirmation */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        type="danger"
+        onConfirm={confirmationModal.onConfirm}
+        onCancel={closeConfirmation}
+      />
     </div>
   )
 }
