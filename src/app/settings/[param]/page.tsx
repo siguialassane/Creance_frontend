@@ -53,7 +53,7 @@ export default function ParameterPage() {
             }}>
                 <Link href="/settings" style={{
                     padding: '0.75rem 1.5rem',
-                    backgroundColor: '#059669',
+                    backgroundColor: '#28A325',
                     color: 'white',
                     textDecoration: 'none',
                     borderRadius: '0.5rem',

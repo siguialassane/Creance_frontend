@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import CategorieDebiteurForm from './categorie-debiteur-form'
+import { NotificationManager } from '../notification/notification'
+import { ConfirmationModal } from '../confirmation/confirmation-modal'
 
 interface CategorieDebiteur {
   id: number
@@ -28,15 +30,36 @@ const categoriesData: CategorieDebiteur[] = [
   { id: 15, code: "CAT015", libelle: "Chômeurs" }
 ]
 
+interface Notification {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  title: string
+  message: string
+  duration?: number
+}
+
 export default function CategorieDebiteurView() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [sortField, setSortField] = useState<keyof CategorieDebiteur>('libelle')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
-  const [itemsPerPage] = useState(10)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
   const [showForm, setShowForm] = useState(false)
   const [editingCategorie, setEditingCategorie] = useState<CategorieDebiteur | null>(null)
   const [currentYear, setCurrentYear] = useState(2024)
+  const [showActionMenu, setShowActionMenu] = useState<string | null>(null)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  })
 
   // Filtrage et tri des données
   const filteredCategories = useMemo(() => {
@@ -90,20 +113,101 @@ export default function CategorieDebiteurView() {
     setCurrentPage(1)
   }
 
+  // Fonction pour ajouter une notification
+  const addNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string, duration = 5000) => {
+    const id = `notif_${Math.random().toString(36).substr(2, 9)}_${notifications.length}`
+    setNotifications(prev => [...prev, { id, type, title, message, duration }])
+  }
+
+  // Fonction pour supprimer une notification
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id))
+  }
+
+  // Fonction pour afficher une confirmation
+  const showConfirmation = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm
+    })
+  }
+
+  // Fonction pour fermer la confirmation
+  const closeConfirmation = () => {
+    setConfirmationModal({
+      isOpen: false,
+      title: '',
+      message: '',
+      onConfirm: () => {}
+    })
+  }
+
   const handleAddCategorie = (categorie: any) => {
-    console.log('Ajouter catégorie:', categorie)
-    setShowForm(false)
+    try {
+      console.log('Ajouter catégorie:', categorie)
+      setShowForm(false)
+      addNotification('success', 'Catégorie créée', `La catégorie "${categorie.libelle}" a été créée avec succès.`)
+    } catch (error) {
+      console.error('Erreur lors de la création:', error)
+      addNotification('error', 'Erreur de création', 'Une erreur est survenue lors de la création de la catégorie.')
+    }
   }
 
   const handleEditCategorie = (categorie: any) => {
-    console.log('Modifier catégorie:', categorie)
-    setShowForm(false)
-    setEditingCategorie(null)
+    try {
+      console.log('Modifier catégorie:', categorie)
+      setShowForm(false)
+      setEditingCategorie(null)
+      addNotification('success', 'Catégorie modifiée', `La catégorie "${categorie.libelle}" a été modifiée avec succès.`)
+    } catch (error) {
+      console.error('Erreur lors de la modification:', error)
+      addNotification('error', 'Erreur de modification', 'Une erreur est survenue lors de la modification de la catégorie.')
+    }
   }
 
   const handleDeleteCategorie = (id: number) => {
-    console.log('Supprimer catégorie:', id)
+    const categorie = categoriesData.find(cat => cat.id === id)
+    if (categorie) {
+      showConfirmation(
+        'Confirmer la suppression',
+        `Êtes-vous sûr de vouloir supprimer la catégorie "${categorie.libelle}" ? Cette action est irréversible.`,
+        () => {
+          try {
+            console.log('Supprimer catégorie:', id)
+            closeConfirmation()
+            addNotification('success', 'Catégorie supprimée', `La catégorie "${categorie.libelle}" a été supprimée avec succès.`)
+          } catch (error) {
+            console.error('Erreur lors de la suppression:', error)
+            addNotification('error', 'Erreur de suppression', 'Une erreur est survenue lors de la suppression de la catégorie.')
+          }
+        }
+      )
+    } else {
+      addNotification('error', 'Erreur', 'Catégorie introuvable.')
+    }
   }
+
+  // Gestion du menu d'actions
+  const toggleActionMenu = (id: string) => {
+    setShowActionMenu(showActionMenu === id ? null : id)
+  }
+
+  // Fermer le menu d'actions quand on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.action-menu')) {
+        setShowActionMenu(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   // Mettre à jour l'année côté client
   useEffect(() => {
@@ -114,7 +218,7 @@ export default function CategorieDebiteurView() {
     <div style={{ 
       height: '100vh', 
       backgroundColor: 'white', 
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       position: 'relative',
       overflowY: 'auto',
       display: 'flex',
@@ -128,16 +232,18 @@ export default function CategorieDebiteurView() {
       }}>
         <h1 style={{
           margin: 0,
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          color: '#1a202c'
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: '#1a202c',
+          letterSpacing: '-0.025em'
         }}>
           Gestion des catégories de débiteurs
         </h1>
         <p style={{
           margin: '0.5rem 0 0 0',
           color: '#718096',
-          fontSize: '0.875rem'
+          fontSize: '1rem',
+          fontWeight: '400'
         }}>
           Programme de gestion des catégories de débiteurs
         </p>
@@ -145,7 +251,7 @@ export default function CategorieDebiteurView() {
 
       {/* Barre verte avec titre */}
       <div style={{
-        backgroundColor: '#059669',
+        backgroundColor: '#28A325',
         color: 'white',
         padding: '0.5rem 2rem',
         fontSize: '1rem',
@@ -205,7 +311,7 @@ export default function CategorieDebiteurView() {
                   padding: '0.5rem 2.5rem 0.5rem 1rem',
                   border: '1px solid #e2e8f0',
                   borderRadius: '6px',
-                  fontSize: '0.875rem',
+                  fontSize: '0.9rem',
                   width: '250px',
                   outline: 'none'
                 }}
@@ -214,7 +320,7 @@ export default function CategorieDebiteurView() {
                 position: 'absolute',
                 right: '0.75rem',
                 color: '#a0aec0',
-                fontSize: '0.875rem'
+                fontSize: '0.9rem'
               }}>
                 Q
               </span>
@@ -232,12 +338,12 @@ export default function CategorieDebiteurView() {
           <button
             onClick={() => setShowForm(true)}
             style={{
-              background: '#ff8c00',
+              background: '#F97316',
               color: 'white',
               border: 'none',
               padding: '0.5rem 1rem',
               borderRadius: '6px',
-              fontSize: '0.875rem',
+              fontSize: '0.9rem',
               fontWeight: '600',
               cursor: 'pointer',
               display: 'flex',
@@ -245,7 +351,7 @@ export default function CategorieDebiteurView() {
               gap: '0.5rem'
             }}
           >
-            ➕ Ajouter
+            <span style={{ color: 'white' }}>+</span> Ajouter
           </button>
         </div>
 
@@ -265,7 +371,7 @@ export default function CategorieDebiteurView() {
             }}>
               <thead>
                 <tr style={{
-                  backgroundColor: '#f8fafc',
+                  background: '#f8fafc',
                   borderBottom: '1px solid #e2e8f0'
                 }}>
                   <th style={{
@@ -273,9 +379,7 @@ export default function CategorieDebiteurView() {
                     textAlign: 'left',
                     fontWeight: '600',
                     color: '#374151',
-                    fontSize: '0.875rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
+                    borderBottom: '1px solid #e2e8f0'
                   }}>
                     #
                   </th>
@@ -285,9 +389,7 @@ export default function CategorieDebiteurView() {
                       textAlign: 'left',
                       fontWeight: '600',
                       color: '#374151',
-                      fontSize: '0.875rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
+                      borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
                     onClick={() => handleSort('code')}
@@ -305,9 +407,7 @@ export default function CategorieDebiteurView() {
                       textAlign: 'left',
                       fontWeight: '600',
                       color: '#374151',
-                      fontSize: '0.875rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
+                      borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
                     onClick={() => handleSort('libelle')}
@@ -324,34 +424,24 @@ export default function CategorieDebiteurView() {
                     textAlign: 'center',
                     fontWeight: '600',
                     color: '#374151',
-                    fontSize: '0.875rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
+                    borderBottom: '1px solid #e2e8f0'
                   }}>
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {currentCategories.map((categorie, index) => (
+                {currentCategories.map((categorie, index) => {
+                  const isLastRow = index === currentCategories.length - 1
+                  return (
                   <tr key={categorie.id} style={{
-                    borderBottom: '1px solid #f1f5f9',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f8fafc'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                  }}
-                  >
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ color: '#4a5568' }}>▶</span>
-                        <input type="checkbox" />
-                      </div>
+                    borderBottom: '1px solid #e2e8f0',
+                    background: index % 2 === 0 ? 'white' : '#fafafa'
+                  }}>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                      <span style={{ color: '#6b7280' }}>▶</span>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                       <span style={{
                         fontFamily: 'Monaco, monospace',
                         fontWeight: '600',
@@ -364,136 +454,246 @@ export default function CategorieDebiteurView() {
                         {categorie.code}
                       </span>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                       <div style={{ fontWeight: '600', color: '#1a202c' }}>
                         {categorie.libelle}
                       </div>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
-                      <div style={{
-                        display: 'flex',
-                        gap: '0.5rem',
-                        justifyContent: 'center'
-                      }}>
-                        <button
-                          onClick={() => {
-                            setEditingCategorie(categorie)
-                            setShowForm(true)
-                          }}
-                          style={{
-                            padding: '0.5rem 1rem',
-                            backgroundColor: '#3b82f6',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '0.375rem',
-                            cursor: 'pointer',
-                            fontSize: '0.875rem',
-                            fontWeight: '500',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#2563eb'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#3b82f6'
-                          }}
-                        >
-                          Modifier
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCategorie(categorie.id)}
-                          style={{
-                            padding: '0.5rem 1rem',
-                            backgroundColor: '#ef4444',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '0.375rem',
-                            cursor: 'pointer',
-                            fontSize: '0.875rem',
-                            fontWeight: '500',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#dc2626'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#ef4444'
-                          }}
-                        >
-                          Supprimer
-                        </button>
-                      </div>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', position: 'relative' }} className="action-menu">
+                      <button
+                        onClick={() => toggleActionMenu(categorie.id.toString())}
+                        style={{
+                          padding: '0.5rem 0.75rem',
+                          backgroundColor: '#F97316',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '0.375rem',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          fontWeight: '500',
+                          transition: 'background-color 0.2s',
+                          minWidth: '40px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#F97316'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#F97316'
+                        }}
+                      >
+                        ⋯
+                      </button>
+                      
+                      {/* Menu d'actions */}
+                      {showActionMenu === categorie.id.toString() && (
+                        <div style={{
+                          position: 'absolute',
+                          top: isLastRow ? 'auto' : '100%',
+                          bottom: isLastRow ? '100%' : 'auto',
+                          right: '0',
+                          backgroundColor: 'white',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '0.5rem',
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                          zIndex: 1000,
+                          minWidth: '120px'
+                        }}>
+                          <button
+                            onClick={() => {
+                              setEditingCategorie(categorie)
+                              setShowForm(true)
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '0.75rem 1rem',
+                              backgroundColor: 'white',
+                              color: '#374151',
+                              border: 'none',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                              fontSize: '0.9rem',
+                              borderBottom: '1px solid #f3f4f6',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#f9fafb'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'white'
+                            }}
+                          >
+                            Modifier
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCategorie(categorie.id)}
+                            style={{
+                              width: '100%',
+                              padding: '0.75rem 1rem',
+                              backgroundColor: 'white',
+                              color: '#ef4444',
+                              border: 'none',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                              fontSize: '0.9rem',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#f9fafb'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'white'
+                            }}
+                          >
+                            Supprimer
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={{
+          <div style={{
               padding: '1.5rem',
               borderTop: '1px solid #e2e8f0',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center'
-            }}>
+          }}>
               <div style={{
-                color: '#6b7280',
-                fontSize: '0.875rem'
+                  color: '#6b7280',
+                  fontSize: '0.9rem'
               }}>
-                Affichage de {startIndex + 1} à {Math.min(endIndex, filteredCategories.length)} sur {filteredCategories.length} résultats
+                  Affichage de {startIndex + 1} à {Math.min(endIndex, filteredCategories.length)} sur {filteredCategories.length} résultats
               </div>
               <div style={{
-                display: 'flex',
-                gap: '0.5rem'
+                  display: 'flex',
+                  gap: '0.5rem',
+                  alignItems: 'center'
               }}>
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    backgroundColor: currentPage === 1 ? '#f3f4f6' : '#059669',
-                    color: currentPage === 1 ? '#9ca3af' : 'white',
-                    border: 'none',
-                    borderRadius: '0.375rem',
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                    fontSize: '0.875rem',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  Précédent
-                </button>
-                <span style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
-                  fontWeight: '500'
-                }}>
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    backgroundColor: currentPage === totalPages ? '#f3f4f6' : '#059669',
-                    color: currentPage === totalPages ? '#9ca3af' : 'white',
-                    border: 'none',
-                    borderRadius: '0.375rem',
-                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                    fontSize: '0.875rem',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  Suivant
-                </button>
+                  <button
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                      style={{
+                          padding: '0.5rem 0.75rem',
+                          backgroundColor: currentPage === 1 ? '#f3f4f6' : '#28A325',
+                          color: currentPage === 1 ? '#9ca3af' : 'white',
+                          border: 'none',
+                          borderRadius: '0.375rem',
+                          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                          fontSize: '0.9rem',
+                          transition: 'all 0.2s'
+                      }}
+                  >
+                      &lt;&lt;&lt;
+                  </button>
+                  <button
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      style={{
+                          padding: '0.5rem 0.75rem',
+                          backgroundColor: currentPage === 1 ? '#f3f4f6' : '#28A325',
+                          color: currentPage === 1 ? '#9ca3af' : 'white',
+                          border: 'none',
+                          borderRadius: '0.375rem',
+                          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                          fontSize: '0.9rem',
+                          transition: 'all 0.2s'
+                      }}
+                  >
+                      &lt;
+                  </button>
+                  
+                  {/* Numéros de page */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const pageNum = i + 1
+                      const isActive = pageNum === currentPage
+                      return (
+                          <button
+                              key={pageNum}
+                              onClick={() => setCurrentPage(pageNum)}
+                              style={{
+                                  padding: '0.5rem 0.75rem',
+                                  backgroundColor: isActive ? '#28A325' : '#f3f4f6',
+                                  color: isActive ? 'white' : '#374151',
+                                  border: 'none',
+                                  borderRadius: '0.375rem',
+                                  cursor: 'pointer',
+                                  fontSize: '0.9rem',
+                                  fontWeight: '500',
+                                  transition: 'all 0.2s'
+                              }}
+                          >
+                              {pageNum}
+                          </button>
+                      )
+                  })}
+                  
+                  <button
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                      style={{
+                          padding: '0.5rem 0.75rem',
+                          backgroundColor: currentPage === totalPages ? '#f3f4f6' : '#28A325',
+                          color: currentPage === totalPages ? '#9ca3af' : 'white',
+                          border: 'none',
+                          borderRadius: '0.375rem',
+                          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                          fontSize: '0.9rem',
+                          transition: 'all 0.2s'
+                      }}
+                  >
+                      &gt;
+                  </button>
+                  <button
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                      style={{
+                          padding: '0.5rem 0.75rem',
+                          backgroundColor: currentPage === totalPages ? '#f3f4f6' : '#28A325',
+                          color: currentPage === totalPages ? '#9ca3af' : 'white',
+                          border: 'none',
+                          borderRadius: '0.375rem',
+                          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                          fontSize: '0.9rem',
+                          transition: 'all 0.2s'
+                      }}
+                  >
+                      &gt;&gt;&gt;
+                  </button>
+                  <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginLeft: '1rem'
+                  }}>
+                      <select
+                          value={itemsPerPage}
+                          onChange={(e) => {
+                              setItemsPerPage(Number(e.target.value))
+                              setCurrentPage(1)
+                          }}
+                          style={{
+                              padding: '0.5rem',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '0.375rem',
+                              fontSize: '0.9rem',
+                              backgroundColor: 'white'
+                          }}
+                      >
+                          <option value="5">5</option>
+                          <option value="10">10</option>
+                          <option value="25">25</option>
+                          <option value="50">50</option>
+                      </select>
+                      <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>▼</span>
+                  </div>
               </div>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Footer */}
@@ -518,10 +718,29 @@ export default function CategorieDebiteurView() {
           onCancel={() => {
             setShowForm(false)
             setEditingCategorie(null)
+            addNotification('info', 'Action annulée', editingCategorie ? 'Modification annulée.' : 'Création annulée.')
           }}
           isEditing={!!editingCategorie}
         />
       )}
+
+      {/* Gestionnaire de notifications */}
+      <NotificationManager
+        notifications={notifications}
+        onRemoveNotification={removeNotification}
+      />
+
+      {/* Modal de confirmation */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        type="danger"
+        onConfirm={confirmationModal.onConfirm}
+        onCancel={closeConfirmation}
+      />
     </div>
   )
 }

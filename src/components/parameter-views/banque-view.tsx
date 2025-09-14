@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import BanqueForm from './banque-form'
+import { NotificationManager } from '../notification/notification'
+import { ConfirmationModal } from '../confirmation/confirmation-modal'
 
 interface Banque {
   id: number
@@ -25,6 +27,14 @@ const banquesData: Banque[] = [
   { id: 10, code: "B010", libelle: "Citi Bank", responsable: "Mme Konan", adresse: "Abidjan, Plateau" }
 ]
 
+interface Notification {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  title: string
+  message: string
+  duration?: number
+}
+
 export default function BanqueView() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -35,6 +45,18 @@ export default function BanqueView() {
   const [editingBanque, setEditingBanque] = useState<Banque | null>(null)
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null)
   const [currentYear, setCurrentYear] = useState(2024)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  })
 
   // Filtrage et tri des données
   const filteredBanques = useMemo(() => {
@@ -90,21 +112,82 @@ export default function BanqueView() {
     setCurrentPage(1)
   }
 
+  // Fonction pour ajouter une notification
+  const addNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string, duration = 5000) => {
+    const id = `notif_${Math.random().toString(36).substr(2, 9)}_${notifications.length}`
+    setNotifications(prev => [...prev, { id, type, title, message, duration }])
+  }
+
+  // Fonction pour supprimer une notification
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id))
+  }
+
+  // Fonction pour afficher une confirmation
+  const showConfirmation = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm
+    })
+  }
+
+  // Fonction pour fermer la confirmation
+  const closeConfirmation = () => {
+    setConfirmationModal({
+      isOpen: false,
+      title: '',
+      message: '',
+      onConfirm: () => {}
+    })
+  }
+
   const handleAddBanque = (banque: any) => {
-    console.log('Ajouter banque:', banque)
-    setShowForm(false)
+    try {
+      console.log('Ajouter banque:', banque)
+      setShowForm(false)
+      addNotification('success', 'Banque créée', `La banque "${banque.libelle}" a été créée avec succès.`)
+    } catch (error) {
+      console.error('Erreur lors de la création:', error)
+      addNotification('error', 'Erreur de création', 'Une erreur est survenue lors de la création de la banque.')
+    }
   }
 
   const handleEditBanque = (banque: any) => {
-    console.log('Modifier banque:', banque)
-    setShowForm(false)
-    setEditingBanque(null)
-    setShowActionMenu(null)
+    try {
+      console.log('Modifier banque:', banque)
+      setShowForm(false)
+      setEditingBanque(null)
+      setShowActionMenu(null)
+      addNotification('success', 'Banque modifiée', `La banque "${banque.libelle}" a été modifiée avec succès.`)
+    } catch (error) {
+      console.error('Erreur lors de la modification:', error)
+      addNotification('error', 'Erreur de modification', 'Une erreur est survenue lors de la modification de la banque.')
+    }
   }
 
   const handleDeleteBanque = (id: number) => {
-    console.log('Supprimer banque:', id)
-    setShowActionMenu(null)
+    const banque = banquesData.find(b => b.id === id)
+    if (banque) {
+      showConfirmation(
+        'Confirmer la suppression',
+        `Êtes-vous sûr de vouloir supprimer la banque "${banque.libelle}" ? Cette action est irréversible.`,
+        () => {
+          try {
+            console.log('Supprimer banque:', id)
+            setShowActionMenu(null)
+            closeConfirmation()
+            addNotification('success', 'Banque supprimée', `La banque "${banque.libelle}" a été supprimée avec succès.`)
+          } catch (error) {
+            console.error('Erreur lors de la suppression:', error)
+            addNotification('error', 'Erreur de suppression', 'Une erreur est survenue lors de la suppression de la banque.')
+          }
+        }
+      )
+    } else {
+      addNotification('error', 'Erreur', 'Banque introuvable.')
+    }
   }
 
   const toggleActionMenu = (id: string) => {
@@ -120,7 +203,7 @@ export default function BanqueView() {
     <div style={{ 
       height: '100vh', 
       backgroundColor: 'white', 
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       position: 'relative',
       overflowY: 'auto',
       display: 'flex',
@@ -134,16 +217,18 @@ export default function BanqueView() {
       }}>
         <h1 style={{
           margin: 0,
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          color: '#1a202c'
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: '#1a202c',
+          letterSpacing: '-0.025em'
         }}>
           Gestion des banques
         </h1>
         <p style={{
           margin: '0.5rem 0 0 0',
           color: '#718096',
-          fontSize: '0.875rem'
+          fontSize: '1rem',
+          fontWeight: '400'
         }}>
           Programme de gestion des banques
         </p>
@@ -151,7 +236,7 @@ export default function BanqueView() {
 
       {/* Barre verte avec titre */}
       <div style={{
-        backgroundColor: '#059669',
+        backgroundColor: '#28A325',
         color: 'white',
         padding: '0.5rem 2rem',
         fontSize: '1rem',
@@ -211,7 +296,7 @@ export default function BanqueView() {
                   padding: '0.5rem 2.5rem 0.5rem 1rem',
                   border: '1px solid #e2e8f0',
                   borderRadius: '6px',
-                  fontSize: '0.875rem',
+                  fontSize: '0.9rem',
                   width: '250px',
                   outline: 'none'
                 }}
@@ -220,7 +305,7 @@ export default function BanqueView() {
                 position: 'absolute',
                 right: '0.75rem',
                 color: '#a0aec0',
-                fontSize: '0.875rem'
+                fontSize: '0.9rem'
               }}>
                 Q
               </span>
@@ -230,7 +315,7 @@ export default function BanqueView() {
               border: 'none',
               cursor: 'pointer',
               fontSize: '1.25rem',
-              color: '#4a5568'
+              color: '#6b7280'
             }}>
               🔄
             </button>
@@ -238,12 +323,12 @@ export default function BanqueView() {
           <button
             onClick={() => setShowForm(true)}
             style={{
-              background: '#ff8c00',
+              background: '#F97316',
               color: 'white',
               border: 'none',
               padding: '0.5rem 1rem',
               borderRadius: '6px',
-              fontSize: '0.875rem',
+              fontSize: '0.9rem',
               fontWeight: '600',
               cursor: 'pointer',
               display: 'flex',
@@ -268,18 +353,18 @@ export default function BanqueView() {
             <table style={{
               width: '100%',
               borderCollapse: 'collapse',
-              fontSize: '0.875rem'
+              fontSize: '0.9rem'
             }}>
               <thead>
                 <tr style={{
-                  background: '#f7fafc',
+                  background: '#f8fafc',
                   borderBottom: '1px solid #e2e8f0'
                 }}>
                   <th style={{
                     padding: '1rem',
                     textAlign: 'left',
                     fontWeight: '600',
-                    color: '#4a5568',
+                    color: '#374151',
                     borderBottom: '1px solid #e2e8f0'
                   }}>
                     #
@@ -289,7 +374,7 @@ export default function BanqueView() {
                       padding: '1rem',
                       textAlign: 'left',
                       fontWeight: '600',
-                      color: '#4a5568',
+                      color: '#374151',
                       borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
@@ -307,7 +392,7 @@ export default function BanqueView() {
                       padding: '1rem',
                       textAlign: 'left',
                       fontWeight: '600',
-                      color: '#4a5568',
+                      color: '#374151',
                       borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
@@ -325,7 +410,7 @@ export default function BanqueView() {
                       padding: '1rem',
                       textAlign: 'left',
                       fontWeight: '600',
-                      color: '#4a5568',
+                      color: '#374151',
                       borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
@@ -343,7 +428,7 @@ export default function BanqueView() {
                       padding: '1rem',
                       textAlign: 'left',
                       fontWeight: '600',
-                      color: '#4a5568',
+                      color: '#374151',
                       borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
@@ -360,10 +445,10 @@ export default function BanqueView() {
                     padding: '1rem',
                     textAlign: 'left',
                     fontWeight: '600',
-                    color: '#4a5568',
+                    color: '#374151',
                     borderBottom: '1px solid #e2e8f0'
                   }}>
-                    Options
+                    Action
                   </th>
                 </tr>
               </thead>
@@ -372,16 +457,13 @@ export default function BanqueView() {
                   const isLastRow = index === currentBanques.length - 1;
                   return (
                   <tr key={banque.id} style={{
-                    borderBottom: '1px solid #f7fafc',
+                    borderBottom: '1px solid #e2e8f0',
                     background: index % 2 === 0 ? 'white' : '#fafafa'
                   }}>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ color: '#4a5568' }}>▶</span>
-                        <input type="checkbox" />
-                      </div>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                      <span style={{ color: '#6b7280' }}>▶</span>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                       <span style={{
                         fontFamily: 'Monaco, monospace',
                         fontWeight: '600',
@@ -394,41 +476,41 @@ export default function BanqueView() {
                         {banque.code}
                       </span>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                       <div style={{ fontWeight: '600', color: '#1a202c' }}>
                         {banque.libelle}
                       </div>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
-                      <div style={{ color: '#374151' }}>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                      <div style={{ color: '#6b7280' }}>
                         {banque.responsable}
                       </div>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
-                      <div style={{ color: '#374151' }}>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                      <div style={{ color: '#6b7280' }}>
                         {banque.adresse}
                       </div>
                     </td>
-                    <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc', position: 'relative' }} className="action-menu">
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', position: 'relative' }} className="action-menu">
                       <button
                         onClick={() => toggleActionMenu(banque.id.toString())}
                         style={{
                           padding: '0.5rem 0.75rem',
-                          backgroundColor: '#ff8c00',
+                          backgroundColor: '#F97316',
                           color: 'white',
                           border: 'none',
                           borderRadius: '0.375rem',
                           cursor: 'pointer',
-                          fontSize: '0.875rem',
+                          fontSize: '0.9rem',
                           fontWeight: '500',
                           transition: 'background-color 0.2s',
                           minWidth: '40px'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#e67e00'
+                          e.currentTarget.style.backgroundColor = '#F97316'
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#ff8c00'
+                          e.currentTarget.style.backgroundColor = '#F97316'
                         }}
                       >
                         ⋯
@@ -461,7 +543,7 @@ export default function BanqueView() {
                               border: 'none',
                               textAlign: 'left',
                               cursor: 'pointer',
-                              fontSize: '0.875rem',
+                              fontSize: '0.9rem',
                               borderBottom: '1px solid #f3f4f6',
                               transition: 'background-color 0.2s'
                             }}
@@ -484,7 +566,7 @@ export default function BanqueView() {
                               border: 'none',
                               textAlign: 'left',
                               cursor: 'pointer',
-                              fontSize: '0.875rem',
+                              fontSize: '0.9rem',
                               transition: 'background-color 0.2s'
                             }}
                             onMouseEnter={(e) => {
@@ -516,7 +598,7 @@ export default function BanqueView() {
           }}>
               <div style={{
                   color: '#6b7280',
-                  fontSize: '0.875rem'
+                  fontSize: '0.9rem'
               }}>
                   Affichage de 1 à {Math.min(5, currentBanques.length)} sur {currentBanques.length} résultats
               </div>
@@ -533,7 +615,7 @@ export default function BanqueView() {
                           border: 'none',
                           borderRadius: '0.375rem',
                           cursor: 'not-allowed',
-                          fontSize: '0.875rem',
+                          fontSize: '0.9rem',
                           transition: 'all 0.2s'
                       }}
                       disabled
@@ -548,7 +630,7 @@ export default function BanqueView() {
                           border: 'none',
                           borderRadius: '0.375rem',
                           cursor: 'not-allowed',
-                          fontSize: '0.875rem',
+                          fontSize: '0.9rem',
                           transition: 'all 0.2s'
                       }}
                       disabled
@@ -557,10 +639,10 @@ export default function BanqueView() {
                   </button>
                   <span style={{
                       padding: '0.5rem 0.75rem',
-                      backgroundColor: '#059669',
+                      backgroundColor: '#28A325',
                       color: 'white',
                       borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
+                      fontSize: '0.9rem',
                       fontWeight: '500'
                   }}>
                       1
@@ -570,7 +652,7 @@ export default function BanqueView() {
                       backgroundColor: '#f3f4f6',
                       color: '#374151',
                       borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
+                      fontSize: '0.9rem',
                       fontWeight: '500',
                       cursor: 'pointer'
                   }}>
@@ -579,12 +661,12 @@ export default function BanqueView() {
                   <button
                       style={{
                           padding: '0.5rem 0.75rem',
-                          backgroundColor: '#059669',
+                          backgroundColor: '#28A325',
                           color: 'white',
                           border: 'none',
                           borderRadius: '0.375rem',
                           cursor: 'pointer',
-                          fontSize: '0.875rem',
+                          fontSize: '0.9rem',
                           transition: 'all 0.2s'
                       }}
                   >
@@ -593,12 +675,12 @@ export default function BanqueView() {
                   <button
                       style={{
                           padding: '0.5rem 0.75rem',
-                          backgroundColor: '#059669',
+                          backgroundColor: '#28A325',
                           color: 'white',
                           border: 'none',
                           borderRadius: '0.375rem',
                           cursor: 'pointer',
-                          fontSize: '0.875rem',
+                          fontSize: '0.9rem',
                           transition: 'all 0.2s'
                       }}
                   >
@@ -615,7 +697,7 @@ export default function BanqueView() {
                               padding: '0.5rem',
                               border: '1px solid #d1d5db',
                               borderRadius: '0.375rem',
-                              fontSize: '0.875rem',
+                              fontSize: '0.9rem',
                               backgroundColor: 'white'
                           }}
                       >
@@ -652,10 +734,29 @@ export default function BanqueView() {
           onCancel={() => {
             setShowForm(false)
             setEditingBanque(null)
+            addNotification('info', 'Action annulée', editingBanque ? 'Modification annulée.' : 'Création annulée.')
           }}
           isEditing={!!editingBanque}
         />
       )}
+
+      {/* Gestionnaire de notifications */}
+      <NotificationManager
+        notifications={notifications}
+        onRemoveNotification={removeNotification}
+      />
+
+      {/* Modal de confirmation */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        type="danger"
+        onConfirm={confirmationModal.onConfirm}
+        onCancel={closeConfirmation}
+      />
     </div>
   )
 }

@@ -142,7 +142,7 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
             fontWeight: 'bold',
             color: '#1a202c'
           }}>
-            {isEditing ? '✏️ Modifier la Banque' : '➕ Ajouter une Banque'}
+            {isEditing ? '✏️ Modifier la Banque' : <><span style={{ color: 'white' }}>+</span> Ajouter une Banque</>}
           </h2>
           <button
             onClick={onCancel}
@@ -198,7 +198,7 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
                   backgroundColor: errors.code ? '#fef2f2' : 'white'
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#059669'
+                  e.target.style.borderColor = '#28A325'
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = errors.code ? '#ef4444' : '#d1d5db'
@@ -243,7 +243,7 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
                   backgroundColor: errors.libelle ? '#fef2f2' : 'white'
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#059669'
+                  e.target.style.borderColor = '#28A325'
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = errors.libelle ? '#ef4444' : '#d1d5db'
@@ -288,7 +288,7 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
                   backgroundColor: errors.responsable ? '#fef2f2' : 'white'
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#059669'
+                  e.target.style.borderColor = '#28A325'
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = errors.responsable ? '#ef4444' : '#d1d5db'
@@ -335,7 +335,7 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
                   fontFamily: 'inherit'
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#059669'
+                  e.target.style.borderColor = '#28A325'
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = errors.adresse ? '#ef4444' : '#d1d5db'
@@ -391,7 +391,7 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
               type="submit"
               style={{
                 padding: '0.75rem 1.5rem',
-                backgroundColor: '#059669',
+                backgroundColor: '#28A325',
                 color: 'white',
                 border: 'none',
                 borderRadius: '0.5rem',
@@ -404,7 +404,7 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
                 e.currentTarget.style.backgroundColor = '#047857'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#059669'
+                e.currentTarget.style.backgroundColor = '#28A325'
               }}
             >
               {isEditing ? 'Modifier' : 'Ajouter'}

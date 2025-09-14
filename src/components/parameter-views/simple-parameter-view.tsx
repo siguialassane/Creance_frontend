@@ -1,6 +1,16 @@
 "use client"
 
 import { useState, useEffect, useMemo } from 'react'
+import { NotificationManager } from '../notification/notification'
+import { ConfirmationModal } from '../confirmation/confirmation-modal'
+
+interface Notification {
+    id: string
+    type: 'success' | 'error' | 'warning' | 'info'
+    title: string
+    message: string
+    duration?: number
+}
 
 interface SimpleParameterViewProps {
     title: string
@@ -22,6 +32,18 @@ export default function SimpleParameterView({ title, description, data: initialD
     const [showForm, setShowForm] = useState(false)
     const [showActionMenu, setShowActionMenu] = useState<string | null>(null)
     const [currentYear, setCurrentYear] = useState(2024)
+    const [notifications, setNotifications] = useState<Notification[]>([])
+    const [confirmationModal, setConfirmationModal] = useState<{
+        isOpen: boolean
+        title: string
+        message: string
+        onConfirm: () => void
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {}
+    })
 
     // Données de démonstration si aucune donnée n'est fournie
     useEffect(() => {
@@ -45,6 +67,37 @@ export default function SimpleParameterView({ title, description, data: initialD
         )
     }, [searchTerm, data])
 
+    // Fonction pour ajouter une notification
+    const addNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string, duration = 5000) => {
+        const id = `notif_${Math.random().toString(36).substr(2, 9)}_${notifications.length}`
+        setNotifications(prev => [...prev, { id, type, title, message, duration }])
+    }
+
+    // Fonction pour supprimer une notification
+    const removeNotification = (id: string) => {
+        setNotifications(prev => prev.filter(notif => notif.id !== id))
+    }
+
+    // Fonction pour afficher une confirmation
+    const showConfirmation = (title: string, message: string, onConfirm: () => void) => {
+        setConfirmationModal({
+            isOpen: true,
+            title,
+            message,
+            onConfirm
+        })
+    }
+
+    // Fonction pour fermer la confirmation
+    const closeConfirmation = () => {
+        setConfirmationModal({
+            isOpen: false,
+            title: '',
+            message: '',
+            onConfirm: () => {}
+        })
+    }
+
     const handleAdd = () => {
         setEditingItem(null)
         setFormData({ code: '', libelle: '' })
@@ -59,10 +112,26 @@ export default function SimpleParameterView({ title, description, data: initialD
     }
 
     const handleDelete = (id: string) => {
-        setData(data.filter(item => item.id !== id))
-        // Notification silencieuse - on pourrait ajouter un toast ici
-        console.log('Élément supprimé avec succès')
-        setShowActionMenu(null)
+        const item = data.find(d => d.id === id)
+        if (item) {
+            showConfirmation(
+                'Confirmer la suppression',
+                `Êtes-vous sûr de vouloir supprimer l'élément "${item.libelle}" ? Cette action est irréversible.`,
+                () => {
+                    try {
+                        setData(data.filter(item => item.id !== id))
+                        setShowActionMenu(null)
+                        closeConfirmation()
+                        addNotification('success', 'Élément supprimé', `L'élément "${item.libelle}" a été supprimé avec succès.`)
+                    } catch (error) {
+                        console.error('Erreur lors de la suppression:', error)
+                        addNotification('error', 'Erreur de suppression', 'Une erreur est survenue lors de la suppression.')
+                    }
+                }
+            )
+        } else {
+            addNotification('error', 'Erreur', 'Élément introuvable.')
+        }
     }
 
     const toggleActionMenu = (id: string) => {
@@ -83,45 +152,46 @@ export default function SimpleParameterView({ title, description, data: initialD
 
     const handleSave = () => {
         if (!formData.code.trim() || !formData.libelle.trim()) {
-            // Validation silencieuse - on pourrait ajouter un toast ici
-            console.log('Le code et le libellé sont obligatoires')
+            addNotification('warning', 'Validation requise', 'Le code et le libellé sont obligatoires.')
             return
         }
 
-        if (editingItem) {
-            // Modification
-            setData(data.map(item =>
-                item.id === editingItem.id
-                    ? { ...item, ...formData }
-                    : item
-            ))
-            // Notification silencieuse - on pourrait ajouter un toast ici
-            console.log('Élément modifié avec succès')
-        } else {
-            // Vérifier si le code existe déjà
-            if (data.some(item => item.code === formData.code)) {
-                // Validation silencieuse - on pourrait ajouter un toast ici
-                console.log('Ce code existe déjà')
-                return
-            }
+        try {
+            if (editingItem) {
+                // Modification
+                setData(data.map(item =>
+                    item.id === editingItem.id
+                        ? { ...item, ...formData }
+                        : item
+                ))
+                addNotification('success', 'Élément modifié', `L'élément "${formData.libelle}" a été modifié avec succès.`)
+            } else {
+                // Vérifier si le code existe déjà
+                if (data.some(item => item.code === formData.code)) {
+                    addNotification('warning', 'Code existant', 'Ce code existe déjà. Veuillez en choisir un autre.')
+                    return
+                }
 
-            // Ajout
-            const newItem = {
-                id: `new_${data.length + 1}`,
-                ...formData
+                // Ajout
+                const newItem = {
+                    id: `new_${data.length + 1}`,
+                    ...formData
+                }
+                setData([...data, newItem])
+                addNotification('success', 'Élément créé', `L'élément "${formData.libelle}" a été créé avec succès.`)
             }
-            setData([...data, newItem])
-            // Notification silencieuse - on pourrait ajouter un toast ici
-            console.log('Élément ajouté avec succès')
+            setShowForm(false)
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde:', error)
+            addNotification('error', 'Erreur de sauvegarde', 'Une erreur est survenue lors de la sauvegarde.')
         }
-        setShowForm(false)
     }
 
     return (
         <div style={{ 
             height: '100vh', 
             backgroundColor: 'white', 
-            fontFamily: 'Arial, sans-serif',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             position: 'relative',
             overflowY: 'auto',
             display: 'flex',
@@ -135,9 +205,10 @@ export default function SimpleParameterView({ title, description, data: initialD
             }}>
                 <h1 style={{
                     margin: 0,
-                    fontSize: '1.5rem',
-                    fontWeight: 'bold',
-                    color: '#1a202c'
+                    fontSize: '1.75rem',
+                    fontWeight: '700',
+                    color: '#1a202c',
+                    letterSpacing: '-0.025em'
                 }}>
                     {title}
                 </h1>
@@ -145,7 +216,8 @@ export default function SimpleParameterView({ title, description, data: initialD
                     <p style={{
                         margin: '0.5rem 0 0 0',
                         color: '#718096',
-                        fontSize: '0.875rem'
+                        fontSize: '1rem',
+                        fontWeight: '400'
                     }}>
                         {description}
                     </p>
@@ -154,7 +226,7 @@ export default function SimpleParameterView({ title, description, data: initialD
 
             {/* Barre verte avec titre */}
             <div style={{
-                backgroundColor: '#059669',
+                backgroundColor: '#28A325',
                 color: 'white',
                 padding: '0.5rem 2rem',
                 fontSize: '1rem',
@@ -175,7 +247,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                     gap: '0.5rem',
                     color: '#2d3748',
                     fontWeight: '600',
-                    fontSize: '0.875rem'
+                    fontSize: '0.9rem'
                 }}>
                     <span>▼</span>
                     <span>LISTE DES {title.toUpperCase()}</span>
@@ -214,7 +286,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                     padding: '0.5rem 2.5rem 0.5rem 1rem',
                                     border: '1px solid #e2e8f0',
                                     borderRadius: '6px',
-                                    fontSize: '0.875rem',
+                                    fontSize: '0.9rem',
                                     width: '250px',
                                     outline: 'none'
                                 }}
@@ -223,7 +295,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                 position: 'absolute',
                                 right: '0.75rem',
                                 color: '#a0aec0',
-                                fontSize: '0.875rem'
+                                fontSize: '0.9rem'
                             }}>
                                 Q
                             </span>
@@ -241,12 +313,12 @@ export default function SimpleParameterView({ title, description, data: initialD
                     <button
                         onClick={handleAdd}
                         style={{
-                            background: '#ff8c00',
+                            background: '#F97316',
                             color: 'white',
                             border: 'none',
                             padding: '0.5rem 1rem',
                             borderRadius: '6px',
-                            fontSize: '0.875rem',
+                            fontSize: '0.9rem',
                             fontWeight: '600',
                             cursor: 'pointer',
                             display: 'flex',
@@ -254,7 +326,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                             gap: '0.5rem'
                         }}
                     >
-                        ➕ Ajouter
+                        <span style={{ color: 'white' }}>+</span> Ajouter
                     </button>
                 </div>
 
@@ -271,18 +343,18 @@ export default function SimpleParameterView({ title, description, data: initialD
                         <table style={{
                             width: '100%',
                             borderCollapse: 'collapse',
-                            fontSize: '0.875rem'
+                            fontSize: '0.9rem'
                         }}>
                             <thead>
                                 <tr style={{
-                                    background: '#f7fafc',
+                                    background: '#f8fafc',
                                     borderBottom: '1px solid #e2e8f0'
                                 }}>
                                     <th style={{
                                         padding: '1rem',
                                         textAlign: 'left',
                                         fontWeight: '600',
-                                        color: '#4a5568',
+                                        color: '#374151',
                                         borderBottom: '1px solid #e2e8f0'
                                     }}>
                                         #
@@ -291,7 +363,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                         padding: '1rem',
                                         textAlign: 'left',
                                         fontWeight: '600',
-                                        color: '#4a5568',
+                                        color: '#374151',
                                         borderBottom: '1px solid #e2e8f0'
                                     }}>
                                         Code
@@ -300,7 +372,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                         padding: '1rem',
                                         textAlign: 'left',
                                         fontWeight: '600',
-                                        color: '#4a5568',
+                                        color: '#374151',
                                         borderBottom: '1px solid #e2e8f0'
                                     }}>
                                         Libellé
@@ -309,10 +381,10 @@ export default function SimpleParameterView({ title, description, data: initialD
                                         padding: '1rem',
                                         textAlign: 'left',
                                         fontWeight: '600',
-                                        color: '#4a5568',
+                                        color: '#374151',
                                         borderBottom: '1px solid #e2e8f0'
                                     }}>
-                                        Options
+                                        Action
                                     </th>
                                 </tr>
                             </thead>
@@ -321,16 +393,13 @@ export default function SimpleParameterView({ title, description, data: initialD
                                     const isLastRow = index === filteredData.length - 1;
                                     return (
                                     <tr key={item.id} style={{
-                                        borderBottom: '1px solid #f7fafc',
+                                        borderBottom: '1px solid #e2e8f0',
                                         background: index % 2 === 0 ? 'white' : '#fafafa'
                                     }}>
-                                        <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <span style={{ color: '#4a5568' }}>▶</span>
-                                                <input type="checkbox" />
-                                            </div>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                                            <span style={{ color: '#6b7280' }}>▶</span>
                                         </td>
-                                        <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                                             <span style={{
                                                 fontFamily: 'Monaco, monospace',
                                                 fontWeight: '600',
@@ -343,31 +412,31 @@ export default function SimpleParameterView({ title, description, data: initialD
                                                 {item.code}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                                             <div style={{ fontWeight: '600', color: '#1a202c' }}>
                                                 {item.libelle}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc', position: 'relative' }} className="action-menu">
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', position: 'relative' }} className="action-menu">
                                             <button
                                                 onClick={() => toggleActionMenu(item.id)}
                                                 style={{
                                                     padding: '0.5rem 0.75rem',
-                                                    backgroundColor: '#ff8c00',
+                                                    backgroundColor: '#F97316',
                                                     color: 'white',
                                                     border: 'none',
                                                     borderRadius: '0.375rem',
                                                     cursor: 'pointer',
-                                                    fontSize: '0.875rem',
+                                                    fontSize: '0.9rem',
                                                     fontWeight: '500',
                                                     transition: 'background-color 0.2s',
                                                     minWidth: '40px'
                                                 }}
                                                 onMouseEnter={(e) => {
-                                                    e.currentTarget.style.backgroundColor = '#e67e00'
+                                                    e.currentTarget.style.backgroundColor = '#F97316'
                                                 }}
                                                 onMouseLeave={(e) => {
-                                                    e.currentTarget.style.backgroundColor = '#ff8c00'
+                                                    e.currentTarget.style.backgroundColor = '#F97316'
                                                 }}
                                             >
                                                 ⋯
@@ -403,7 +472,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                                                     border: 'none',
                                                                     textAlign: 'left',
                                                                     cursor: 'pointer',
-                                                                    fontSize: '0.875rem',
+                                                                    fontSize: '0.9rem',
                                                                     borderBottom: optionIndex < actionOptions.length - 1 ? '1px solid #f3f4f6' : 'none',
                                                                     transition: 'background-color 0.2s'
                                                                 }}
@@ -430,7 +499,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                                                     border: 'none',
                                                                     textAlign: 'left',
                                                                     cursor: 'pointer',
-                                                                    fontSize: '0.875rem',
+                                                                    fontSize: '0.9rem',
                                                                     borderBottom: '1px solid #f3f4f6',
                                                                     transition: 'background-color 0.2s'
                                                                 }}
@@ -453,7 +522,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                                                     border: 'none',
                                                                     textAlign: 'left',
                                                                     cursor: 'pointer',
-                                                                    fontSize: '0.875rem',
+                                                                    fontSize: '0.9rem',
                                                                     transition: 'background-color 0.2s'
                                                                 }}
                                                                 onMouseEnter={(e) => {
@@ -488,7 +557,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                 }}>
                     <div style={{
                         color: '#6b7280',
-                        fontSize: '0.875rem'
+                        fontSize: '0.9rem'
                     }}>
                         Affichage de 1 à {Math.min(5, filteredData.length)} sur {filteredData.length} résultats
                     </div>
@@ -505,7 +574,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                 border: 'none',
                                 borderRadius: '0.375rem',
                                 cursor: 'not-allowed',
-                                fontSize: '0.875rem',
+                                fontSize: '0.9rem',
                                 transition: 'all 0.2s'
                             }}
                             disabled
@@ -520,7 +589,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                 border: 'none',
                                 borderRadius: '0.375rem',
                                 cursor: 'not-allowed',
-                                fontSize: '0.875rem',
+                                fontSize: '0.9rem',
                                 transition: 'all 0.2s'
                             }}
                             disabled
@@ -529,10 +598,10 @@ export default function SimpleParameterView({ title, description, data: initialD
                         </button>
                         <span style={{
                             padding: '0.5rem 0.75rem',
-                            backgroundColor: '#059669',
+                            backgroundColor: '#28A325',
                             color: 'white',
                             borderRadius: '0.375rem',
-                            fontSize: '0.875rem',
+                            fontSize: '0.9rem',
                             fontWeight: '500'
                         }}>
                             1
@@ -542,7 +611,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                             backgroundColor: '#f3f4f6',
                             color: '#374151',
                             borderRadius: '0.375rem',
-                            fontSize: '0.875rem',
+                            fontSize: '0.9rem',
                             fontWeight: '500',
                             cursor: 'pointer'
                         }}>
@@ -551,12 +620,12 @@ export default function SimpleParameterView({ title, description, data: initialD
                         <button
                             style={{
                                 padding: '0.5rem 0.75rem',
-                                backgroundColor: '#059669',
+                                backgroundColor: '#28A325',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '0.375rem',
                                 cursor: 'pointer',
-                                fontSize: '0.875rem',
+                                fontSize: '0.9rem',
                                 transition: 'all 0.2s'
                             }}
                         >
@@ -565,12 +634,12 @@ export default function SimpleParameterView({ title, description, data: initialD
                         <button
                             style={{
                                 padding: '0.5rem 0.75rem',
-                                backgroundColor: '#059669',
+                                backgroundColor: '#28A325',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '0.375rem',
                                 cursor: 'pointer',
-                                fontSize: '0.875rem',
+                                fontSize: '0.9rem',
                                 transition: 'all 0.2s'
                             }}
                         >
@@ -587,7 +656,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                     padding: '0.5rem',
                                     border: '1px solid #d1d5db',
                                     borderRadius: '0.375rem',
-                                    fontSize: '0.875rem',
+                                    fontSize: '0.9rem',
                                     backgroundColor: 'white'
                                 }}
                             >
@@ -607,7 +676,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                 padding: '1rem 2rem',
                 textAlign: 'center',
                 color: '#718096',
-                fontSize: '0.875rem',
+                fontSize: '0.9rem',
                 borderTop: '1px solid #e2e8f0',
                 backgroundColor: 'white',
                 flexShrink: 0
@@ -652,7 +721,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                 fontWeight: 'bold',
                                 color: '#1a202c'
                             }}>
-                                {editingItem ? '✏️ Modifier' : '➕ Ajouter'}
+                                {editingItem ? '✏️ Modifier' : <><span style={{ color: 'white' }}>+</span> Ajouter</>}
                             </h2>
                             <button
                                 onClick={() => setShowForm(false)}
@@ -687,7 +756,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                         marginBottom: '0.5rem',
                                         fontWeight: '600',
                                         color: '#374151',
-                                        fontSize: '0.875rem'
+                                        fontSize: '0.9rem'
                                     }}>
                                         Code *
                                     </label>
@@ -706,7 +775,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                             transition: 'border-color 0.2s'
                                         }}
                                         onFocus={(e) => {
-                                            e.target.style.borderColor = '#059669'
+                                            e.target.style.borderColor = '#28A325'
                                         }}
                                         onBlur={(e) => {
                                             e.target.style.borderColor = '#d1d5db'
@@ -721,7 +790,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                         marginBottom: '0.5rem',
                                         fontWeight: '600',
                                         color: '#374151',
-                                        fontSize: '0.875rem'
+                                        fontSize: '0.9rem'
                                     }}>
                                         Libellé *
                                     </label>
@@ -740,7 +809,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                             transition: 'border-color 0.2s'
                                         }}
                                         onFocus={(e) => {
-                                            e.target.style.borderColor = '#059669'
+                                            e.target.style.borderColor = '#28A325'
                                         }}
                                         onBlur={(e) => {
                                             e.target.style.borderColor = '#d1d5db'
@@ -760,7 +829,10 @@ export default function SimpleParameterView({ title, description, data: initialD
                             }}>
                                 <button
                                     type="button"
-                                    onClick={() => setShowForm(false)}
+                                    onClick={() => {
+                                        setShowForm(false)
+                                        addNotification('info', 'Action annulée', editingItem ? 'Modification annulée.' : 'Création annulée.')
+                                    }}
                                     style={{
                                         padding: '0.75rem 1.5rem',
                                         backgroundColor: 'white',
@@ -788,7 +860,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                     onClick={handleSave}
                                     style={{
                                         padding: '0.75rem 1.5rem',
-                                        backgroundColor: '#059669',
+                                        backgroundColor: '#28A325',
                                         color: 'white',
                                         border: 'none',
                                         borderRadius: '0.5rem',
@@ -801,7 +873,7 @@ export default function SimpleParameterView({ title, description, data: initialD
                                         e.currentTarget.style.backgroundColor = '#047857'
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.style.backgroundColor = '#059669'
+                                        e.currentTarget.style.backgroundColor = '#28A325'
                                     }}
                                 >
                                     {editingItem ? 'Modifier' : 'Ajouter'}
@@ -811,6 +883,24 @@ export default function SimpleParameterView({ title, description, data: initialD
                     </div>
                 </div>
             )}
+
+            {/* Gestionnaire de notifications */}
+            <NotificationManager
+                notifications={notifications}
+                onRemoveNotification={removeNotification}
+            />
+
+            {/* Modal de confirmation */}
+            <ConfirmationModal
+                isOpen={confirmationModal.isOpen}
+                title={confirmationModal.title}
+                message={confirmationModal.message}
+                confirmText="Supprimer"
+                cancelText="Annuler"
+                type="danger"
+                onConfirm={confirmationModal.onConfirm}
+                onCancel={closeConfirmation}
+            />
         </div>
     )
 }

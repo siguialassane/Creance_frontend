@@ -176,7 +176,7 @@ export default function CategorieDebiteurForm({ categorie, onSubmit, onCancel, i
                   backgroundColor: errors.code ? '#fef2f2' : 'white'
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#059669'
+                  e.target.style.borderColor = '#28A325'
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = errors.code ? '#ef4444' : '#d1d5db'
@@ -221,7 +221,7 @@ export default function CategorieDebiteurForm({ categorie, onSubmit, onCancel, i
                   backgroundColor: errors.libelle ? '#fef2f2' : 'white'
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#059669'
+                  e.target.style.borderColor = '#28A325'
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = errors.libelle ? '#ef4444' : '#d1d5db'
@@ -277,7 +277,7 @@ export default function CategorieDebiteurForm({ categorie, onSubmit, onCancel, i
               type="submit"
               style={{
                 padding: '0.75rem 1.5rem',
-                backgroundColor: '#059669',
+                backgroundColor: '#28A325',
                 color: 'white',
                 border: 'none',
                 borderRadius: '0.5rem',
@@ -290,7 +290,7 @@ export default function CategorieDebiteurForm({ categorie, onSubmit, onCancel, i
                 e.currentTarget.style.backgroundColor = '#047857'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#059669'
+                e.currentTarget.style.backgroundColor = '#28A325'
               }}
             >
               {isEditing ? 'Modifier' : 'Ajouter'}

@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import CiviliteForm from './civilite-form'
+import { NotificationManager } from '../notification/notification'
+import { ConfirmationModal } from '../confirmation/confirmation-modal'
 
 interface Civilite {
   id: number
@@ -28,6 +30,14 @@ const civilitesData: Civilite[] = [
   { id: 15, code: "AMB", libelle: "Ambassadeur" }
 ]
 
+interface Notification {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  title: string
+  message: string
+  duration?: number
+}
+
 export default function CiviliteView() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -38,6 +48,18 @@ export default function CiviliteView() {
   const [editingCivilite, setEditingCivilite] = useState<Civilite | null>(null)
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null)
   const [currentYear, setCurrentYear] = useState(2024)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  })
 
   // Filtrage et tri des données
   const filteredCivilites = useMemo(() => {
@@ -91,21 +113,82 @@ export default function CiviliteView() {
     setCurrentPage(1)
   }
 
+  // Fonction pour ajouter une notification
+  const addNotification = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string, duration = 5000) => {
+    const id = `notif_${Math.random().toString(36).substr(2, 9)}_${notifications.length}`
+    setNotifications(prev => [...prev, { id, type, title, message, duration }])
+  }
+
+  // Fonction pour supprimer une notification
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id))
+  }
+
+  // Fonction pour afficher une confirmation
+  const showConfirmation = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm
+    })
+  }
+
+  // Fonction pour fermer la confirmation
+  const closeConfirmation = () => {
+    setConfirmationModal({
+      isOpen: false,
+      title: '',
+      message: '',
+      onConfirm: () => {}
+    })
+  }
+
   const handleAddCivilite = (civilite: any) => {
-    console.log('Ajouter civilité:', civilite)
-    setShowForm(false)
+    try {
+      console.log('Ajouter civilité:', civilite)
+      setShowForm(false)
+      addNotification('success', 'Civilité créée', `La civilité "${civilite.libelle}" a été créée avec succès.`)
+    } catch (error) {
+      console.error('Erreur lors de la création:', error)
+      addNotification('error', 'Erreur de création', 'Une erreur est survenue lors de la création de la civilité.')
+    }
   }
 
   const handleEditCivilite = (civilite: any) => {
-    console.log('Modifier civilité:', civilite)
-    setShowForm(false)
-    setEditingCivilite(null)
-    setShowActionMenu(null)
+    try {
+      console.log('Modifier civilité:', civilite)
+      setShowForm(false)
+      setEditingCivilite(null)
+      setShowActionMenu(null)
+      addNotification('success', 'Civilité modifiée', `La civilité "${civilite.libelle}" a été modifiée avec succès.`)
+    } catch (error) {
+      console.error('Erreur lors de la modification:', error)
+      addNotification('error', 'Erreur de modification', 'Une erreur est survenue lors de la modification de la civilité.')
+    }
   }
 
   const handleDeleteCivilite = (id: number) => {
-    console.log('Supprimer civilité:', id)
-    setShowActionMenu(null)
+    const civilite = civilitesData.find(c => c.id === id)
+    if (civilite) {
+      showConfirmation(
+        'Confirmer la suppression',
+        `Êtes-vous sûr de vouloir supprimer la civilité "${civilite.libelle}" ? Cette action est irréversible.`,
+        () => {
+          try {
+            console.log('Supprimer civilité:', id)
+            setShowActionMenu(null)
+            closeConfirmation()
+            addNotification('success', 'Civilité supprimée', `La civilité "${civilite.libelle}" a été supprimée avec succès.`)
+          } catch (error) {
+            console.error('Erreur lors de la suppression:', error)
+            addNotification('error', 'Erreur de suppression', 'Une erreur est survenue lors de la suppression de la civilité.')
+          }
+        }
+      )
+    } else {
+      addNotification('error', 'Erreur', 'Civilité introuvable.')
+    }
   }
 
   const toggleActionMenu = (id: string) => {
@@ -136,7 +219,7 @@ export default function CiviliteView() {
     <div style={{ 
       height: '100vh', 
       backgroundColor: 'white', 
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       position: 'relative',
       overflowY: 'auto',
       display: 'flex',
@@ -150,16 +233,18 @@ export default function CiviliteView() {
       }}>
         <h1 style={{
           margin: 0,
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          color: '#1a202c'
+          fontSize: '1.75rem',
+          fontWeight: '700',
+          color: '#1a202c',
+          letterSpacing: '-0.025em'
         }}>
           Gestion des civilités
         </h1>
         <p style={{
           margin: '0.5rem 0 0 0',
           color: '#718096',
-          fontSize: '0.875rem'
+          fontSize: '1rem',
+          fontWeight: '400'
         }}>
           Programme de gestion des civilités
         </p>
@@ -167,7 +252,7 @@ export default function CiviliteView() {
 
       {/* Barre verte avec titre */}
       <div style={{
-        backgroundColor: '#059669',
+        backgroundColor: '#28A325',
         color: 'white',
         padding: '0.5rem 2rem',
         fontSize: '1rem',
@@ -227,7 +312,7 @@ export default function CiviliteView() {
                   padding: '0.5rem 2.5rem 0.5rem 1rem',
                   border: '1px solid #e2e8f0',
                   borderRadius: '6px',
-                  fontSize: '0.875rem',
+                  fontSize: '0.9rem',
                   width: '250px',
                   outline: 'none'
                 }}
@@ -236,7 +321,7 @@ export default function CiviliteView() {
                 position: 'absolute',
                 right: '0.75rem',
                 color: '#a0aec0',
-                fontSize: '0.875rem'
+                fontSize: '0.9rem'
               }}>
                 Q
               </span>
@@ -254,12 +339,12 @@ export default function CiviliteView() {
           <button
             onClick={openAddForm}
             style={{
-              background: '#ff8c00',
+              background: '#F97316',
               color: 'white',
               border: 'none',
               padding: '0.5rem 1rem',
               borderRadius: '6px',
-              fontSize: '0.875rem',
+              fontSize: '0.9rem',
               fontWeight: '600',
               cursor: 'pointer',
               display: 'flex',
@@ -267,7 +352,7 @@ export default function CiviliteView() {
               gap: '0.5rem'
             }}
           >
-            ➕ Ajouter
+            <span style={{ color: 'white' }}>+</span> Ajouter
           </button>
         </div>
 
@@ -284,18 +369,18 @@ export default function CiviliteView() {
           <table style={{
             width: '100%',
             borderCollapse: 'collapse',
-            fontSize: '0.875rem'
+            fontSize: '0.9rem'
           }}>
             <thead>
               <tr style={{
-                background: '#f7fafc',
+                background: '#f8fafc',
                 borderBottom: '1px solid #e2e8f0'
               }}>
                 <th style={{
                   padding: '1rem',
                   textAlign: 'left',
                   fontWeight: '600',
-                  color: '#4a5568',
+                  color: '#374151',
                   borderBottom: '1px solid #e2e8f0'
                 }}>
                   #
@@ -304,7 +389,7 @@ export default function CiviliteView() {
                   padding: '1rem',
                   textAlign: 'left',
                   fontWeight: '600',
-                  color: '#4a5568',
+                  color: '#374151',
                   borderBottom: '1px solid #e2e8f0'
                 }}>
                   Code
@@ -313,7 +398,7 @@ export default function CiviliteView() {
                   padding: '1rem',
                   textAlign: 'left',
                   fontWeight: '600',
-                  color: '#4a5568',
+                  color: '#374151',
                   borderBottom: '1px solid #e2e8f0'
                 }}>
                   Libellé
@@ -322,10 +407,10 @@ export default function CiviliteView() {
                   padding: '1rem',
                   textAlign: 'left',
                   fontWeight: '600',
-                  color: '#4a5568',
+                  color: '#374151',
                   borderBottom: '1px solid #e2e8f0'
                 }}>
-                  Options
+                  Action
                 </th>
               </tr>
             </thead>
@@ -334,16 +419,13 @@ export default function CiviliteView() {
                 const isLastRow = index === currentCivilites.length - 1;
                 return (
                 <tr key={civilite.id} style={{
-                  borderBottom: '1px solid #f7fafc',
+                  borderBottom: '1px solid #e2e8f0',
                   background: index % 2 === 0 ? 'white' : '#fafafa'
                 }}>
-                  <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ color: '#4a5568' }}>▶</span>
-                      <input type="checkbox" />
-                    </div>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                    <span style={{ color: '#6b7280' }}>▶</span>
                   </td>
-                  <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                     <span style={{
                       fontFamily: 'Monaco, monospace',
                       fontWeight: '600',
@@ -356,29 +438,29 @@ export default function CiviliteView() {
                       {civilite.code}
                     </span>
                   </td>
-                  <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc' }}>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                     {civilite.libelle}
                   </td>
-                  <td style={{ padding: '1rem', borderBottom: '1px solid #f7fafc', position: 'relative' }} className="action-menu">
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', position: 'relative' }} className="action-menu">
                     <button
                       onClick={() => toggleActionMenu(civilite.id.toString())}
                       style={{
                         padding: '0.5rem 0.75rem',
-                        backgroundColor: '#ff8c00',
+                        backgroundColor: '#F97316',
                         color: 'white',
                         border: 'none',
                         borderRadius: '0.375rem',
                         cursor: 'pointer',
-                        fontSize: '0.875rem',
+                        fontSize: '0.9rem',
                         fontWeight: '500',
                         transition: 'background-color 0.2s',
                         minWidth: '40px'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#e67e00'
+                        e.currentTarget.style.backgroundColor = '#F97316'
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#ff8c00'
+                        e.currentTarget.style.backgroundColor = '#F97316'
                       }}
                     >
                       ⋯
@@ -411,7 +493,7 @@ export default function CiviliteView() {
                             border: 'none',
                             textAlign: 'left',
                             cursor: 'pointer',
-                            fontSize: '0.875rem',
+                            fontSize: '0.9rem',
                             borderBottom: '1px solid #f3f4f6',
                             transition: 'background-color 0.2s'
                           }}
@@ -434,7 +516,7 @@ export default function CiviliteView() {
                             border: 'none',
                             textAlign: 'left',
                             cursor: 'pointer',
-                            fontSize: '0.875rem',
+                            fontSize: '0.9rem',
                             transition: 'background-color 0.2s'
                           }}
                           onMouseEnter={(e) => {
@@ -466,7 +548,7 @@ export default function CiviliteView() {
         }}>
             <div style={{
                 color: '#6b7280',
-                fontSize: '0.875rem'
+                fontSize: '0.9rem'
             }}>
                 Affichage de 1 à {Math.min(5, currentCivilites.length)} sur {currentCivilites.length} résultats
             </div>
@@ -483,7 +565,7 @@ export default function CiviliteView() {
                         border: 'none',
                         borderRadius: '0.375rem',
                         cursor: 'not-allowed',
-                        fontSize: '0.875rem',
+                        fontSize: '0.9rem',
                         transition: 'all 0.2s'
                     }}
                     disabled
@@ -498,7 +580,7 @@ export default function CiviliteView() {
                         border: 'none',
                         borderRadius: '0.375rem',
                         cursor: 'not-allowed',
-                        fontSize: '0.875rem',
+                        fontSize: '0.9rem',
                         transition: 'all 0.2s'
                     }}
                     disabled
@@ -507,10 +589,10 @@ export default function CiviliteView() {
                 </button>
                 <span style={{
                     padding: '0.5rem 0.75rem',
-                    backgroundColor: '#059669',
+                    backgroundColor: '#28A325',
                     color: 'white',
                     borderRadius: '0.375rem',
-                    fontSize: '0.875rem',
+                    fontSize: '0.9rem',
                     fontWeight: '500'
                 }}>
                     1
@@ -520,7 +602,7 @@ export default function CiviliteView() {
                     backgroundColor: '#f3f4f6',
                     color: '#374151',
                     borderRadius: '0.375rem',
-                    fontSize: '0.875rem',
+                    fontSize: '0.9rem',
                     fontWeight: '500',
                     cursor: 'pointer'
                 }}>
@@ -529,12 +611,12 @@ export default function CiviliteView() {
                 <button
                     style={{
                         padding: '0.5rem 0.75rem',
-                        backgroundColor: '#059669',
+                        backgroundColor: '#28A325',
                         color: 'white',
                         border: 'none',
                         borderRadius: '0.375rem',
                         cursor: 'pointer',
-                        fontSize: '0.875rem',
+                        fontSize: '0.9rem',
                         transition: 'all 0.2s'
                     }}
                 >
@@ -543,12 +625,12 @@ export default function CiviliteView() {
                 <button
                     style={{
                         padding: '0.5rem 0.75rem',
-                        backgroundColor: '#059669',
+                        backgroundColor: '#28A325',
                         color: 'white',
                         border: 'none',
                         borderRadius: '0.375rem',
                         cursor: 'pointer',
-                        fontSize: '0.875rem',
+                        fontSize: '0.9rem',
                         transition: 'all 0.2s'
                     }}
                 >
@@ -565,7 +647,7 @@ export default function CiviliteView() {
                             padding: '0.5rem',
                             border: '1px solid #d1d5db',
                             borderRadius: '0.375rem',
-                            fontSize: '0.875rem',
+                            fontSize: '0.9rem',
                             backgroundColor: 'white'
                         }}
                     >
@@ -599,10 +681,31 @@ export default function CiviliteView() {
         <CiviliteForm
           civilite={editingCivilite}
           onSubmit={editingCivilite ? handleEditCivilite : handleAddCivilite}
-          onCancel={closeForm}
+          onCancel={() => {
+            closeForm()
+            addNotification('info', 'Action annulée', editingCivilite ? 'Modification annulée.' : 'Création annulée.')
+          }}
           isEditing={!!editingCivilite}
         />
       )}
+
+      {/* Gestionnaire de notifications */}
+      <NotificationManager
+        notifications={notifications}
+        onRemoveNotification={removeNotification}
+      />
+
+      {/* Modal de confirmation */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        type="danger"
+        onConfirm={confirmationModal.onConfirm}
+        onCancel={closeConfirmation}
+      />
     </div>
   )
 }
