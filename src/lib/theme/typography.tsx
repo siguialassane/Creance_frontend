@@ -18,18 +18,13 @@ font-weight: bold;
 
 export const StyledMenuItem = styled.button<{ $textColor?: string, $backgroundColor?: string }>`
 font-size: 20px;
-padding: 10px 17px;
-margin-bottom: 8px;
 width: 100%;
 max-lines: 1;
 text-overflow: ellipsis;
 white-space: nowrap;
 overflow: hidden;
-background-color: ${props => props.$backgroundColor};
-border-radius: 8px;
 color: ${props => props.$textColor ?? colors.black};
 font-weight: 500;
-transition: background-color 700ms ease, color 700ms ease;
 border: none;
 cursor: pointer;
 text-align: left;

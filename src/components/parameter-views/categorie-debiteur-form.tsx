@@ -120,7 +120,7 @@ export default function CategorieDebiteurForm({ categorie, onSubmit, onCancel, i
             fontWeight: 'bold',
             color: '#1a202c'
           }}>
-            {isEditing ? '✏️ Modifier la Catégorie' : '➕ Ajouter une Catégorie'}
+            {isEditing ? '✏️ Modifier la Catégorie' : ' Ajouter une Catégorie'}
           </h2>
           <button
             onClick={onCancel}

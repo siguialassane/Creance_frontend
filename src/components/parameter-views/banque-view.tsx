@@ -251,7 +251,7 @@ export default function BanqueView() {
               gap: '0.5rem'
             }}
           >
-            ➕ Ajouter
+            Ajouter
           </button>
         </div>
 

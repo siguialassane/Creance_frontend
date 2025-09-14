@@ -2,11 +2,13 @@
 
 import { useParams } from 'next/navigation'
 import { menuItems } from '../../../lib/configs/menu.data'
-import SimpleParameterView from '../../../components/parameter-views/simple-parameter-view'
-import BanqueView from '../../../components/parameter-views/banque-view'
-import CiviliteView from '../../../components/parameter-views/civilite-view'
-import CategorieDebiteurView from '../../../components/parameter-views/categorie-debiteur-view'
+import ProfessionalBanqueView from '../../../components/parameter-views/professional-banque-view'
+import ProfessionalCiviliteView from '../../../components/parameter-views/professional-civilite-view'
+import ProfessionalCategorieDebiteurView from '../../../components/parameter-views/professional-categorie-debiteur-view'
 import Link from 'next/link'
+import ParameterView from '../../../components/parameter-views/parameter-view'
+import { agencesData, banquesData, categoriesData,civilites, classes, fonctions } from '@/lib/theme/fake-data'
+import {  } from '@/lib/theme/fake-data'
 
 export default function ParameterPage() {
     const params = useParams()
@@ -25,7 +27,16 @@ export default function ParameterPage() {
     
     // Trouver le sous-menu correspondant en utilisant le nom converti en path
     const subMenu = settingsMenu.subMenus.find((sub: any) => {
-        const subPath = sub.name.toLowerCase().replace(/\s+/g, '_').replace(/[éèê]/g, 'e').replace(/[àâ]/g, 'a').replace(/[ùû]/g, 'u').replace(/[ôö]/g, 'o').replace(/[îï]/g, 'i').replace(/[ç]/g, 'c')
+        const subPath = sub.name
+            .toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[éèêë]/g, 'e')
+            .replace(/[àâä]/g, 'a')
+            .replace(/[ùûü]/g, 'u')
+            .replace(/[ôö]/g, 'o')
+            .replace(/[îï]/g, 'i')
+            .replace(/[ç]/g, 'c')
+            .replace(/[’']/g, '')
         return subPath === paramPath
     })
     
@@ -57,30 +68,209 @@ export default function ParameterPage() {
         )
     }
 
+    // Préparer les colonnes définies dans le menu (avec fallback par défaut)
+    const rawColumns = (subMenu as any).columns || (settingsMenu as any).columns || [
+        { key: 'code', label: 'Code', sortable: true },
+        { key: 'libelle', label: 'Libellé', sortable: true },
+    ]
+
+
     // Fonction pour déterminer quelle vue utiliser
     const getParameterView = () => {
         switch (paramPath) {
+            case 'agence_de_banque':
+                return <ParameterView 
+                key={subMenu.name}
+                title={subMenu.name} 
+                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                columns={rawColumns as any}
+                initData={agencesData} />
             case 'banque':
-                return <BanqueView />
+                return <ParameterView 
+                key={subMenu.name}
+                title={subMenu.name} 
+                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                columns={rawColumns as any}
+                initData={banquesData} />
             case 'civilite':
-                return <CiviliteView />
+                return <ParameterView 
+                key={subMenu.name}
+                title={subMenu.name} 
+                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                columns={rawColumns as any}
+                initData={civilites} />
             case 'categorie_de_debiteur':
-                return <CategorieDebiteurView />
+                return <ParameterView title={subMenu.name} 
+                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                columns={rawColumns as any}
+                initData={categoriesData} />
             case 'classe':
+                return <ParameterView title={subMenu.name} 
+                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                columns={rawColumns as any}
+                initData={classes} />
             case 'fonction':
-            case 'profession':
+                return <ParameterView title={subMenu.name} 
+                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                columns={rawColumns as any}
+                initData={fonctions} />
             case 'nationalite':
+                return <ParameterView title={subMenu.name} 
+                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                columns={rawColumns as any}
+                initData={[]} />
+            case 'profession':
+                return <ParameterView title={subMenu.name} 
+                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                columns={rawColumns as any}
+                initData={[]} />
             case 'quartier':
+                return <ParameterView title={subMenu.name} 
+                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                columns={rawColumns as any}
+                initData={[]} />
             case 'ville':
+                return <ParameterView title={subMenu.name} 
+                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                columns={rawColumns as any}
+                initData={[]} />
             case 'zone':
-                return <SimpleParameterView 
+                return <ParameterView title={subMenu.name} 
+                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                columns={rawColumns as any}
+                initData={[]} />
+            case 'statut_creance':
+                return <ParameterView 
                     title={subMenu.name}
-                    description={`Gérez les ${subMenu.name.toLowerCase()}`}
-                />
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'statut_salarie':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_acte':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_auxiliaire':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_echéancier':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_charge':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_compte':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_contrat':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_debiteur':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_domiciliation':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_effet':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_employeur':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_frais':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_garantie_reelle':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_garantie_personnelle':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_logement':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_operation':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_ovp':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_piece':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_regularisation':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            case 'type_saisie':
+                return <ParameterView 
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
+                    initData={[]} />
+            
             default:
-                return <SimpleParameterView 
+                return <ParameterView 
                     title={subMenu.name}
-                    description={`Gérez les ${subMenu.name.toLowerCase()}`}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={rawColumns as any}
                 />
         }
     }

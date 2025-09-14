@@ -23,15 +23,16 @@ padding-left: 1rem;
 padding-top: 0.5rem;
 padding-bottom: 0.5rem;
 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-background-color: ${props => props.$isSelected ? 'rgba(34, 197, 94, 0.15)' : 'transparent'};
-margin-bottom: 0.5rem;
-border-radius: 6px;
+// background-color: ${props => props.$isSelected ? 'rgba(34, 197, 94, 0.15)' : 'transparent'};
+// margin-bottom: 0.5rem;
+// border-radius: 6px;
 display: block;
 cursor: pointer;
-border: ${props => props.$isSelected ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid transparent'};
-box-shadow: ${props => props.$isSelected ? '0 2px 8px rgba(34, 197, 94, 0.2)' : 'none'};
+border: ${props => props.$isSelected ? '2px solid green' : '2px solid transparent'};
+// box-shadow: ${props => props.$isSelected ? '0 2px 8px rgba(34, 197, 94, 0.2)' : 'none'};
 transform: ${props => props.$isHovered ? 'translateX(4px)' : 'translateX(0px)'};
 position: relative;
+margin: 0.5rem 0;
 
 &:hover {
     background-color: rgba(255, 255, 255, 0.08);
@@ -48,14 +49,15 @@ const SubMenuNameStyled = styled.div`
   scrollbar-width: none;
   overflow-y: scroll;
   transition: color 0.2s ease-in-out;
-  font-size: 14px;
+  font-size: 16px;
+  color: #fff;
   font-weight: 500;
 `
 
 const AnimatedSubIcon = styled.div<{ $isSelected: boolean; $isHovered?: boolean }>`
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform: ${props => props.$isSelected ? 'scale(1.1)' : props.$isHovered ? 'scale(1.05)' : 'scale(1)'};
-  color: ${props => props.$isSelected ? colors.green : props.$isHovered ? '#E5E7EB' : '#9CA3AF'};
+  color: ${props => props.$isSelected ? colors.green : props.$isHovered ? '#E5E7EB' : '#fff'};
   font-size: 12px;
   filter: ${props => props.$isSelected ? 'brightness(1.2)' : 'brightness(1)'};
 `
@@ -65,7 +67,7 @@ const SubMenuItemComponent = ({ subMenu, isSelected, onPressed, hasLeftIndicator
 
     return (
         (
-            <Link href={parrentPath+'/'+subMenu.path.toString()} onClick={() => onPressed(subMenu)}>
+            <Link href={parrentPath+'/'+subMenu.path.toString()} onClick={() => parrentPath !== '/settings' && onPressed(subMenu)}>
                 <BorderedStyle 
                     $isSelected={isSelected} 
                     $isHovered={isHovered}
@@ -73,21 +75,14 @@ const SubMenuItemComponent = ({ subMenu, isSelected, onPressed, hasLeftIndicator
                     onMouseLeave={() => setIsHovered(false)}
                 >
                     <StyledMenuItem $textColor={isSelected ? colors.green : isHovered ? '#E5E7EB' : colors.lightGray}>
-                            {hasLeftIndicator!=undefined && hasLeftIndicator?
-                            <Stack direction='row' gap={2} justifyContent="start" alignItems="center" >
-                            <AnimatedSubIcon $isSelected={isSelected} $isHovered={isHovered}>
-                                {isSelected ? '▶' : '•'}
-                            </AnimatedSubIcon>
-                            <SubMenuNameStyled> {subMenu.name}</SubMenuNameStyled>
-                        </Stack>
-                            :
+                            
                         <Stack direction='row' gap={2} justifyContent="start" alignItems="center" >
-                            <AnimatedSubIcon $isSelected={isSelected} $isHovered={isHovered}>
+                            {/* <AnimatedSubIcon $isSelected={isSelected} $isHovered={isHovered}>
                                 {isSelected ? '▶' : '•'}
-                            </AnimatedSubIcon>
+                            </AnimatedSubIcon> */}
                             <SubMenuNameStyled>{subMenu.name}</SubMenuNameStyled>
                         </Stack>
-                        }
+                        
                     </StyledMenuItem>
                 </BorderedStyle>
             </Link>

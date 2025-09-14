@@ -13,41 +13,11 @@ import { MenuItem, SubMenuItem } from "../types/menu";
 // Menu exactement identique à l'original
 const menuItemsData = [
   {
-    name: "Overview",
+    name: "Tableau de bord",
     path: "/overview",
     icon: Recovery,
   },
-  {
-    name: "Action",
-    path: "/action",
-    icon: Account,    
-    subMenu: [
-      {
-        name: "Connexion",
-      },
-      {
-        name: "Déconnexion",
-      },
-      {
-        name: "Comptabilité",
-      },
-      {
-        name: "Utilisateur",
-      },
-      {
-        name: "Habilitations",
-      },
-      {
-        name: "Modifier mot de passe",
-      },
-      {
-        name: "Initialisation du mot de passe",
-      },
-      {
-        name: "Quitter",
-      },
-    ],
-  },
+
   {
     name: "Paramètres",
     icon: Settings,
@@ -55,12 +25,37 @@ const menuItemsData = [
     subMenu: [
       {
         name: "Agence de banque",
+        columns: [
+          {
+            key: 'code',
+            label: 'Code',
+            sortable: true,
+          },
+          {
+            key: 'libelle',
+            label: 'Libellé',
+            sortable: true,
+          },
+        ],
       },
       {
         name: "Banque",
+        columns: [
+          {
+            key: 'code',
+            label: 'Code',
+            sortable: true,
+          },
+          {
+            key: 'libelle',
+            label: 'Libellé',
+            sortable: true,
+          },
+        ],
       },
       {
         name: "Catégorie de débiteur",
+        
       },
       {
         name: "Civilité",
@@ -192,6 +187,18 @@ const menuItemsData = [
         name: "Zone",
       },
     ],
+    columns: [
+      {
+        key: 'code',
+        label: 'Code',
+        sortable: true,
+      },
+      {
+        key: 'libelle',
+        label: 'Libellé',
+        sortable: true,
+      },
+    ],
   },
   {
     name: "Etude de Creance",
@@ -299,6 +306,7 @@ const menuItemsData = [
       { name: "Gestion des Stocks" },
     ],
   },
+  
   {
     name: "Etats",
     path: "/etats",
@@ -310,6 +318,37 @@ const menuItemsData = [
       { name: "Contentieux" },
       { name: "Patrimoine" },
       { name: "Autres" },
+    ],
+  },
+  {
+    name: "Gestion des utilisateurs",
+    path: "/action",
+    icon: Account,    
+    subMenu: [
+      {
+        name: "Connexion",
+      },
+      {
+        name: "Déconnexion",
+      },
+      {
+        name: "Comptabilité",
+      },
+      {
+        name: "Utilisateur",
+      },
+      {
+        name: "Habilitations",
+      },
+      {
+        name: "Modifier mot de passe",
+      },
+      {
+        name: "Initialisation du mot de passe",
+      },
+      {
+        name: "Quitter",
+      },
     ],
   },
   {

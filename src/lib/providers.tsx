@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ChakraProvider } from "@chakra-ui/react";
 import { useState } from "react";
+import { Toaster } from "sonner";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -21,6 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ChakraProvider>
       <QueryClientProvider client={queryClient}>
         {children}
+        <Toaster position="top-right" richColors closeButton />
       </QueryClientProvider>
     </ChakraProvider>
   );
