@@ -1,12 +1,12 @@
 "use client"
 
 import { useParams } from 'next/navigation'
-import { menuItems } from '../../../lib/configs/menu.data'
-import ProfessionalBanqueView from '../../../components/parameter-views/professional-banque-view'
-import ProfessionalCiviliteView from '../../../components/parameter-views/professional-civilite-view'
-import ProfessionalCategorieDebiteurView from '../../../components/parameter-views/professional-categorie-debiteur-view'
+import { menuItems } from '../../../../lib/configs/menu.data'
+import ProfessionalBanqueView from '../../../../components/parameter-views/professional-banque-view'
+import ProfessionalCiviliteView from '../../../../components/parameter-views/professional-civilite-view'
+import ProfessionalCategorieDebiteurView from '../../../../components/parameter-views/professional-categorie-debiteur-view'
 import Link from 'next/link'
-import ParameterView from '../../../components/parameter-views/parameter-view'
+import ParameterView from '../../../../components/parameter-views/parameter-view'
 import { agencesData, banquesData, categoriesData,civilites, classes, fonctions } from '@/lib/theme/fake-data'
 import {  } from '@/lib/theme/fake-data'
 
