@@ -4,28 +4,8 @@ import { useState, useMemo, useEffect } from 'react'
 import BanqueForm from './banque-form'
 import { NotificationManager } from '../notification/notification'
 import { ConfirmationModal } from '../confirmation/confirmation-modal'
-
-interface Banque {
-  id: number
-  code: string
-  libelle: string
-  responsable: string
-  adresse: string
-}
-
-// Données de test pour les banques
-const banquesData: Banque[] = [
-  { id: 1, code: "B001", libelle: "Banque Atlantique", responsable: "M. Koné", adresse: "Abidjan, Plateau" },
-  { id: 2, code: "B002", libelle: "Société Générale", responsable: "Mme Traoré", adresse: "Abidjan, Cocody" },
-  { id: 3, code: "B003", libelle: "BNI", responsable: "M. Ouattara", adresse: "Abidjan, Marcory" },
-  { id: 4, code: "B004", libelle: "SIB", responsable: "Mme Diallo", adresse: "Abidjan, Treichville" },
-  { id: 5, code: "B005", libelle: "Ecobank", responsable: "M. Coulibaly", adresse: "Abidjan, Deux Plateaux" },
-  { id: 6, code: "B006", libelle: "NSIA", responsable: "Mme Bamba", adresse: "Abidjan, Angré" },
-  { id: 7, code: "B007", libelle: "BACI", responsable: "M. Yao", adresse: "Abidjan, Riviera" },
-  { id: 8, code: "B008", libelle: "SGBCI", responsable: "Mme Kouassi", adresse: "Abidjan, Yopougon" },
-  { id: 9, code: "B009", libelle: "BICICI", responsable: "M. N'Guessan", adresse: "Abidjan, Adjame" },
-  { id: 10, code: "B010", libelle: "Citi Bank", responsable: "Mme Konan", adresse: "Abidjan, Plateau" }
-]
+import { useBanques, useDeleteBanque, useCreateBanque, useUpdateBanque } from '@/hooks/useBanques'
+import { Banque } from '@/types/banque'
 
 interface Notification {
   id: string
@@ -38,7 +18,7 @@ interface Notification {
 export default function BanqueView() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const [sortField, setSortField] = useState<keyof Banque>('libelle')
+  const [sortField, setSortField] = useState<keyof Banque>('BQ_LIB')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [itemsPerPage] = useState(10)
   const [showForm, setShowForm] = useState(false)
@@ -58,18 +38,26 @@ export default function BanqueView() {
     onConfirm: () => {}
   })
 
+  // React Query hooks
+  const { data: banquesData, isLoading, error, refetch } = useBanques()
+  const deleteBanqueMutation = useDeleteBanque()
+  const createBanqueMutation = useCreateBanque()
+  const updateBanqueMutation = useUpdateBanque()
+
   // Filtrage et tri des données
   const filteredBanques = useMemo(() => {
-    let filtered = banquesData
+    if (!banquesData || !Array.isArray(banquesData)) return []
+    
+    let filtered = [...banquesData] // Créer une copie du tableau
 
     // Filtre par recherche
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
       filtered = filtered.filter(banque => 
-        banque.code.toLowerCase().includes(searchLower) ||
-        banque.libelle.toLowerCase().includes(searchLower) ||
-        banque.responsable.toLowerCase().includes(searchLower) ||
-        banque.adresse.toLowerCase().includes(searchLower)
+        banque.BQ_CODE.toLowerCase().includes(searchLower) ||
+        banque.BQ_LIB.toLowerCase().includes(searchLower) ||
+        (banque.BQ_RESPONS && banque.BQ_RESPONS.toLowerCase().includes(searchLower)) ||
+        (banque.BQ_ADRESS && banque.BQ_ADRESS.toLowerCase().includes(searchLower))
       )
     }
 
@@ -88,7 +76,7 @@ export default function BanqueView() {
     })
 
     return filtered
-  }, [searchTerm, sortField, sortDirection])
+  }, [banquesData, searchTerm, sortField, sortDirection])
 
   // Pagination
   const totalPages = Math.ceil(filteredBanques.length / itemsPerPage)
@@ -144,50 +132,53 @@ export default function BanqueView() {
   }
 
   const handleAddBanque = (banque: any) => {
-    try {
-      console.log('Ajouter banque:', banque)
-      setShowForm(false)
-      addNotification('success', 'Banque créée', `La banque "${banque.libelle}" a été créée avec succès.`)
-    } catch (error) {
-      console.error('Erreur lors de la création:', error)
-      addNotification('error', 'Erreur de création', 'Une erreur est survenue lors de la création de la banque.')
-    }
+    createBanqueMutation.mutate(banque, {
+      onSuccess: () => {
+        setShowForm(false)
+        addNotification('success', 'Banque créée', `La banque "${banque.BQ_LIB}" a été créée avec succès.`)
+      },
+      onError: (error: any) => {
+        addNotification('error', 'Erreur de création', error.message || 'Une erreur est survenue lors de la création de la banque.')
+      }
+    })
   }
 
   const handleEditBanque = (banque: any) => {
-    try {
-      console.log('Modifier banque:', banque)
-      setShowForm(false)
-      setEditingBanque(null)
-      setShowActionMenu(null)
-      addNotification('success', 'Banque modifiée', `La banque "${banque.libelle}" a été modifiée avec succès.`)
-    } catch (error) {
-      console.error('Erreur lors de la modification:', error)
-      addNotification('error', 'Erreur de modification', 'Une erreur est survenue lors de la modification de la banque.')
+    if (editingBanque) {
+      updateBanqueMutation.mutate({
+        code: editingBanque.BQ_CODE,
+        banque: banque
+      }, {
+        onSuccess: () => {
+          setShowForm(false)
+          setEditingBanque(null)
+          setShowActionMenu(null)
+          addNotification('success', 'Banque modifiée', `La banque "${banque.BQ_LIB}" a été modifiée avec succès.`)
+        },
+        onError: (error: any) => {
+          addNotification('error', 'Erreur de modification', error.message || 'Une erreur est survenue lors de la modification de la banque.')
+        }
+      })
     }
   }
 
-  const handleDeleteBanque = (id: number) => {
-    const banque = banquesData.find(b => b.id === id)
-    if (banque) {
-      showConfirmation(
-        'Confirmer la suppression',
-        `Êtes-vous sûr de vouloir supprimer la banque "${banque.libelle}" ? Cette action est irréversible.`,
-        () => {
-          try {
-            console.log('Supprimer banque:', id)
+  const handleDeleteBanque = (banque: Banque) => {
+    showConfirmation(
+      'Confirmer la suppression',
+      `Êtes-vous sûr de vouloir supprimer la banque "${banque.BQ_LIB}" ? Cette action est irréversible.`,
+      () => {
+        deleteBanqueMutation.mutate(banque.BQ_CODE, {
+          onSuccess: () => {
             setShowActionMenu(null)
             closeConfirmation()
-            addNotification('success', 'Banque supprimée', `La banque "${banque.libelle}" a été supprimée avec succès.`)
-          } catch (error) {
-            console.error('Erreur lors de la suppression:', error)
-            addNotification('error', 'Erreur de suppression', 'Une erreur est survenue lors de la suppression de la banque.')
+            addNotification('success', 'Banque supprimée', `La banque "${banque.BQ_LIB}" a été supprimée avec succès.`)
+          },
+          onError: (error: any) => {
+            addNotification('error', 'Erreur de suppression', error.message || 'Une erreur est survenue lors de la suppression de la banque.')
           }
-        }
-      )
-    } else {
-      addNotification('error', 'Erreur', 'Banque introuvable.')
-    }
+        })
+      }
+    )
   }
 
   const toggleActionMenu = (id: string) => {
@@ -198,6 +189,60 @@ export default function BanqueView() {
   useEffect(() => {
     setCurrentYear(new Date().getFullYear())
   }, [])
+
+  // États de chargement et d'erreur
+  if (isLoading) {
+    return (
+      <div style={{ 
+        height: '100vh', 
+        backgroundColor: 'white', 
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #f3f3f3',
+          borderTop: '4px solid #28A325',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <p style={{ marginTop: '1rem', color: '#6b7280' }}>Chargement des banques...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        height: '100vh', 
+        backgroundColor: 'white', 
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column'
+      }}>
+        <div style={{ color: '#dc2626', fontSize: '1.5rem', marginBottom: '1rem' }}>❌</div>
+        <p style={{ color: '#dc2626', marginBottom: '1rem' }}>Erreur lors du chargement des banques</p>
+        <p style={{ color: '#6b7280', marginBottom: '1rem' }}>{error.message}</p>
+        <button
+          onClick={() => refetch()}
+          style={{
+            background: '#28A325',
+            color: 'white',
+            border: 'none',
+            padding: '0.5rem 1rem',
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}
+        >
+          Réessayer
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div style={{ 
@@ -378,10 +423,10 @@ export default function BanqueView() {
                       borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
-                    onClick={() => handleSort('code')}
+                    onClick={() => handleSort('BQ_CODE')}
                   >
                     Code de la banque
-                    {sortField === 'code' && (
+                    {sortField === 'BQ_CODE' && (
                       <span style={{ marginLeft: '0.5rem' }}>
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
@@ -396,10 +441,10 @@ export default function BanqueView() {
                       borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
-                    onClick={() => handleSort('libelle')}
+                    onClick={() => handleSort('BQ_LIB')}
                   >
                     Nom de la banque
-                    {sortField === 'libelle' && (
+                    {sortField === 'BQ_LIB' && (
                       <span style={{ marginLeft: '0.5rem' }}>
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
@@ -414,10 +459,10 @@ export default function BanqueView() {
                       borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
-                    onClick={() => handleSort('responsable')}
+                    onClick={() => handleSort('BQ_RESPONS')}
                   >
                     Responsable
-                    {sortField === 'responsable' && (
+                    {sortField === 'BQ_RESPONS' && (
                       <span style={{ marginLeft: '0.5rem' }}>
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
@@ -432,10 +477,10 @@ export default function BanqueView() {
                       borderBottom: '1px solid #e2e8f0',
                       cursor: 'pointer'
                     }}
-                    onClick={() => handleSort('adresse')}
+                    onClick={() => handleSort('BQ_ADRESS')}
                   >
                     Adresse
-                    {sortField === 'adresse' && (
+                    {sortField === 'BQ_ADRESS' && (
                       <span style={{ marginLeft: '0.5rem' }}>
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
@@ -456,7 +501,7 @@ export default function BanqueView() {
                 {currentBanques.map((banque, index) => {
                   const isLastRow = index === currentBanques.length - 1;
                   return (
-                  <tr key={banque.id} style={{
+                  <tr key={banque.BQ_CODE} style={{
                     borderBottom: '1px solid #e2e8f0',
                     background: index % 2 === 0 ? 'white' : '#fafafa'
                   }}>
@@ -473,27 +518,27 @@ export default function BanqueView() {
                         borderRadius: '4px',
                         fontSize: '0.75rem'
                       }}>
-                        {banque.code}
+                        {banque.BQ_CODE}
                       </span>
                     </td>
                     <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                       <div style={{ fontWeight: '600', color: '#1a202c' }}>
-                        {banque.libelle}
+                        {banque.BQ_LIB}
                       </div>
                     </td>
                     <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                       <div style={{ color: '#6b7280' }}>
-                        {banque.responsable}
+                        {banque.BQ_RESPONS || 'Non renseigné'}
                       </div>
                     </td>
                     <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                       <div style={{ color: '#6b7280' }}>
-                        {banque.adresse}
+                        {banque.BQ_ADRESS || 'Non renseigné'}
                       </div>
                     </td>
                     <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', position: 'relative' }} className="action-menu">
                       <button
-                        onClick={() => toggleActionMenu(banque.id.toString())}
+                        onClick={() => toggleActionMenu(banque.BQ_CODE)}
                         style={{
                           padding: '0.5rem 0.75rem',
                           backgroundColor: '#F97316',
@@ -517,7 +562,7 @@ export default function BanqueView() {
                       </button>
                       
                       {/* Menu d'actions */}
-                      {showActionMenu === banque.id.toString() && (
+                      {showActionMenu === banque.BQ_CODE && (
                         <div style={{
                           position: 'absolute',
                           top: isLastRow ? 'auto' : '100%',
@@ -557,7 +602,7 @@ export default function BanqueView() {
                             Modifier
                           </button>
                           <button
-                            onClick={() => handleDeleteBanque(banque.id)}
+                            onClick={() => handleDeleteBanque(banque)}
                             style={{
                               width: '100%',
                               padding: '0.75rem 1rem',

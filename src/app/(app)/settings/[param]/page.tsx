@@ -3,16 +3,20 @@
 import { useParams } from 'next/navigation'
 import { menuItems } from '../../../../lib/configs/menu.data'
 import ProfessionalBanqueView from '../../../../components/parameter-views/professional-banque-view'
+import BanqueView from '../../../../components/parameter-views/banque-view'
 import ProfessionalCiviliteView from '../../../../components/parameter-views/professional-civilite-view'
 import ProfessionalCategorieDebiteurView from '../../../../components/parameter-views/professional-categorie-debiteur-view'
 import Link from 'next/link'
 import ParameterView from '../../../../components/parameter-views/parameter-view'
 import { agencesData, banquesData, categoriesData,civilites, classes, fonctions } from '@/lib/theme/fake-data'
-import {  } from '@/lib/theme/fake-data'
+import ApiParameterView from '../../../../components/parameter-views/api-parameter-view'
+import { COLUMN_CONFIGS } from '@/lib/column'
 
 export default function ParameterPage() {
     const params = useParams()
     const paramPath = params.param as string
+    
+    // Plus besoin de hooks ici, ApiParameterView les gère
     
     // Trouver le menu des paramètres
     const settingsMenu = menuItems.find(menu => menu.path === '/settings')
@@ -77,6 +81,7 @@ export default function ParameterPage() {
 
     // Fonction pour déterminer quelle vue utiliser
     const getParameterView = () => {
+        
         switch (paramPath) {
             case 'agence_de_banque':
                 return <ParameterView 
@@ -90,15 +95,16 @@ export default function ParameterPage() {
                 key={subMenu.name}
                 title={subMenu.name} 
                 description={`Gestion des ${subMenu.name.toLowerCase()}`} 
-                columns={rawColumns as any}
-                initData={banquesData} />
+                columns={COLUMN_CONFIGS['banque']}
+                type="banque"
+                />
             case 'civilite':
-                return <ParameterView 
-                key={subMenu.name}
-                title={subMenu.name} 
-                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
-                columns={rawColumns as any}
-                initData={civilites} />
+                return <ApiParameterView 
+                    key={subMenu.name}
+                    title={subMenu.name} 
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                    paramType="civilite"
+                />
             case 'categorie_de_debiteur':
                 return <ParameterView title={subMenu.name} 
                 description={`Gestion des ${subMenu.name.toLowerCase()}`} 

@@ -11,7 +11,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ChevronDown, ChevronUp, Search, Plus } from "lucide-react"
+import { ChevronDown, ChevronUp, Search, Plus, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Icon } from "@iconify/react/dist/iconify.js"
 
 interface DataTableProps<TData, TValue> {
   title: string
@@ -38,6 +39,7 @@ interface DataTableProps<TData, TValue> {
   statsSlot?: React.ReactNode
   // Optional extra actions on the right (e.g., Filters button)
   extraActionsSlot?: React.ReactNode
+  status?: string
 }
 
 export function DataTable<TData, TValue>({
@@ -51,6 +53,7 @@ export function DataTable<TData, TValue>({
   addButtonText = "Ajouter",
   statsSlot,
   extraActionsSlot,
+  status,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -92,33 +95,22 @@ export function DataTable<TData, TValue>({
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Header avec titre et actions */}
-      <div className="px-8 py-6 border-b border-gray-200 to-white">
+      <div className=" py-6 border-b border-gray-200 to-white">
         <div className="flex items-center justify-between mb-4">
-          <div className="space-y-2 mb-5">
-            <h1 className="text-2xl! font-bold text-gray-900 tracking-tight">
+          <div className="space-y-2 mb-5 bg-primary w-full py-4 px-8">
+            <h1 className="text-2xl!  tracking-tight"
+            style={{
+              fontWeight: 'bold',
+              color: '#fff',
+            }}
+            >
               {title}
             </h1>
             {description && (
-              <p className="text-base text-gray-600">{description}</p>
+              <p className="text-base text-white">{description}</p>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            {extraActionsSlot}
-            {onAdd && (
-              <div 
-                onClick={onAdd}
-                style={{
-                  border: '2px solid #f97316',
-                  cursor: 'pointer',
-                  padding: '5px 15px',
-                  borderRadius: '6px',
-                }}
-                className="hover:bg-secondary hover:text-white"
-              >
-                {addButtonText}
-              </div>
-            )}
-          </div>
+          
         </div>
 
         {/* Stats section */}
@@ -129,7 +121,7 @@ export function DataTable<TData, TValue>({
         )}
 
         {/* Barre de recherche */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center justify-between gap-6 px-8">
           <div className="relative flex-1 max-w-lg">
             {/* <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" /> */}
             <Input
@@ -143,6 +135,23 @@ export function DataTable<TData, TValue>({
               }}
               className="pl-12 h-12 text-base border-gray-300 focus:border-emerald-500 focus:ring-emerald-200"
             />
+          </div>
+          <div className="flex items-center gap-3">
+            {extraActionsSlot}
+            {onAdd && (
+              <div 
+                onClick={onAdd}
+                style={{
+                  border: '2px solid secondary',
+                  cursor: 'pointer',
+                  padding: '5px 25px',
+                  borderRadius: '6px',
+                }}
+                className="bg-secondary hover:bg-white text-white hover:text-black"
+              >
+                {addButtonText}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -213,12 +222,19 @@ export function DataTable<TData, TValue>({
                     ))}
                   </TableRow>
                 ))
-              ) : (
+              ) : 
+              (
+               
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
                     className="h-64 text-center"
                   >
+                    {status === 'pending' ? (
+                      <div className="flex flex-col items-center justify-center py-16">
+                          <Icon icon="mdi:loading" className="h-10 w-10 text-gray-400" />
+                      </div>
+                    ) : (
                     <div className="flex flex-col items-center justify-center py-16">
                       <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                         <Search className="h-10 w-10 text-gray-400" />
@@ -245,6 +261,7 @@ export function DataTable<TData, TValue>({
                         </Button>
                       )}
                     </div>
+                    )}
                   </TableCell>
                 </TableRow>
               )}

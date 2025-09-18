@@ -45,7 +45,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
   return (
     <div className="h-screen flex bg-gray-50 border border-[black]!">
       {/* Sidebar des paramètres */}
-      <div className="w-80 bg-white border-r border-[red]! flex flex-col">
+      <div className="w-80 bg-emerald-50 flex flex-col">
         {/* En-tête */}
         <div className="p-6 border-b border-[red]!">
           <div className="flex items-center gap-3 mb-4">
@@ -67,6 +67,11 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 h-10 bg-gray-50 border rounded-none "
+              style={{
+                border: '1px solid #000',
+                padding: '0px 8px',
+                borderRadius: '6px',
+              }}
             />
           </div>
         </div>

@@ -1,70 +1,80 @@
 "use client"
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
 import { ParameterPage } from './parameter-page'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
+import { useBanques } from '@/hooks/useBanques'
+import { Banque } from '@/types/banque'
 
 interface ParameterViewProps {
   title: string
   description?: string
-  initData?: Array<{ id: string; code: string; libelle: string; [key: string]: any }>
+  initData?: Array<{ id: string; [key: string]: any }>
+  type?: string
   columns?: Array<{
-    key: keyof SimpleItem
+    key: string
     label: string
     sortable?: boolean
-    render?: (value: any, item: SimpleItem) => React.ReactNode
+    render?: (value: any, item: any) => React.ReactNode
   }>
 }
 
 interface SimpleItem {
   id: string
-  code: string
-  libelle: string
+  [key: string]: any
 }
 
 const defaultColumns = [
   {
-    key: 'code' as keyof SimpleItem,
+    key: 'code',
     label: 'Code',
     sortable: true,
   },
   {
-    key: 'libelle' as keyof SimpleItem,
+    key: 'libelle', 
     label: 'Libellé',
     sortable: true,
   }
 ]
 
-// Données par défaut en dehors du composant pour éviter les re-créations
-const DEFAULT_DATA: SimpleItem[] = [
-  { id: 'demo_1', code: '001', libelle: 'Exemple 1' },
-  { id: 'demo_2', code: '002', libelle: 'Exemple 2' },
-  { id: 'demo_3', code: '003', libelle: 'Exemple 3' },
-  { id: 'demo_4', code: '004', libelle: 'Exemple 4' },
-  { id: 'demo_5', code: '005', libelle: 'Exemple 5' },
-]
 
 export default function ParameterView({ 
   title, 
   description, 
   initData,
-  columns: initialColumns = defaultColumns
+  columns: initialColumns = defaultColumns,
+  type
 }: ParameterViewProps) {
   console.log("initialData", initData)
   // Initialisation directe avec une fonction pour éviter les re-calculs
-  const [data, setData] = useState<SimpleItem[]>(() => {
-    if (!initData) {
-      return DEFAULT_DATA
-    }
-    return initData.length > 0 ? initData  : DEFAULT_DATA
-  })
+  const [data, setData] = useState<any[]>([])
   
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<SimpleItem | null>(null)
   const [formData, setFormData] = useState({ code: '', libelle: '' })
+
+  const { mutateAsync: banquesMutation, error, status } = useBanques()
+  const { status: authStatus } = useSession()
+
+  useEffect(() => {
+    if (type === "banque" && authStatus === 'authenticated') {
+      banquesMutation().then((res) => {
+        console.log("banquesss", res)
+        setData(res.map((banque: Banque) => ({
+          id: banque.BQ_CODE,
+          code: banque.BQ_CODE,
+          libelle: banque.BQ_LIB,
+        })))
+       })
+    }
+   
+  }, [type, authStatus])
+  console.log("status", status)
+  console.log("titre", type)
 
   const handleAdd = () => {
     setEditingItem(null)
@@ -132,6 +142,7 @@ export default function ParameterView({
         onAdd={handleAdd}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        status={status}
         // addButtonText={`Nouveau ${title.toLowerCase().slice(0, -1)}`}
       />
 

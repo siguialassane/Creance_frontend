@@ -49,6 +49,7 @@ interface ParameterPageProps<T extends BaseParameterItem> {
   onView?: (item: T) => void
   addButtonText?: string
   showActions?: boolean
+  status?: string
 }
 
 export function ParameterPage<T extends BaseParameterItem>({
@@ -64,6 +65,7 @@ export function ParameterPage<T extends BaseParameterItem>({
   onView,
   addButtonText = "Ajouter",
   showActions = true,
+  status,
 }: ParameterPageProps<T>) {
   const [pendingDelete, setPendingDelete] = React.useState<T | null>(null)
   
@@ -227,6 +229,7 @@ export function ParameterPage<T extends BaseParameterItem>({
       searchPlaceholder={searchPlaceholder}
       onAdd={onAdd}
       addButtonText={addButtonText}
+      status={status}
     />
   )
 }

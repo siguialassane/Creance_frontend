@@ -11,17 +11,24 @@ export const apiClient = axios.create({
 
 // Intercepteur pour les requêtes
 apiClient.interceptors.request.use(
-  (config) => {
-    // Ajouter le token d'authentification si disponible
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    // Récupérer le token depuis NextAuth (plus sécurisé)
+    try {
+      if (typeof window !== 'undefined') {
+        const { getSession } = await import("next-auth/react");
+        const session = await getSession();
+        const token = (session as any)?.accessToken as string | undefined;
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      }
+    } catch (error) {
+      // Silently fail en cas d'erreur
+      console.warn('Failed to get auth token:', error);
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Intercepteur pour les réponses
@@ -29,12 +36,18 @@ apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
+  async (error) => {
     // Gérer les erreurs globalement
     if (error.response?.status === 401) {
-      // Rediriger vers la page de connexion
-      localStorage.removeItem("authToken");
-      window.location.href = "/login";
+      // Laisser NextAuth gérer la déconnexion
+      try {
+        if (typeof window !== 'undefined') {
+          const { signOut } = await import("next-auth/react");
+          await signOut({ callbackUrl: "/login" });
+        }
+      } catch (err) {
+        console.warn('Failed to sign out:', err);
+      }
     }
     return Promise.reject(error);
   }
