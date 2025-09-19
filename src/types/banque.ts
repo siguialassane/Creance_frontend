@@ -37,3 +37,4 @@ export interface BanqueUpdateRequest extends Partial<BanqueCreateRequest> {
   BQ_CODE: string;
 }
 
+
