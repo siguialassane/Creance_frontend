@@ -1,50 +1,47 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-
-interface BanqueFormData {
-  code: string
-  libelle: string
-  responsable: string
-  adresse: string
-}
+import { Banque, BanqueCreateRequest, BanqueUpdateRequest } from '@/types/banque'
 
 interface BanqueFormProps {
-  banque?: {
-    id: number
-    code: string
-    libelle: string
-    responsable: string
-    adresse: string
-  } | null
-  onSubmit: (data: BanqueFormData) => void
+  banque?: Banque | null
+  onSubmit: (data: BanqueCreateRequest | BanqueUpdateRequest) => void
   onCancel: () => void
-  isEditing?: boolean
+  isLoading?: boolean
 }
 
-export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = false }: BanqueFormProps) {
-  const [formData, setFormData] = useState<BanqueFormData>({
-    code: '',
-    libelle: '',
-    responsable: '',
-    adresse: ''
+export default function BanqueForm({ banque, onSubmit, onCancel, isLoading = false }: BanqueFormProps) {
+  const [formData, setFormData] = useState<BanqueCreateRequest>({
+    BQ_LIB: '',
+    BQ_RESPONS: '',
+    BQ_ADRESS: '',
+    BQ_CONTACT: '',
+    BQ_LIBLONG: '',
+    BQ_SIGLE: '',
+    BQ_AUTLIB: ''
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (banque) {
       setFormData({
-        code: banque.code,
-        libelle: banque.libelle,
-        responsable: banque.responsable,
-        adresse: banque.adresse
+        BQ_LIB: banque.BQ_LIB || '',
+        BQ_RESPONS: banque.BQ_RESPONS || '',
+        BQ_ADRESS: banque.BQ_ADRESS || '',
+        BQ_CONTACT: banque.BQ_CONTACT || '',
+        BQ_LIBLONG: banque.BQ_LIBLONG || '',
+        BQ_SIGLE: banque.BQ_SIGLE || '',
+        BQ_AUTLIB: banque.BQ_AUTLIB || ''
       })
     } else {
       setFormData({
-        code: '',
-        libelle: '',
-        responsable: '',
-        adresse: ''
+        BQ_LIB: '',
+        BQ_RESPONS: '',
+        BQ_ADRESS: '',
+        BQ_CONTACT: '',
+        BQ_LIBLONG: '',
+        BQ_SIGLE: '',
+        BQ_AUTLIB: ''
       })
     }
     setErrors({})
@@ -53,28 +50,34 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.code.trim()) {
-      newErrors.code = 'Le code est requis'
-    } else if (formData.code.length > 10) {
-      newErrors.code = 'Le code ne peut pas dépasser 10 caractères'
+    if (!formData.BQ_LIB.trim()) {
+      newErrors.BQ_LIB = 'Le libellé est requis'
+    } else if (formData.BQ_LIB.length > 100) {
+      newErrors.BQ_LIB = 'Le libellé ne peut pas dépasser 100 caractères'
     }
 
-    if (!formData.libelle.trim()) {
-      newErrors.libelle = 'Le libellé est requis'
-    } else if (formData.libelle.length > 100) {
-      newErrors.libelle = 'Le libellé ne peut pas dépasser 100 caractères'
+    if (formData.BQ_RESPONS && formData.BQ_RESPONS.length > 50) {
+      newErrors.BQ_RESPONS = 'Le responsable ne peut pas dépasser 50 caractères'
     }
 
-    if (!formData.responsable.trim()) {
-      newErrors.responsable = 'Le responsable est requis'
-    } else if (formData.responsable.length > 50) {
-      newErrors.responsable = 'Le responsable ne peut pas dépasser 50 caractères'
+    if (formData.BQ_ADRESS && formData.BQ_ADRESS.length > 200) {
+      newErrors.BQ_ADRESS = 'L\'adresse ne peut pas dépasser 200 caractères'
     }
 
-    if (!formData.adresse.trim()) {
-      newErrors.adresse = 'L\'adresse est requise'
-    } else if (formData.adresse.length > 200) {
-      newErrors.adresse = 'L\'adresse ne peut pas dépasser 200 caractères'
+    if (formData.BQ_CONTACT && formData.BQ_CONTACT.length > 50) {
+      newErrors.BQ_CONTACT = 'Le contact ne peut pas dépasser 50 caractères'
+    }
+
+    if (formData.BQ_LIBLONG && formData.BQ_LIBLONG.length > 200) {
+      newErrors.BQ_LIBLONG = 'Le libellé long ne peut pas dépasser 200 caractères'
+    }
+
+    if (formData.BQ_SIGLE && formData.BQ_SIGLE.length > 20) {
+      newErrors.BQ_SIGLE = 'Le sigle ne peut pas dépasser 20 caractères'
+    }
+
+    if (formData.BQ_AUTLIB && formData.BQ_AUTLIB.length > 100) {
+      newErrors.BQ_AUTLIB = 'Le libellé alternatif ne peut pas dépasser 100 caractères'
     }
 
     setErrors(newErrors)
@@ -84,7 +87,17 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
-      onSubmit(formData)
+      if (banque) {
+        // Mise à jour
+        const updateData: BanqueUpdateRequest = {
+          BQ_CODE: banque.BQ_CODE,
+          ...formData
+        }
+        onSubmit(updateData)
+      } else {
+        // Création
+        onSubmit(formData)
+      }
     }
   }
 
@@ -142,7 +155,7 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
             fontWeight: 'bold',
             color: '#1a202c'
           }}>
-            {isEditing ? '✏️ Modifier la Banque' : <><span style={{ color: 'white' }}>+</span> Ajouter une Banque</>}
+            {banque ? '✏️ Modifier la Banque' : '➕ Ajouter une Banque'}
           </h2>
           <button
             onClick={onCancel}
@@ -170,51 +183,6 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
         {/* Corps du formulaire */}
         <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Code */}
-            <div>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.5rem',
-                fontWeight: '600',
-                color: '#374151',
-                fontSize: '0.875rem'
-              }}>
-                Code *
-              </label>
-              <input
-                type="text"
-                name="code"
-                value={formData.code}
-                onChange={handleChange}
-                placeholder="Ex: B001"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: errors.code ? '1px solid #ef4444' : '1px solid #d1d5db',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  backgroundColor: errors.code ? '#fef2f2' : 'white'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#28A325'
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = errors.code ? '#ef4444' : '#d1d5db'
-                }}
-              />
-              {errors.code && (
-                <p style={{
-                  margin: '0.5rem 0 0 0',
-                  color: '#ef4444',
-                  fontSize: '0.875rem'
-                }}>
-                  {errors.code}
-                </p>
-              )}
-            </div>
-
             {/* Libellé */}
             <div>
               <label style={{
@@ -228,34 +196,34 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
               </label>
               <input
                 type="text"
-                name="libelle"
-                value={formData.libelle}
+                name="BQ_LIB"
+                value={formData.BQ_LIB}
                 onChange={handleChange}
                 placeholder="Ex: Banque Atlantique"
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  border: errors.libelle ? '1px solid #ef4444' : '1px solid #d1d5db',
+                  border: errors.BQ_LIB ? '1px solid #ef4444' : '1px solid #d1d5db',
                   borderRadius: '0.5rem',
                   fontSize: '1rem',
                   outline: 'none',
                   transition: 'border-color 0.2s',
-                  backgroundColor: errors.libelle ? '#fef2f2' : 'white'
+                  backgroundColor: errors.BQ_LIB ? '#fef2f2' : 'white'
                 }}
                 onFocus={(e) => {
                   e.target.style.borderColor = '#28A325'
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = errors.libelle ? '#ef4444' : '#d1d5db'
+                  e.target.style.borderColor = errors.BQ_LIB ? '#ef4444' : '#d1d5db'
                 }}
               />
-              {errors.libelle && (
+              {errors.BQ_LIB && (
                 <p style={{
                   margin: '0.5rem 0 0 0',
                   color: '#ef4444',
                   fontSize: '0.875rem'
                 }}>
-                  {errors.libelle}
+                  {errors.BQ_LIB}
                 </p>
               )}
             </div>
@@ -269,38 +237,38 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
                 color: '#374151',
                 fontSize: '0.875rem'
               }}>
-                Responsable *
+                Responsable
               </label>
               <input
                 type="text"
-                name="responsable"
-                value={formData.responsable}
+                name="BQ_RESPONS"
+                value={formData.BQ_RESPONS}
                 onChange={handleChange}
                 placeholder="Ex: M. Koné"
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  border: errors.responsable ? '1px solid #ef4444' : '1px solid #d1d5db',
+                  border: errors.BQ_RESPONS ? '1px solid #ef4444' : '1px solid #d1d5db',
                   borderRadius: '0.5rem',
                   fontSize: '1rem',
                   outline: 'none',
                   transition: 'border-color 0.2s',
-                  backgroundColor: errors.responsable ? '#fef2f2' : 'white'
+                  backgroundColor: errors.BQ_RESPONS ? '#fef2f2' : 'white'
                 }}
                 onFocus={(e) => {
                   e.target.style.borderColor = '#28A325'
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = errors.responsable ? '#ef4444' : '#d1d5db'
+                  e.target.style.borderColor = errors.BQ_RESPONS ? '#ef4444' : '#d1d5db'
                 }}
               />
-              {errors.responsable && (
+              {errors.BQ_RESPONS && (
                 <p style={{
                   margin: '0.5rem 0 0 0',
                   color: '#ef4444',
                   fontSize: '0.875rem'
                 }}>
-                  {errors.responsable}
+                  {errors.BQ_RESPONS}
                 </p>
               )}
             </div>
@@ -314,23 +282,23 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
                 color: '#374151',
                 fontSize: '0.875rem'
               }}>
-                Adresse *
+                Adresse
               </label>
               <textarea
-                name="adresse"
-                value={formData.adresse}
+                name="BQ_ADRESS"
+                value={formData.BQ_ADRESS}
                 onChange={handleChange}
                 placeholder="Ex: Abidjan, Plateau"
                 rows={3}
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem',
-                  border: errors.adresse ? '1px solid #ef4444' : '1px solid #d1d5db',
+                  border: errors.BQ_ADRESS ? '1px solid #ef4444' : '1px solid #d1d5db',
                   borderRadius: '0.5rem',
                   fontSize: '1rem',
                   outline: 'none',
                   transition: 'border-color 0.2s',
-                  backgroundColor: errors.adresse ? '#fef2f2' : 'white',
+                  backgroundColor: errors.BQ_ADRESS ? '#fef2f2' : 'white',
                   resize: 'vertical',
                   fontFamily: 'inherit'
                 }}
@@ -338,16 +306,106 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
                   e.target.style.borderColor = '#28A325'
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = errors.adresse ? '#ef4444' : '#d1d5db'
+                  e.target.style.borderColor = errors.BQ_ADRESS ? '#ef4444' : '#d1d5db'
                 }}
               />
-              {errors.adresse && (
+              {errors.BQ_ADRESS && (
                 <p style={{
                   margin: '0.5rem 0 0 0',
                   color: '#ef4444',
                   fontSize: '0.875rem'
                 }}>
-                  {errors.adresse}
+                  {errors.BQ_ADRESS}
+                </p>
+              )}
+            </div>
+
+            {/* Contact */}
+            <div>
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '600',
+                color: '#374151',
+                fontSize: '0.875rem'
+              }}>
+                Contact
+              </label>
+              <input
+                type="text"
+                name="BQ_CONTACT"
+                value={formData.BQ_CONTACT}
+                onChange={handleChange}
+                placeholder="Ex: +225 20 30 40 50"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: errors.BQ_CONTACT ? '1px solid #ef4444' : '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                  backgroundColor: errors.BQ_CONTACT ? '#fef2f2' : 'white'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#28A325'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = errors.BQ_CONTACT ? '#ef4444' : '#d1d5db'
+                }}
+              />
+              {errors.BQ_CONTACT && (
+                <p style={{
+                  margin: '0.5rem 0 0 0',
+                  color: '#ef4444',
+                  fontSize: '0.875rem'
+                }}>
+                  {errors.BQ_CONTACT}
+                </p>
+              )}
+            </div>
+
+            {/* Sigle */}
+            <div>
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '600',
+                color: '#374151',
+                fontSize: '0.875rem'
+              }}>
+                Sigle
+              </label>
+              <input
+                type="text"
+                name="BQ_SIGLE"
+                value={formData.BQ_SIGLE}
+                onChange={handleChange}
+                placeholder="Ex: BA"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: errors.BQ_SIGLE ? '1px solid #ef4444' : '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                  backgroundColor: errors.BQ_SIGLE ? '#fef2f2' : 'white'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#28A325'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = errors.BQ_SIGLE ? '#ef4444' : '#d1d5db'
+                }}
+              />
+              {errors.BQ_SIGLE && (
+                <p style={{
+                  margin: '0.5rem 0 0 0',
+                  color: '#ef4444',
+                  fontSize: '0.875rem'
+                }}>
+                  {errors.BQ_SIGLE}
                 </p>
               )}
             </div>
@@ -389,25 +447,31 @@ export default function BanqueForm({ banque, onSubmit, onCancel, isEditing = fal
             </button>
             <button
               type="submit"
+              disabled={isLoading}
               style={{
                 padding: '0.75rem 1.5rem',
-                backgroundColor: '#28A325',
+                backgroundColor: isLoading ? '#9ca3af' : '#28A325',
                 color: 'white',
                 border: 'none',
                 borderRadius: '0.5rem',
                 fontSize: '1rem',
                 fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s'
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                transition: 'background-color 0.2s',
+                opacity: isLoading ? 0.7 : 1
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#047857'
+                if (!isLoading) {
+                  e.currentTarget.style.backgroundColor = '#047857'
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#28A325'
+                if (!isLoading) {
+                  e.currentTarget.style.backgroundColor = '#28A325'
+                }
               }}
             >
-              {isEditing ? 'Modifier' : 'Ajouter'}
+              {isLoading ? 'En cours...' : (banque ? 'Modifier' : 'Ajouter')}
             </button>
           </div>
         </form>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useBanques, useDeleteBanque, useCreateBanque, useUpdateBanque } from '@/hooks/useBanques'
-import { Banque } from '@/types/banque'
+import { Banque, BanqueCreateRequest, BanqueUpdateRequest } from '@/types/banque'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -118,12 +118,12 @@ export default function ModernBanqueView() {
     })
   }
 
-  const handleFormSubmit = (formData: any) => {
+  const handleFormSubmit = (formData: BanqueCreateRequest | BanqueUpdateRequest) => {
     if (editingBanque) {
       // Mise à jour
       updateBanqueMutation.mutate({
         code: editingBanque.BQ_CODE,
-        banque: formData
+        banque: formData as BanqueUpdateRequest
       }, {
         onSuccess: () => {
           setShowForm(false)
@@ -132,7 +132,7 @@ export default function ModernBanqueView() {
       })
     } else {
       // Création
-      createBanqueMutation.mutate(formData, {
+      createBanqueMutation.mutate(formData as BanqueCreateRequest, {
         onSuccess: () => {
           setShowForm(false)
         }

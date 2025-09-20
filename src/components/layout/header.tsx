@@ -76,7 +76,7 @@ export default function Header({ onMenuToggle, isMobile }: HeaderProps) {
       {/* Profil utilisateur */}
       <div className="flex items-center gap-4">
         <div className="hidden md:block text-right">
-          <p className="text-sm font-medium text-white">
+          <p className="text-sm font-medium text-black">
             {(session as any)?.user?.username || "Utilisateur"}
           </p>
           <p className="text-xs text-green-200 font-medium">En ligne</p>
@@ -99,13 +99,13 @@ export default function Header({ onMenuToggle, isMobile }: HeaderProps) {
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
                   <AvatarImage src="/avatars/default.png" alt="Profil" />
-                  <AvatarFallback className="bg-emerald-600 text-white font-semibold">
+                  <AvatarFallback className="bg-emerald-600 text-black font-semibold">
                     {(session as any)?.user?.username ? getInitials((session as any).user.username) : "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="font-medium">{(session as any)?.user?.username || "Utilisateur"}</p>
-                  <p className="text-xs text-gray-500">{(session as any)?.user?.email || "email@exemple.ci"}</p>
+                  <p className="text-xs text-gray-500">{(session as any)?.user?.email || ""}</p>
                 </div>
               </div>
             </DropdownMenuLabel>

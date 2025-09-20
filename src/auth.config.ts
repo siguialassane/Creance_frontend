@@ -22,7 +22,7 @@ type LoginResponse = {
 };
 
 async function loginWithCredentials(username: string, password: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
   const res = await fetch(`${baseUrl}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

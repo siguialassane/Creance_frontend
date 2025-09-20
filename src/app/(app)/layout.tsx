@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Appli-Trésor",
-  description: "Application de gestion de trésor",
+  description: "Application de gestion de créances contentieuses",
 };
 
 export default function RootLayout({

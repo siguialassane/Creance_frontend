@@ -22,15 +22,10 @@ export function useBanques() {
   const apiClient = useApiClient();
   const { data: session, status } = useSession();
   
-  return useMutation({
-    mutationKey: banqueKeys.lists(),
-    mutationFn: () => BanqueService.getAll(apiClient).then((res) => res.data),
-    onMutate: () => {
-      // Vérifier l'authentification avant la mutation
-      if (status !== 'authenticated' || !(session as any)?.accessToken) {
-        throw new Error('Non authentifié');
-      }
-    },
+  return useQuery({
+    queryKey: banqueKeys.lists(),
+    queryFn: () => BanqueService.getAll(apiClient).then((res) => res.data),
+    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {
         return false;
