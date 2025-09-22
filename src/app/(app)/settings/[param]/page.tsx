@@ -85,7 +85,8 @@ export default function ParameterPage() {
                 title={subMenu.name} 
                 description={`Gestion des ${subMenu.name.toLowerCase()}`} 
                 columns={COLUMN_CONFIGS['agence_de_banque']}
-                type="agence_de_banque" />
+                type="agence_de_banque"
+                useServerPagination={true} />
             case 'banque':
                 return <ParameterView 
                 key={subMenu.name}
@@ -93,13 +94,17 @@ export default function ParameterPage() {
                 description={`Gestion des ${subMenu.name.toLowerCase()}`} 
                 columns={COLUMN_CONFIGS['banque']}
                 type="banque"
+                useServerPagination={true}
                 />
             case 'civilite':
-                return <ApiParameterView 
+                return <ParameterView 
                     key={subMenu.name}
                     title={subMenu.name} 
                     description={`Gestion des ${subMenu.name.toLowerCase()}`} 
-                    paramType="civilite"
+                    type="civilite"
+                    columns={COLUMN_CONFIGS['civilite']}
+                    useServerPagination={false}
+
                 />
             case 'categorie_de_debiteur':
                 return <ParameterView title={subMenu.name} 
@@ -110,7 +115,8 @@ export default function ParameterPage() {
                 return <ParameterView title={subMenu.name} 
                 description={`Gestion des ${subMenu.name.toLowerCase()}`} 
                 columns={COLUMN_CONFIGS['classe']}
-                type="classe" />
+                type="classe"
+                useServerPagination={true} />
             case 'fonction':
                 return <ParameterView title={subMenu.name} 
                 description={`Gestion des ${subMenu.name.toLowerCase()}`} 

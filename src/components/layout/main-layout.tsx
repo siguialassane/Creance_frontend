@@ -52,7 +52,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 />
                 
                 {/* Contenu principal */}
-                <div className="flex-1 overflow-y-auto bg-white">
+                <div className="flex-1 bg-white">
                     {children}
                 </div>
             </main>

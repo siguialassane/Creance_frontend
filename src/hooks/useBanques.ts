@@ -1,22 +1,46 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BanqueService } from "@/services/banque.service";
-import { BanqueCreateRequest, BanqueUpdateRequest } from "@/types/banque";
+import { Banque, BanqueCreateRequest, BanqueUpdateRequest } from "@/types/banque";
+import { PaginationParams, PaginatedData, ApiError, extractPaginatedData } from "@/types/pagination";
 import { useApiClient } from "./useApiClient";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 // Clés de requête
 export const banqueKeys = {
   all: ["banques"] as const,
   lists: () => [...banqueKeys.all, "list"] as const,
-  list: (filters: Record<string, any>) => [...banqueKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...banqueKeys.lists(), { filters }] as const,
+  paginated: (params: PaginationParams) => [...banqueKeys.lists(), "paginated", params] as const,
   details: () => [...banqueKeys.all, "detail"] as const,
   detail: (id: string) => [...banqueKeys.details(), id] as const,
   search: (term: string) => [...banqueKeys.all, "search", term] as const,
 };
 
 /**
- * Hook pour récupérer toutes les banques
+ * Hook pour récupérer toutes les banques avec pagination
+ */
+export function useBanquesPaginated(params: PaginationParams = {}) {
+  const apiClient = useApiClient();
+  const { data: session, status } = useSession();
+  
+  return useQuery({
+    queryKey: banqueKeys.paginated(params),
+    queryFn: () => BanqueService.getAll(apiClient, params),
+    enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken,
+    retry: (failureCount, error: unknown) => {
+      if ((error as ApiError)?.response?.status === 401) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+}
+
+/**
+ * Hook pour récupérer toutes les banques (méthode legacy)
  */
 export function useBanques() {
   const apiClient = useApiClient();
@@ -24,10 +48,10 @@ export function useBanques() {
   
   return useQuery({
     queryKey: banqueKeys.lists(),
-    queryFn: () => BanqueService.getAll(apiClient).then((res) => res.data),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
-    retry: (failureCount, error: any) => {
-      if (error?.response?.status === 401) {
+    queryFn: () => BanqueService.getAllLegacy(apiClient).then((res) => res.data),
+    enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken,
+    retry: (failureCount, error: unknown) => {
+      if ((error as ApiError)?.response?.status === 401) {
         return false;
       }
       return failureCount < 2;
@@ -78,35 +102,13 @@ export function useCreateBanque() {
       queryClient.invalidateQueries({ queryKey: banqueKeys.lists() });
       toast.success("Banque créée avec succès");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || "Erreur lors de la création de la banque";
+    onError: (error: unknown) => {
+      const message = (error as ApiError)?.response?.data?.message || "Erreur lors de la création de la banque";
       toast.error(message);
     },
   });
 }
 
-/**
- * Hook pour mettre à jour une banque
- */
-export function useUpdateBanque() {
-  const queryClient = useQueryClient();
-  const apiClient = useApiClient();
-
-  return useMutation({
-    mutationFn: ({ code, banque }: { code: string; banque: BanqueUpdateRequest }) =>
-      BanqueService.update(apiClient, code, banque),
-    onSuccess: (data, variables) => {
-      // Invalider les listes et le détail de la banque
-      queryClient.invalidateQueries({ queryKey: banqueKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: banqueKeys.detail(variables.code) });
-      toast.success("Banque mise à jour avec succès");
-    },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || "Erreur lors de la mise à jour de la banque";
-      toast.error(message);
-    },
-  });
-}
 
 /**
  * Hook pour supprimer une banque
@@ -123,11 +125,63 @@ export function useDeleteBanque() {
       queryClient.removeQueries({ queryKey: banqueKeys.detail(code) });
       toast.success("Banque supprimée avec succès");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || "Erreur lors de la suppression de la banque";
+    onError: (error: unknown) => {
+      const message = (error as ApiError)?.response?.data?.message || "Erreur lors de la suppression de la banque";
       toast.error(message);
     },
   });
+}
+
+/**
+ * Hook personnalisé pour gérer la pagination des banques avec état local
+ */
+export function useBanquesWithPagination(initialParams: PaginationParams = {}) {
+  const [params, setParams] = useState<PaginationParams>({
+    page: 0,
+    size: 50,
+    search: '',
+    sortDirection: 'ASC',
+    ...initialParams
+  });
+
+  const query = useBanquesPaginated(params);
+
+  const data: PaginatedData<Banque> = {
+    ...extractPaginatedData(query.data),
+    loading: query.isLoading,
+    error: (query.error as ApiError)?.message || null,
+  };
+
+  const updateParams = (newParams: Partial<PaginationParams>) => {
+    setParams(prev => ({ ...prev, ...newParams }));
+  };
+
+  const goToPage = (page: number) => {
+    updateParams({ page });
+  };
+
+  const changePageSize = (size: number) => {
+    updateParams({ size, page: 0 }); // Reset to first page when changing size
+  };
+
+  const setSearch = (search: string) => {
+    updateParams({ search, page: 0 }); // Reset to first page when searching
+  };
+
+  const setSorting = (sortBy: string, sortDirection: 'ASC' | 'DESC') => {
+    updateParams({ sortBy, sortDirection, page: 0 }); // Reset to first page when sorting
+  };
+
+  return {
+    data,
+    params,
+    updateParams,
+    goToPage,
+    changePageSize,
+    setSearch,
+    setSorting,
+    refetch: query.refetch,
+  };
 }
 
 /**
@@ -145,3 +199,5 @@ export function usePrefetchBanque() {
     });
   };
 }
+
+

@@ -72,33 +72,19 @@ export function useCreateClasse() {
   });
 }
 
-export function useUpdateClasse() {
-  const queryClient = useQueryClient();
-  const apiClient = useApiClient();
 
-  return useMutation({
-    mutationFn: ({ code, classe }: { code: string; classe: ClasseUpdateRequest }) =>
-      ClasseService.update(apiClient, code, classe),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: classeKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: classeKeys.detail(variables.code) });
-      toast.success("Classe mise à jour avec succès");
-    },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || "Erreur lors de la mise à jour de la classe";
-      toast.error(message);
-    },
-  });
-}
-
+/**
+ * Hook pour supprimer une classe
+ */
 export function useDeleteClasse() {
   const queryClient = useQueryClient();
   const apiClient = useApiClient();
 
   return useMutation({
     mutationFn: (code: string) => ClasseService.delete(apiClient, code),
-    onSuccess: () => {
+    onSuccess: (data, code) => {
       queryClient.invalidateQueries({ queryKey: classeKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: classeKeys.detail(code) });
       toast.success("Classe supprimée avec succès");
     },
     onError: (error: any) => {
@@ -107,3 +93,4 @@ export function useDeleteClasse() {
     },
   });
 }
+

@@ -1,6 +1,45 @@
 "use client"
 
 import * as React from "react"
+
+// Composant pour la confirmation de suppression
+function DeleteConfirmationDialog({
+  isOpen,
+  onClose,
+  onConfirm
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void
+}) {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+        <h2 className="text-lg font-semibold mb-2">Confirmer la suppression</h2>
+        <p className="text-gray-600 mb-6">
+          Cette action est irréversible. Voulez-vous vraiment supprimer cet élément ?
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border-2 border-black rounded-md hover:bg-gray-50"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 border-2 border-red-600 text-red-600 rounded-md hover:bg-red-50"
+          >
+            Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 import { ColumnDef } from "@tanstack/react-table"
 import { MoreHorizontal, Edit, Trash2, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,22 +52,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { DataTable } from "@/components/ui/data-table"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import { PaginationInfo } from "@/types/pagination"
 import { toast } from "sonner"
 
 interface BaseParameterItem {
   id: string | number
-  [key: string]: any
+  [key: string]: unknown
 }
 
 interface ParameterPageProps<T extends BaseParameterItem> {
@@ -39,7 +68,7 @@ interface ParameterPageProps<T extends BaseParameterItem> {
     key: keyof T
     label: string
     sortable?: boolean
-    render?: (value: any, item: T) => React.ReactNode
+    render?: (value: unknown, item: T) => React.ReactNode
   }>
   searchKey?: keyof T
   searchPlaceholder?: string
@@ -49,7 +78,18 @@ interface ParameterPageProps<T extends BaseParameterItem> {
   onView?: (item: T) => void
   addButtonText?: string
   showActions?: boolean
-  status?: string
+  status?: boolean
+  useServerPagination?: boolean
+  pagination?: PaginationInfo
+  onPaginationChange?: (params: { page?: number; size?: number; search?: string }) => void
+  isPaginationLoading?: boolean
+  isTableLoading?: boolean
+  searchQuery?: string
+  searchValue?: string
+  onSearchChange?: (query: string) => void
+  onSearchValueChange?: (value: string) => void
+  onSearchSubmit?: () => void
+  onSearchReset?: () => void
 }
 
 export function ParameterPage<T extends BaseParameterItem>({
@@ -66,6 +106,17 @@ export function ParameterPage<T extends BaseParameterItem>({
   addButtonText = "Ajouter",
   showActions = true,
   status,
+  useServerPagination = false,
+  pagination,
+  onPaginationChange,
+  isPaginationLoading,
+  isTableLoading,
+  searchQuery,
+  searchValue,
+  onSearchChange,
+  onSearchValueChange,
+  onSearchSubmit,
+  onSearchReset,
 }: ParameterPageProps<T>) {
   const [pendingDelete, setPendingDelete] = React.useState<T | null>(null)
   
@@ -116,56 +167,32 @@ export function ParameterPage<T extends BaseParameterItem>({
                   onClick={() => onEdit(item)}
                   className="h-8 w-8 p-0 text-secondary hover:bg-emerald-50"
                 >
-                  <Edit className="h-4 w-4" color="#f97316" />
+                  <Edit className="h-4 w-4 text-orange-600" />
                 </Button>
               )}
               {onDelete && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      aria-label="Supprimer"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setPendingDelete(item)}
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" color="#E53E3E" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Cette action est irréversible. Voulez-vous vraiment supprimer cet élément ?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel 
-                        style={{
-                          border: '2px solid #000',
-                          padding: '5px 15px',
-                          borderRadius: '6px',
-                        }}
-                      >Annuler</AlertDialogCancel>
-                      <AlertDialogAction
-                        style={{
-                          border: '2px solid #E53E3E',
-                          padding: '5px 15px',
-                          borderRadius: '6px',
-                        }}
-                        onClick={() => {
-                          if (pendingDelete) {
-                            // onDelete(pendingDelete)
-                            toast.success("Élément supprimé avec succès")
-                            setPendingDelete(null)
-                          }
-                        }}
-                      >
-                        Supprimer
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <>
+                  <Button
+                    aria-label="Supprimer"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPendingDelete(item)}
+                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                  <DeleteConfirmationDialog
+                    isOpen={pendingDelete?.id === item.id}
+                    onClose={() => setPendingDelete(null)}
+                    onConfirm={() => {
+                      if (pendingDelete) {
+                        onDelete(pendingDelete)
+                        toast.success("Élément supprimé avec succès")
+                        setPendingDelete(null)
+                      }
+                    }}
+                  />
+                </>
               )}
 
               {/* Menu déroulant pour plus d'actions si nécessaire */}
@@ -217,7 +244,7 @@ export function ParameterPage<T extends BaseParameterItem>({
     }
 
     return cols
-  }, [columns, onEdit, onDelete, onView, showActions])
+  }, [columns, onEdit, onDelete, onView, showActions, pendingDelete])
 
   return (
     <DataTable
@@ -229,7 +256,18 @@ export function ParameterPage<T extends BaseParameterItem>({
       searchPlaceholder={searchPlaceholder}
       onAdd={onAdd}
       addButtonText={addButtonText}
-      status={status}
+      status={status ? 'pending' : 'error'}
+      useServerPagination={useServerPagination}
+      pagination={pagination}
+      onPaginationChange={onPaginationChange}
+      isPaginationLoading={isPaginationLoading}
+      isTableLoading={isTableLoading}
+      searchQuery={searchQuery}
+      searchValue={searchValue}
+      onSearchChange={onSearchChange}
+      onSearchValueChange={onSearchValueChange}
+      onSearchSubmit={onSearchSubmit}
+      onSearchReset={onSearchReset}
     />
   )
 }

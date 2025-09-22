@@ -31,3 +31,4 @@ export interface ExerciceUpdateRequest extends Partial<ExerciceCreateRequest> {
 
 
 
+

@@ -1,9 +1,7 @@
 export interface Classe {
-  CL_CODE: string;
-  CL_LIB: string;
-  CL_DESC: string | null;
-  CL_ACTIF: boolean;
-  CL_ORDRE: number | null;
+  CLAS_CODE: string;
+  CLAS_LIB: string;
+
 }
 
 export interface ClasseApiResponse {
