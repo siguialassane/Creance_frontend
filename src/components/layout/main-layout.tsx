@@ -52,7 +52,13 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 />
                 
                 {/* Contenu principal */}
-                <div className="flex-1 bg-white">
+                <div 
+                    className="flex-1 overflow-y-auto bg-white"
+                    style={{
+                        maxHeight: 'calc(100vh - 80px)', // Ajustez selon la hauteur du header
+                        overflowY: 'scroll'
+                    }}
+                >
                     {children}
                 </div>
             </main>
