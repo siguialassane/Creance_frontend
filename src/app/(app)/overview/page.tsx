@@ -52,6 +52,7 @@ const topDebiteurs = [
   { rank: 4, name: "Particulier Z", montant: 6.2, variation: "+1.7%" },
 ]
 
+
 export default function OverviewPage() {
   // KPIs calculés à partir des données mock
   const totalEncaisse = encaissements.reduce((s, x) => s + x.montant, 0)
