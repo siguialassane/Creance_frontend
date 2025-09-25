@@ -215,7 +215,7 @@ const menuItemsData = [
       },
       {
         name: "Creance",
-        path: "creance",
+        path: "",
       },
       {
         name:"Creation de  Frais",

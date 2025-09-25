@@ -43,9 +43,10 @@ interface CreanceFormProps {
   formData: any;
   onDataChange: (data: any) => void;
   onSubmit: (data: any) => void;
+  readOnly?: boolean;
 }
 
-const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, onDataChange, onSubmit }, ref) => {
+const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, onDataChange, onSubmit, readOnly = false }, ref) => {
   const [stepData, setStepData] = useState({});
 
   const getSchemaForStep = (step: number) => {
@@ -135,8 +136,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
 
   const getFieldStyles = (hasError?: boolean) => ({
     borderColor: hasError ? errorRed : borderGray,
-    bg: hasError ? errorBg : 'white',
+    bg: hasError ? errorBg : (readOnly ? 'gray.50' : 'white'),
     _focus: { borderColor: primaryGreen },
+    isReadOnly: readOnly,
+    isDisabled: readOnly,
   })
 
   // Fonction pour formater les nombres avec séparateurs de milliers
@@ -164,7 +167,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="numeroCreance"
               control={control}
               render={({ field }) => (
-                <Input {...field} placeholder="Ex: CRE-2024-001" {...getFieldStyles(!!errors.numeroCreance)} />
+                <Input {...field} placeholder="Ex: CRE-2024-001" {...getFieldStyles(!!errors.numeroCreance)} isDisabled={readOnly} />
               )}
             />
             {errors.numeroCreance && (
@@ -180,7 +183,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="dateCreation"
               control={control}
               render={({ field }) => (
-                <Input {...field} type="date" {...getFieldStyles(!!errors.dateCreation)} />
+                <Input {...field} type="date" {...getFieldStyles(!!errors.dateCreation)} isDisabled={readOnly} />
               )}
             />
             {errors.dateCreation && (
@@ -198,7 +201,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="debiteurCode"
               control={control}
               render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner un débiteur" {...getFieldStyles(!!errors.debiteurCode)}>
+                <Select {...field} placeholder="Sélectionner un débiteur" {...getFieldStyles(!!errors.debiteurCode)} isDisabled={readOnly}>
                   <option value="deb1">Débiteur 1</option>
                   <option value="deb2">Débiteur 2</option>
                   <option value="deb3">Débiteur 3</option>
@@ -218,7 +221,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="periodicite"
               control={control}
               render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner une périodicité" {...getFieldStyles(!!errors.periodicite)}>
+                <Select {...field} placeholder="Sélectionner une périodicité" {...getFieldStyles(!!errors.periodicite)} isDisabled={readOnly}>
                   <option value="mensuelle">Mensuelle</option>
                   <option value="trimestrielle">Trimestrielle</option>
                   <option value="semestrielle">Semestrielle</option>
@@ -239,7 +242,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
           name="objetCreance"
           control={control}
           render={({ field }) => (
-            <Select {...field} placeholder="Sélectionner un objet" {...getFieldStyles(!!errors.objetCreance)}>
+            <Select {...field} placeholder="Sélectionner un objet" {...getFieldStyles(!!errors.objetCreance)} isDisabled={readOnly}>
               <option value="pret">Prêt</option>
               <option value="credit">Crédit</option>
               <option value="avance">Avance</option>
@@ -258,7 +261,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
           name="groupeCreance"
           control={control}
           render={({ field }) => (
-            <Select {...field} placeholder="Sélectionner un groupe" {...getFieldStyles(!!errors.groupeCreance)}>
+            <Select {...field} placeholder="Sélectionner un groupe" {...getFieldStyles(!!errors.groupeCreance)} isDisabled={readOnly}>
               <option value="groupe1">Groupe 1</option>
               <option value="groupe2">Groupe 2</option>
               <option value="groupe3">Groupe 3</option>
@@ -294,6 +297,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                     field.onChange(parseNumber(formatted))
                   }}
                   {...getFieldStyles(!!errors.capitalInitial)} 
+                  isDisabled={readOnly}
                 />
               )}
             />
@@ -320,6 +324,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                     field.onChange(parseNumber(formatted))
                   }}
                   {...getFieldStyles(!!errors.montantInteretConventionnel)} 
+                  isDisabled={readOnly}
                 />
               )}
             />
@@ -346,6 +351,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                     field.onChange(parseNumber(formatted))
                   }}
                   {...getFieldStyles(!!errors.montantCommissionBanque)} 
+                  isDisabled={readOnly}
                 />
               )}
             />
@@ -588,6 +594,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                 }
               }}
               _checked={{ bg: primaryGreen, borderColor: primaryGreen }}
+              isDisabled={readOnly}
             >
               Garantie personnelle
             </Checkbox>
@@ -608,6 +615,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                 }
               }}
               _checked={{ bg: primaryGreen, borderColor: primaryGreen }}
+              isDisabled={readOnly}
             >
               Garantie réelle
             </Checkbox>
@@ -664,7 +672,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
           name="commentaires"
           control={control}
           render={({ field }) => (
-            <Textarea {...field} placeholder="Commentaires supplémentaires" rows={3} />
+            <Textarea {...field} placeholder="Commentaires supplémentaires" rows={3} isDisabled={readOnly} />
           )}
         />
       </FormControl>
