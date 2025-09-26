@@ -4,52 +4,51 @@ import { useState, useEffect } from "react";
 import { 
   Box, 
   Button, 
-  Card, 
-  CardBody, 
-  CardHeader, 
-  Heading, 
   Text, 
   VStack, 
   HStack, 
   Input, 
   Select, 
-  InputGroup, 
-  InputLeftElement,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
   Badge,
   IconButton,
   useToast
 } from "@chakra-ui/react";
-import { SearchIcon, AddIcon, EditIcon, DeleteIcon, ViewIcon } from "@chakra-ui/icons";
+import { EditIcon, DeleteIcon, ViewIcon } from "@chakra-ui/icons";
+import { DataTable } from "@/components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
 
 // Types pour les débiteurs
 interface Debiteur {
   id: string;
   codeDebiteur: string;
-  nom: string;
-  prenom: string;
   categorieDebiteur: string;
   typeDebiteur: string;
-  civilite: string;
-  nationalite: string;
-  adresse: string;
-  quartier: string;
-  localisation: string;
-  numeroCellulaire: string;
+  email: string;
+  adressePostale: string;
+  
+  // Personne physique
+  nom?: string;
+  prenom?: string;
+  civilite?: string;
+  nationalite?: string;
+  quartier?: string;
+  numeroCellulaire?: string;
   numeroTelephone?: string;
   profession?: string;
   fonction?: string;
   employeur?: string;
   statutSalarie?: string;
-  typeDomicil?: string;
-  agenceBanque?: string;
+  
+  // Personne morale
+  raisonSociale?: string;
+  registreCommerce?: string;
+  formeJuridique?: string;
+  domaineActivite?: string;
+  siegeSocial?: string;
+  nomGerant?: string;
+  
+  // Métadonnées
   dateCreation: string;
   statut: string;
 }
@@ -69,69 +68,74 @@ const DebiteurPage = () => {
     {
       id: "1",
       codeDebiteur: "DEB-2024-001",
-      nom: "Koné",
-      prenom: "Amadou",
       categorieDebiteur: "Particulier",
       typeDebiteur: "Physique",
+      email: "amadou.kone@example.com",
+      adressePostale: "Cocody, Angré 8ème Tranche, Abidjan",
+      nom: "Koné",
+      prenom: "Amadou",
       civilite: "Monsieur",
       nationalite: "Ivoirienne",
-      adresse: "Cocody, Angré 8ème Tranche",
       quartier: "Cocody",
-      localisation: "Abidjan, Côte d'Ivoire",
       numeroCellulaire: "+225 07 12 34 56 78",
       numeroTelephone: "+225 20 30 40 50",
       profession: "Fonctionnaire",
       fonction: "Directeur",
       employeur: "Ministère des Finances",
       statutSalarie: "Actif",
-      typeDomicil: "Domicile",
-      agenceBanque: "Agence Plateau",
       dateCreation: "2024-01-15",
       statut: "Actif"
     },
     {
       id: "2",
       codeDebiteur: "DEB-2024-002",
-      nom: "Traoré",
-      prenom: "Fatou",
       categorieDebiteur: "Particulier",
       typeDebiteur: "Physique",
+      email: "fatou.traore@example.com",
+      adressePostale: "Plateau, Rue des Jardins, Abidjan",
+      nom: "Traoré",
+      prenom: "Fatou",
       civilite: "Madame",
       nationalite: "Malienne",
-      adresse: "Plateau, Rue des Jardins",
       quartier: "Plateau",
-      localisation: "Abidjan, Côte d'Ivoire",
       numeroCellulaire: "+225 07 98 76 54 32",
       profession: "Commerçante",
       fonction: "Propriétaire",
       employeur: "Commerce Traoré",
       statutSalarie: "Actif",
-      typeDomicil: "Bureau",
-      agenceBanque: "Agence Cocody",
       dateCreation: "2024-02-20",
       statut: "Actif"
     },
     {
       id: "3",
       codeDebiteur: "DEB-2024-003",
-      nom: "Entreprise ABC",
-      prenom: "ABC",
       categorieDebiteur: "Entreprise",
       typeDebiteur: "Moral",
-      civilite: "Société",
-      nationalite: "Ivoirienne",
-      adresse: "Yopougon, Zone Industrielle",
-      quartier: "Yopougon",
-      localisation: "Abidjan, Côte d'Ivoire",
-      numeroCellulaire: "+225 07 11 22 33 44",
-      numeroTelephone: "+225 20 25 30 35",
-      profession: "Industrie",
-      fonction: "Directeur Général",
-      employeur: "Entreprise ABC",
-      statutSalarie: "Actif",
-      typeDomicil: "Bureau",
-      agenceBanque: "Agence Yopougon",
+      email: "contact@societe-abc.com",
+      adressePostale: "Yopougon, Zone Industrielle, Abidjan",
+      raisonSociale: "Société ABC SARL",
+      registreCommerce: "CI-ABJ-2024-A-12345",
+      formeJuridique: "SARL",
+      domaineActivite: "Industrie",
+      siegeSocial: "Yopougon, Zone Industrielle",
+      nomGerant: "Koné Mamadou",
       dateCreation: "2024-03-10",
+      statut: "Actif"
+    },
+    {
+      id: "4",
+      codeDebiteur: "DEB-2024-004",
+      categorieDebiteur: "Entreprise",
+      typeDebiteur: "Moral",
+      email: "info@commerce-dia.com",
+      adressePostale: "Cocody, Boulevard de la République, Abidjan",
+      raisonSociale: "Commerce Dia SARL",
+      registreCommerce: "CI-ABJ-2024-B-67890",
+      formeJuridique: "SARL",
+      domaineActivite: "Commerce",
+      siegeSocial: "Cocody, Boulevard de la République",
+      nomGerant: "Dia Aminata",
+      dateCreation: "2024-04-05",
       statut: "Actif"
     }
   ];
@@ -150,12 +154,19 @@ const DebiteurPage = () => {
     let filtered = debiteurs;
 
     if (searchTerm) {
-      filtered = filtered.filter(debiteur =>
-        debiteur.codeDebiteur.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        debiteur.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        debiteur.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        debiteur.numeroCellulaire.includes(searchTerm)
-      );
+      filtered = filtered.filter(debiteur => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          debiteur.codeDebiteur.toLowerCase().includes(searchLower) ||
+          (debiteur.nom && debiteur.nom.toLowerCase().includes(searchLower)) ||
+          (debiteur.prenom && debiteur.prenom.toLowerCase().includes(searchLower)) ||
+          (debiteur.raisonSociale && debiteur.raisonSociale.toLowerCase().includes(searchLower)) ||
+          (debiteur.registreCommerce && debiteur.registreCommerce.toLowerCase().includes(searchLower)) ||
+          (debiteur.nomGerant && debiteur.nomGerant.toLowerCase().includes(searchLower)) ||
+          debiteur.email.toLowerCase().includes(searchLower) ||
+          (debiteur.numeroCellulaire && debiteur.numeroCellulaire.includes(searchTerm))
+        );
+      });
     }
 
     if (categorieFilter) {
@@ -176,6 +187,26 @@ const DebiteurPage = () => {
       case "Suspendu": return "orange";
       default: return "gray";
     }
+  };
+
+  const getDisplayName = (debiteur: Debiteur) => {
+    if (debiteur.typeDebiteur === "Physique") {
+      return `${debiteur.nom || ''} ${debiteur.prenom || ''}`.trim();
+    } else {
+      return debiteur.raisonSociale || 'Nom non disponible';
+    }
+  };
+
+  const getDisplayInfo = (debiteur: Debiteur) => {
+    if (debiteur.typeDebiteur === "Physique") {
+      return `${debiteur.civilite || ''} - ${debiteur.profession || 'Profession non renseignée'}`;
+    } else {
+      return `${debiteur.formeJuridique || ''} - ${debiteur.domaineActivite || 'Domaine non renseigné'}`;
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    return type === "Physique" ? "blue" : "purple";
   };
 
   const handleViewDebiteur = (debiteur: Debiteur) => {
@@ -203,172 +234,123 @@ const DebiteurPage = () => {
     router.push("/etude_creance/debiteur/create");
   };
 
+  // Configuration des colonnes pour DataTable
+  const columns: ColumnDef<Debiteur>[] = [
+    {
+      accessorKey: "codeDebiteur",
+      header: "Code",
+      cell: ({ row }) => (
+        <div className="font-medium">{row.getValue("codeDebiteur")}</div>
+      ),
+    },
+    {
+      accessorKey: "typeDebiteur",
+      header: "Type",
+      cell: ({ row }) => (
+        <Badge colorScheme={getTypeColor(row.getValue("typeDebiteur") as string)}>
+          {row.getValue("typeDebiteur")}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: "nom",
+      header: "Nom / Raison sociale",
+      cell: ({ row }) => (
+        <div className="font-medium">{getDisplayName(row.original)}</div>
+      ),
+    },
+    {
+      accessorKey: "categorieDebiteur",
+      header: "Catégorie",
+      cell: ({ row }) => (
+        <div className="font-medium">{row.getValue("categorieDebiteur")}</div>
+      ),
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => (
+        <div className="font-medium">{row.getValue("email")}</div>
+      ),
+    },
+    {
+      accessorKey: "numeroCellulaire",
+      header: "Téléphone",
+      cell: ({ row }) => (
+        <div className="font-medium">{row.getValue("numeroCellulaire")}</div>
+      ),
+    },
+    {
+      accessorKey: "adressePostale",
+      header: "Adresse",
+      cell: ({ row }) => (
+        <div className="font-medium max-w-[200px] truncate" title={row.getValue("adressePostale") as string}>
+          {row.getValue("adressePostale")}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "statut",
+      header: "Statut",
+      cell: ({ row }) => (
+        <Badge colorScheme={row.getValue("statut") === "Actif" ? "green" : "red"}>
+          {row.getValue("statut")}
+        </Badge>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const debiteur = row.original;
+        return (
+          <div className="flex items-center gap-2">
+            <IconButton
+              aria-label="Voir"
+              icon={<ViewIcon />}
+              size="sm"
+              variant="ghost"
+              colorScheme="blue"
+              onClick={() => handleViewDebiteur(debiteur)}
+            />
+            <IconButton
+              aria-label="Modifier"
+              icon={<EditIcon />}
+              size="sm"
+              variant="ghost"
+              colorScheme="green"
+              onClick={() => handleEditDebiteur(debiteur)}
+            />
+            <IconButton
+              aria-label="Supprimer"
+              icon={<DeleteIcon />}
+              size="sm"
+              variant="ghost"
+              colorScheme="red"
+              onClick={() => handleDeleteDebiteur(debiteur)}
+            />
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
-    <Box p={6} maxW="1400px" mx="auto">
-      <VStack spacing={6} align="stretch">
-        {/* En-tête avec bouton de création */}
-        <HStack justify="space-between">
-          <Box>
-            <Heading size="lg" mb={2} color="#1a202c">Gestion des Débiteurs</Heading>
-            <Text color="#718096">Consultez et gérez tous vos débiteurs</Text>
-          </Box>
-          <Button
-            leftIcon={<AddIcon />}
-            onClick={handleCreateDebiteur}
-            colorScheme="green"
-            bg="#28A325"
-            _hover={{ bg: "#047857" }}
-            size="lg"
-          >
-            Nouveau débiteur
-          </Button>
-        </HStack>
-
-        {/* Actions et filtres */}
-        <Card>
-          <CardBody>
-            <VStack spacing={4}>
-              <HStack w="full" justify="space-between">
-                <HStack spacing={4} flex={1}>
-                  <InputGroup maxW="400px">
-                    <InputLeftElement pointerEvents="none">
-                      <SearchIcon color="gray.300" />
-                    </InputLeftElement>
-                    <Input
-                      placeholder="Rechercher par code, nom ou téléphone..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      borderColor="#d1d5db"
-                      _focus={{ borderColor: "#28A325" }}
-                    />
-                  </InputGroup>
-                  
-                  <Select
-                    placeholder="Toutes les catégories"
-                    value={categorieFilter}
-                    onChange={(e) => setCategorieFilter(e.target.value)}
-                    maxW="200px"
-                    borderColor="#d1d5db"
-                    _focus={{ borderColor: "#28A325" }}
-                  >
-                    <option value="Particulier">Particulier</option>
-                    <option value="Entreprise">Entreprise</option>
-                    <option value="Association">Association</option>
-                  </Select>
-
-                  <Select
-                    placeholder="Tous les types"
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    maxW="200px"
-                    borderColor="#d1d5db"
-                    _focus={{ borderColor: "#28A325" }}
-                  >
-                    <option value="Physique">Physique</option>
-                    <option value="Moral">Moral</option>
-                  </Select>
-                </HStack>
-              </HStack>
-
-              <HStack w="full" justify="space-between">
-                <Text fontSize="sm" color="gray.600">
-                  {filteredDebiteurs.length} débiteur(s) trouvé(s)
-                </Text>
-                <Text fontSize="sm" color="gray.600">
-                  Actifs: {filteredDebiteurs.filter(d => d.statut === "Actif").length}
-                </Text>
-              </HStack>
-            </VStack>
-          </CardBody>
-        </Card>
-
-        {/* Tableau des débiteurs */}
-        <Card>
-          <CardHeader>
-            <Heading size="md" color="#1a202c">Liste des débiteurs</Heading>
-          </CardHeader>
-          <CardBody>
-            <TableContainer>
-              <Table variant="simple">
-                <Thead>
-                  <Tr>
-                    <Th color="#374151">Code</Th>
-                    <Th color="#374151">Nom complet</Th>
-                    <Th color="#374151">Catégorie</Th>
-                    <Th color="#374151">Type</Th>
-                    <Th color="#374151">Téléphone</Th>
-                    <Th color="#374151">Localisation</Th>
-                    <Th color="#374151">Statut</Th>
-                    <Th color="#374151">Date création</Th>
-                    <Th color="#374151">Actions</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {loading ? (
-                    <Tr>
-                      <Td colSpan={9} textAlign="center" py={8}>
-                        <Text color="gray.500">Chargement des débiteurs...</Text>
-                      </Td>
-                    </Tr>
-                  ) : filteredDebiteurs.length === 0 ? (
-                    <Tr>
-                      <Td colSpan={9} textAlign="center" py={8}>
-                        <Text color="gray.500">Aucun débiteur trouvé</Text>
-                      </Td>
-                    </Tr>
-                  ) : (
-                    filteredDebiteurs.map((debiteur) => (
-                      <Tr key={debiteur.id} _hover={{ bg: "gray.50" }}>
-                        <Td fontWeight="medium">{debiteur.codeDebiteur}</Td>
-                        <Td>{debiteur.nom} {debiteur.prenom}</Td>
-                        <Td>{debiteur.categorieDebiteur}</Td>
-                        <Td>{debiteur.typeDebiteur}</Td>
-                        <Td>{debiteur.numeroCellulaire}</Td>
-                        <Td>{debiteur.localisation}</Td>
-                        <Td>
-                          <Badge colorScheme={getStatusColor(debiteur.statut)}>
-                            {debiteur.statut}
-                          </Badge>
-                        </Td>
-                        <Td>{new Date(debiteur.dateCreation).toLocaleDateString('fr-FR')}</Td>
-                        <Td>
-                          <HStack spacing={1}>
-                            <IconButton
-                              aria-label="Voir"
-                              icon={<ViewIcon />}
-                              size="sm"
-                              variant="ghost"
-                              colorScheme="blue"
-                              onClick={() => handleViewDebiteur(debiteur)}
-                            />
-                            <IconButton
-                              aria-label="Modifier"
-                              icon={<EditIcon />}
-                              size="sm"
-                              variant="ghost"
-                              colorScheme="green"
-                              onClick={() => handleEditDebiteur(debiteur)}
-                            />
-                            <IconButton
-                              aria-label="Supprimer"
-                              icon={<DeleteIcon />}
-                              size="sm"
-                              variant="ghost"
-                              colorScheme="red"
-                              onClick={() => handleDeleteDebiteur(debiteur)}
-                            />
-                          </HStack>
-                        </Td>
-                      </Tr>
-                    ))
-                  )}
-                </Tbody>
-              </Table>
-            </TableContainer>
-          </CardBody>
-        </Card>
-      </VStack>
-    </Box>
+    <div className="h-full flex flex-col bg-white">
+      <DataTable
+        title="Gestion des Débiteurs"
+        description="Consultez et gérez tous vos débiteurs"
+        columns={columns}
+        data={filteredDebiteurs}
+        searchKey="codeDebiteur"
+        searchPlaceholder="Rechercher par code, nom, raison sociale, RC..."
+        onAdd={handleCreateDebiteur}
+        addButtonText="Nouveau débiteur"
+        status={loading ? 'pending' : undefined}
+        useServerPagination={false}
+        isTableLoading={loading}
+      />
+    </div>
   );
 };
 

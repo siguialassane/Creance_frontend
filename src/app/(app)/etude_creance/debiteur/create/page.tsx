@@ -9,16 +9,15 @@ import DebiteurForm from "@/components/debiteur-form/debiteur-form";
 const NouveauDebiteurPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({});
-  const totalSteps = 4;
+  const totalSteps = 3;
   const formRef = useRef<any>(null);
   const toast = useToast();
   const router = useRouter();
 
   const steps = [
-    { id: 1, title: "Informations générales", description: "Catégorie et type de débiteur" },
-    { id: 2, title: "Informations personnelles", description: "Nom, adresse et contacts" },
-    { id: 3, title: "Informations professionnelles", description: "Profession et employeur" },
-    { id: 4, title: "Validation", description: "Vérification et enregistrement" }
+    { id: 1, title: "Informations générales", description: "Code, catégorie, adresse, email et type de débiteur" },
+    { id: 2, title: "Personne physique/morale", description: "Informations détaillées selon le type sélectionné" },
+    { id: 3, title: "Domiciliation", description: "Type, compte, banque et agence" }
   ];
 
   const validateCurrentStep = () => {
@@ -30,18 +29,7 @@ const NouveauDebiteurPage = () => {
 
   const handleNext = async () => {
     if (currentStep < totalSteps) {
-      const isValid = await validateCurrentStep();
-      if (isValid) {
-        setCurrentStep(currentStep + 1);
-      } else {
-        toast({
-          title: "Validation requise",
-          description: "Veuillez remplir tous les champs obligatoires avant de continuer.",
-          status: "warning",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -74,22 +62,31 @@ const NouveauDebiteurPage = () => {
   return (
     <Box p={6} maxW="1200px" mx="auto">
       <VStack spacing={6} align="stretch">
-        {/* En-tête avec bouton retour */}
-        <HStack justify="space-between" align="start">
-          <Box>
-            <Heading size="lg" mb={2} color="#1a202c">Création d'un Débiteur</Heading>
-            <Text color="#718096">Créez un nouveau débiteur en quelques étapes</Text>
-          </Box>
-          <Button
-            leftIcon={<ArrowBackIcon />}
-            onClick={handleBack}
-            variant="outline"
-            colorScheme="gray"
-            size="md"
-          >
-            Retour à la liste
-          </Button>
-        </HStack>
+        {/* En-tête avec design moderne */}
+        <div className="py-6 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="space-y-2 mb-5 bg-primary w-full py-4 px-8">
+              <h1 className="text-2xl tracking-tight" style={{ fontWeight: 'bold', color: '#fff' }}>
+                Création d'un Débiteur
+              </h1>
+              <p className="text-base text-white">
+                Créez un nouveau débiteur en quelques étapes
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-end gap-6 px-8">
+            <Button
+              leftIcon={<ArrowBackIcon />}
+              onClick={handleBack}
+              variant="outline"
+              colorScheme="gray"
+              size="md"
+            >
+              Retour à la liste
+            </Button>
+          </div>
+        </div>
 
         {/* Indicateur de progression */}
         <Card>
@@ -176,7 +173,7 @@ const NouveauDebiteurPage = () => {
                   onClick={() => handleSubmit(formData)}
                   colorScheme="green"
                 >
-                  Enregistrer
+                  Créer le débiteur
                 </Button>
               )}
             </HStack>

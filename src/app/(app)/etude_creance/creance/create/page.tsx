@@ -9,17 +9,18 @@ import CreanceForm from "@/components/creance-form/creance-form";
 const NouvelleCreancePage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({});
-  const totalSteps = 4;
+  const totalSteps = 5;
   const formRef = useRef<any>(null);
   const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const steps = [
-    { id: 1, title: "Informations générales", description: "Données de base de la créance" },
-    { id: 2, title: "Détails financiers", description: "Montants et échéances" },
-    { id: 3, title: "Garanties", description: "Garanties et sûretés" },
-    { id: 4, title: "Validation", description: "Vérification et enregistrement" }
+    { id: 1, title: "Informations générales", description: "Débiteur, groupe créance, type d'objet, capital initial" },
+    { id: 2, title: "Informations générales 2", description: "Numéro, entité, objet, dates et échéances" },
+    { id: 3, title: "Détails financiers", description: "Montants, intérêts, commissions et totaux" },
+    { id: 4, title: "Pièces", description: "Type, référence, libellé et dates" },
+    { id: 5, title: "Garanties", description: "Garanties personnelles ou réelles" }
   ];
 
   // Récupérer les paramètres du débiteur depuis l'URL
@@ -49,18 +50,8 @@ const NouvelleCreancePage = () => {
 
   const handleNext = async () => {
     if (currentStep < totalSteps) {
-      const isValid = await validateCurrentStep();
-      if (isValid) {
-        setCurrentStep(currentStep + 1);
-      } else {
-        toast({
-          title: "Validation requise",
-          description: "Veuillez remplir tous les champs obligatoires avant de continuer.",
-          status: "warning",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
+      // Navigation libre entre les étapes sans validation bloquante
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -93,22 +84,31 @@ const NouvelleCreancePage = () => {
   return (
     <Box p={6} maxW="1200px" mx="auto">
       <VStack spacing={6} align="stretch">
-        {/* En-tête avec bouton retour */}
-        <HStack justify="space-between" align="start">
-          <Box>
-            <Heading size="lg" mb={2} color="#1a202c">Création d'une Créance</Heading>
-            <Text color="#718096">Créez une nouvelle créance en quelques étapes</Text>
-          </Box>
-          <Button
-            leftIcon={<ArrowBackIcon />}
-            onClick={handleBack}
-            variant="outline"
-            colorScheme="gray"
-            size="md"
-          >
-            Retour à la liste
-          </Button>
-        </HStack>
+        {/* En-tête avec design moderne */}
+        <div className="py-6 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="space-y-2 mb-5 bg-primary w-full py-4 px-8">
+              <h1 className="text-2xl tracking-tight" style={{ fontWeight: 'bold', color: '#fff' }}>
+                Création d'une Créance
+              </h1>
+              <p className="text-base text-white">
+                Créez une nouvelle créance en quelques étapes
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-end gap-6 px-8">
+            <Button
+              leftIcon={<ArrowBackIcon />}
+              onClick={handleBack}
+              variant="outline"
+              colorScheme="gray"
+              size="md"
+            >
+              Retour à la liste
+            </Button>
+          </div>
+        </div>
 
         {/* Indicateur de progression */}
         <Card>

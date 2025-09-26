@@ -1,42 +1,82 @@
 "use client"
 
-import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
-import { Box, VStack, HStack, FormControl, FormLabel, Input, Select, Textarea, Text, Divider, Grid, GridItem, Checkbox, Stack } from "@chakra-ui/react";
+import { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useRef } from "react";
+import { Box, VStack, HStack, FormControl, FormLabel, Input, Select, Textarea, Text, Divider, Grid, GridItem, Checkbox, Stack, Alert, AlertIcon } from "@chakra-ui/react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
+// Import des hooks pour les données de sélection
+import { useCivilites } from "@/hooks/useCivilites";
+import { useNationalites } from "@/hooks/useNationalites";
+import { useQuartiers } from "@/hooks/useQuartiers";
+import { useFonctions } from "@/hooks/useFonctions";
+import { useProfessions } from "@/hooks/useProfessions";
+import { useStatutsSalarie } from "@/hooks/useStatutsSalarie";
+import { useBanques } from "@/hooks/useBanques";
+import { useAgencesBanque } from "@/hooks/useAgencesBanque";
+import { useEntites } from "@/hooks/useEntites";
+
 // Schémas de validation pour chaque étape
 const step1Schema = z.object({
-  codeDebiteur: z.string().min(1, "Le code débiteur est requis"),
+  codeDebiteur: z.string().optional(), // Auto-généré après validation
   categorieDebiteur: z.string().min(1, "La catégorie débiteur est requise"),
+  adressePostale: z.string().min(1, "L'adresse postale est requise"),
+  email: z.string().email("Email invalide").min(1, "L'email est requis"),
   typeDebiteur: z.string().min(1, "Le type débiteur est requis"),
-  civilite: z.string().min(1, "La civilité est requise"),
-  nationalite: z.string().min(1, "La nationalité est requise"),
 });
 
-const step2Schema = z.object({
+const step2PhysiqueSchema = z.object({
+  civilite: z.string().min(1, "La civilité est requise"),
   nom: z.string().min(1, "Le nom est requis"),
   prenom: z.string().min(1, "Le prénom est requis"),
-  adresse: z.string().min(1, "L'adresse est requise"),
+  dateNaissance: z.string().min(1, "La date de naissance est requise"),
+  lieuNaissance: z.string().min(1, "Le lieu de naissance est requis"),
   quartier: z.string().min(1, "Le quartier est requis"),
-  numeroCellulaire: z.string().min(1, "Le numéro de cellulaire est requis"),
-  numeroTelephone: z.string().optional(),
-  localisation: z.string().min(1, "La localisation est requise"),
+  nationalite: z.string().min(1, "La nationalité est requise"),
+  fonction: z.string().min(1, "La fonction est requise"),
+  profession: z.string().min(1, "La profession est requise"),
+  employeur: z.string().min(1, "L'employeur est requis"),
+  statutSalarie: z.string().min(1, "Le statut salarié est requis"),
+  matricule: z.string().optional(),
+  sexe: z.string().min(1, "Le sexe est requis"),
+  dateDeces: z.string().optional(),
+  naturePieceIdentite: z.string().optional(),
+  numeroPieceIdentite: z.string().optional(),
+  dateEtablie: z.string().optional(),
+  lieuEtablie: z.string().optional(),
+  statutMatrimonial: z.string().optional(),
+  regimeMariage: z.string().optional(),
+  nombreEnfant: z.string().optional(),
+  nomConjoint: z.string().optional(),
+  prenomsConjoint: z.string().optional(),
+  dateNaissanceConjoint: z.string().optional(),
+  adresseConjoint: z.string().optional(),
+  telConjoint: z.string().optional(),
+  numeroPieceConjoint: z.string().optional(),
+  nomPere: z.string().optional(),
+  prenomsPere: z.string().optional(),
+  nomMere: z.string().optional(),
+  prenomsMere: z.string().optional(),
+  rue: z.string().optional(),
+});
+
+const step2MoralSchema = z.object({
+  registreCommerce: z.string().min(1, "Le registre de commerce est requis"),
+  raisonSociale: z.string().min(1, "La raison sociale est requise"),
+  capitalSocial: z.string().optional(),
+  formeJuridique: z.string().min(1, "La forme juridique est requise"),
+  domaineActivite: z.string().min(1, "Le domaine d'activité est requis"),
+  siegeSocial: z.string().min(1, "Le siège social est requis"),
+  nomGerant: z.string().min(1, "Le nom du gérant est requis"),
 });
 
 const step3Schema = z.object({
-  profession: z.string().optional(),
-  fonction: z.string().optional(),
-  employeur: z.string().optional(),
-  statutSalarie: z.string().optional(),
-  typeDomicil: z.string().optional(),
-  agenceBanque: z.string().optional(),
-});
-
-const step4Schema = z.object({
-  validation: z.boolean().refine(val => val === true, "Vous devez valider les informations"),
-  commentaires: z.string().optional(),
+  type: z.string().min(1, "Le type de domiciliation est requis"),
+  numeroCompte: z.string().min(1, "Le numéro du compte est requis"),
+  libelle: z.string().min(1, "Le libellé est requis"),
+  banqueAgence: z.string().min(1, "L'agence de banque est requise"),
+  banque: z.string().min(1, "La banque est requise"),
 });
 
 interface DebiteurFormProps {
@@ -44,18 +84,29 @@ interface DebiteurFormProps {
   formData: any;
   onDataChange: (data: any) => void;
   onSubmit: (data: any) => void;
+  isEditMode?: boolean;
 }
 
-const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData, onDataChange, onSubmit }, ref) => {
+const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData, onDataChange, onSubmit, isEditMode = false }, ref) => {
   const [stepData, setStepData] = useState({});
   const [typeDebiteur, setTypeDebiteur] = useState<string>('');
+
+  // Hooks pour les données de sélection
+  const { data: civilites, isLoading: loadingCivilites } = useCivilites();
+  const { data: nationalites, isLoading: loadingNationalites } = useNationalites();
+  const { data: quartiers, isLoading: loadingQuartiers } = useQuartiers();
+  const { data: fonctions, isLoading: loadingFonctions } = useFonctions();
+  const { data: professions, isLoading: loadingProfessions } = useProfessions();
+  const { data: statutsSalarie, isLoading: loadingStatutsSalarie } = useStatutsSalarie();
+  const { data: banques, isLoading: loadingBanques } = useBanques();
+  const { data: agencesBanque, isLoading: loadingAgencesBanque } = useAgencesBanque();
+  const { data: entites, isLoading: loadingEntites } = useEntites();
 
   const getSchemaForStep = (step: number) => {
     switch (step) {
       case 1: return step1Schema;
-      case 2: return step2Schema;
+      case 2: return typeDebiteur === 'physique' ? step2PhysiqueSchema : step2MoralSchema;
       case 3: return step3Schema;
-      case 4: return step4Schema;
       default: return z.object({});
     }
   };
@@ -65,25 +116,29 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
     defaultValues: formData
   });
 
-  // Utiliser useCallback pour éviter la boucle infinie
-  const handleDataChange = useCallback((newData: any) => {
-    onDataChange(newData);
-  }, [onDataChange]);
+  // Utiliser useRef pour éviter la boucle infinie
+  const onDataChangeRef = useRef(onDataChange);
+  onDataChangeRef.current = onDataChange;
 
-  // Souscription aux changements du formulaire pour éviter les boucles infinies
+  const handleDataChange = useCallback((newData: any) => {
+    onDataChangeRef.current(newData);
+  }, []);
+
+  // Souscription aux changements du formulaire
   useEffect(() => {
     const subscription = watch((value) => {
       setStepData(value as any);
       handleDataChange(value);
       
       // Mettre à jour le type débiteur pour l'affichage conditionnel
-      if (value.typeDebiteur) {
+      if (value.typeDebiteur && value.typeDebiteur !== typeDebiteur) {
         setTypeDebiteur(value.typeDebiteur);
       }
     });
     return () => subscription.unsubscribe();
-  }, [watch, handleDataChange]);
+  }, [watch, handleDataChange, typeDebiteur]);
 
+  // Reset seulement quand l'étape change, pas quand formData change
   useEffect(() => {
     reset(formData);
   }, [currentStep, reset]);
@@ -96,7 +151,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
     }
   }));
 
-  // Styles unifiés (alignés avec agence-banque-form)
+  // Styles unifiés
   const primaryGreen = '#28A325'
   const primaryGreenHover = '#047857'
   const borderGray = '#d1d5db'
@@ -112,6 +167,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
     _focus: { borderColor: primaryGreen },
   })
 
+  // Étape 1: Informations générales
   const renderStep1 = () => (
     <VStack spacing={4} align="stretch">
       <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Informations générales</Text>
@@ -119,23 +175,40 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
       <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.codeDebiteur}>
-            <FormLabel color={labelColor}>Code débiteur *</FormLabel>
-            <Controller
-              name="codeDebiteur"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Ex: DEB-2024-001" {...getFieldStyles(!!errors.codeDebiteur)} />
-              )}
-            />
-            {errors.codeDebiteur && (
-              <Text color={errorRed} fontSize="sm">{String(errors.codeDebiteur.message)}</Text>
+            <FormLabel color={labelColor}>Code débiteur</FormLabel>
+            {isEditMode ? (
+              <>
+                <Input 
+                  value={formData.codeDebiteur || "Code non disponible"} 
+                  isReadOnly 
+                  color="gray.700"
+                  {...getFieldStyles(!!errors.codeDebiteur)} 
+                  bg="gray.50"
+                />
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  Code existant du débiteur
+                </Text>
+              </>
+            ) : (
+              <>
+                <Input 
+                  value="Sera généré automatiquement" 
+                  isReadOnly 
+                  color="gray.500"
+                  {...getFieldStyles(!!errors.codeDebiteur)} 
+                  bg="gray.50"
+                />
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  Le code sera généré automatiquement après validation
+                </Text>
+              </>
             )}
           </FormControl>
         </GridItem>
 
         <GridItem>
           <FormControl isInvalid={!!errors.categorieDebiteur}>
-            <FormLabel color={labelColor}>Catégorie débiteur *</FormLabel>
+            <FormLabel color={labelColor}>Catégorie débiteur</FormLabel>
             <Controller
               name="categorieDebiteur"
               control={control}
@@ -144,6 +217,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   <option value="particulier">Particulier</option>
                   <option value="entreprise">Entreprise</option>
                   <option value="association">Association</option>
+                  <option value="autre">Autre</option>
                 </Select>
               )}
             />
@@ -154,17 +228,47 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
         </GridItem>
       </Grid>
 
+      <FormControl isInvalid={!!errors.adressePostale}>
+        <FormLabel color={labelColor}>Adresse postale</FormLabel>
+        <Controller
+          name="adressePostale"
+          control={control}
+          render={({ field }) => (
+            <Textarea {...field} placeholder="Ex: Cocody, Angré 8ème Tranche, Abidjan" rows={3} {...getFieldStyles(!!errors.adressePostale)} />
+          )}
+        />
+        {errors.adressePostale && (
+          <Text color={errorRed} fontSize="sm">{String(errors.adressePostale.message)}</Text>
+        )}
+      </FormControl>
+
       <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
+          <FormControl isInvalid={!!errors.email}>
+            <FormLabel color={labelColor}>Email</FormLabel>
+            <Controller
+              name="email"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: debiteur@example.com" type="email" {...getFieldStyles(!!errors.email)} />
+              )}
+            />
+            {errors.email && (
+              <Text color={errorRed} fontSize="sm">{String(errors.email.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
           <FormControl isInvalid={!!errors.typeDebiteur}>
-            <FormLabel color={labelColor}>Type débiteur *</FormLabel>
+            <FormLabel color={labelColor}>Type débiteur</FormLabel>
             <Controller
               name="typeDebiteur"
               control={control}
               render={({ field }) => (
                 <Select {...field} placeholder="Sélectionner un type" {...getFieldStyles(!!errors.typeDebiteur)}>
-                  <option value="physique">Débiteur physique</option>
-                  <option value="moral">Débiteur moral</option>
+                  <option value="physique">Personne physique</option>
+                  <option value="moral">Personne morale</option>
                 </Select>
               )}
             />
@@ -173,18 +277,33 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             )}
           </FormControl>
         </GridItem>
+      </Grid>
+    </VStack>
+  );
 
+  // Étape 2: Personne physique
+  const renderStep2Physique = () => (
+    <VStack spacing={4} align="stretch">
+      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Personne physique</Text>
+      
+      <Grid templateColumns="repeat(3, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.civilite}>
-            <FormLabel color={labelColor}>Civilité *</FormLabel>
+            <FormLabel color={labelColor}>Civilité</FormLabel>
             <Controller
               name="civilite"
               control={control}
               render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner une civilité" {...getFieldStyles(!!errors.civilite)}>
-                  <option value="monsieur">Monsieur</option>
-                  <option value="madame">Madame</option>
-                  <option value="mademoiselle">Mademoiselle</option>
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.civilite)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  <option value="monsieur" style={{ backgroundColor: 'white', color: 'black' }}>Monsieur</option>
+                  <option value="madame" style={{ backgroundColor: 'white', color: 'black' }}>Madame</option>
+                  <option value="mademoiselle" style={{ backgroundColor: 'white', color: 'black' }}>Mademoiselle</option>
                 </Select>
               )}
             />
@@ -193,47 +312,16 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             )}
           </FormControl>
         </GridItem>
-      </Grid>
+        
 
-      <FormControl isInvalid={!!errors.nationalite}>
-        <FormLabel color={labelColor}>Nationalité *</FormLabel>
-        <Controller
-          name="nationalite"
-          control={control}
-          render={({ field }) => (
-            <Select {...field} placeholder="Sélectionner une nationalité" {...getFieldStyles(!!errors.nationalite)}>
-              <option value="ivoirienne">Ivoirienne</option>
-              <option value="francaise">Française</option>
-              <option value="malienne">Malienne</option>
-              <option value="burkinabe">Burkinabé</option>
-              <option value="autre">Autre</option>
-            </Select>
-          )}
-        />
-        {errors.nationalite && (
-          <Text color={errorRed} fontSize="sm">{String(errors.nationalite.message)}</Text>
-        )}
-      </FormControl>
-    </VStack>
-  );
-
-  const renderStep2 = () => (
-    <VStack spacing={4} align="stretch">
-      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>
-        {typeDebiteur === 'physique' ? 'Informations personnelles' : 'Informations de l\'entité'}
-      </Text>
-      
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.nom}>
-            <FormLabel color={labelColor}>
-              {typeDebiteur === 'physique' ? 'Nom *' : 'Nom de l\'entité *'}
-            </FormLabel>
+            <FormLabel color={labelColor}>Nom</FormLabel>
             <Controller
               name="nom"
               control={control}
               render={({ field }) => (
-                <Input {...field} placeholder={typeDebiteur === 'physique' ? 'Ex: Koné' : 'Ex: Entreprise ABC'} {...getFieldStyles(!!errors.nom)} />
+                <Input {...field} placeholder="Ex: Koné" {...getFieldStyles(!!errors.nom)} />
               )}
             />
             {errors.nom && (
@@ -244,14 +332,12 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
 
         <GridItem>
           <FormControl isInvalid={!!errors.prenom}>
-            <FormLabel color={labelColor}>
-              {typeDebiteur === 'physique' ? 'Prénom *' : 'Sigle'}
-            </FormLabel>
+            <FormLabel color={labelColor}>Prénom</FormLabel>
             <Controller
               name="prenom"
               control={control}
               render={({ field }) => (
-                <Input {...field} placeholder={typeDebiteur === 'physique' ? 'Ex: Amadou' : 'Ex: ABC'} {...getFieldStyles(!!errors.prenom)} />
+                <Input {...field} placeholder="Ex: Amadou" {...getFieldStyles(!!errors.prenom)} />
               )}
             />
             {errors.prenom && (
@@ -261,34 +347,64 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
         </GridItem>
       </Grid>
 
-      <FormControl isInvalid={!!errors.adresse}>
-        <FormLabel color={labelColor}>Adresse *</FormLabel>
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.dateNaissance}>
+            <FormLabel color={labelColor}>Date de naissance</FormLabel>
         <Controller
-          name="adresse"
+              name="dateNaissance"
           control={control}
           render={({ field }) => (
-            <Textarea {...field} placeholder="Ex: Cocody, Angré 8ème Tranche" rows={3} {...getFieldStyles(!!errors.adresse)} />
+                <Input {...field} type="date" {...getFieldStyles(!!errors.dateNaissance)} />
           )}
         />
-        {errors.adresse && (
-          <Text color={errorRed} fontSize="sm">{String(errors.adresse.message)}</Text>
+            {errors.dateNaissance && (
+              <Text color={errorRed} fontSize="sm">{String(errors.dateNaissance.message)}</Text>
         )}
       </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.lieuNaissance}>
+            <FormLabel color={labelColor}>Lieu de naissance</FormLabel>
+        <Controller
+              name="lieuNaissance"
+          control={control}
+          render={({ field }) => (
+                <Input {...field} placeholder="Ex: Abidjan" {...getFieldStyles(!!errors.lieuNaissance)} />
+          )}
+        />
+            {errors.lieuNaissance && (
+              <Text color={errorRed} fontSize="sm">{String(errors.lieuNaissance.message)}</Text>
+        )}
+      </FormControl>
+        </GridItem>
+      </Grid>
 
       <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.quartier}>
-            <FormLabel color={labelColor}>Quartier *</FormLabel>
+            <FormLabel color={labelColor}>Quartier</FormLabel>
             <Controller
               name="quartier"
               control={control}
               render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner un quartier" {...getFieldStyles(!!errors.quartier)}>
-                  <option value="cocody">Cocody</option>
-                  <option value="plateau">Plateau</option>
-                  <option value="yopougon">Yopougon</option>
-                  <option value="abobo">Abobo</option>
-                  <option value="autre">Autre</option>
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.quartier)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  {loadingQuartiers ? (
+                    <option value="">Chargement...</option>
+                  ) : (
+                    Array.isArray(quartiers) && quartiers.map((quartier: any) => (
+                      <option key={quartier.id} value={quartier.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {quartier.libelle}
+                      </option>
+                    ))
+                  )}
                 </Select>
               )}
             />
@@ -299,85 +415,39 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
         </GridItem>
 
         <GridItem>
-          <FormControl isInvalid={!!errors.localisation}>
-            <FormLabel color={labelColor}>Localisation *</FormLabel>
+          <FormControl isInvalid={!!errors.nationalite}>
+            <FormLabel color={labelColor}>Nationalité</FormLabel>
             <Controller
-              name="localisation"
+              name="nationalite"
               control={control}
               render={({ field }) => (
-                <Input {...field} placeholder="Ex: Abidjan, Côte d'Ivoire" {...getFieldStyles(!!errors.localisation)} />
-              )}
-            />
-            {errors.localisation && (
-              <Text color={errorRed} fontSize="sm">{String(errors.localisation.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.numeroCellulaire}>
-            <FormLabel color={labelColor}>Numéro de cellulaire *</FormLabel>
-            <Controller
-              name="numeroCellulaire"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Ex: +225 07 12 34 56 78" {...getFieldStyles(!!errors.numeroCellulaire)} />
-              )}
-            />
-            {errors.numeroCellulaire && (
-              <Text color={errorRed} fontSize="sm">{String(errors.numeroCellulaire.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-
-        <GridItem>
-          <FormControl isInvalid={!!errors.numeroTelephone}>
-            <FormLabel color={labelColor}>Numéro de téléphone</FormLabel>
-            <Controller
-              name="numeroTelephone"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Ex: +225 20 30 40 50" {...getFieldStyles(!!errors.numeroTelephone)} />
-              )}
-            />
-            {errors.numeroTelephone && (
-              <Text color={errorRed} fontSize="sm">{String(errors.numeroTelephone.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-    </VStack>
-  );
-
-  const renderStep3 = () => (
-    <VStack spacing={4} align="stretch">
-      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Informations professionnelles</Text>
-      
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.profession}>
-            <FormLabel color={labelColor}>Profession</FormLabel>
-            <Controller
-              name="profession"
-              control={control}
-              render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner une profession" {...getFieldStyles(!!errors.profession)}>
-                  <option value="fonctionnaire">Fonctionnaire</option>
-                  <option value="commercant">Commerçant</option>
-                  <option value="artisan">Artisan</option>
-                  <option value="agriculteur">Agriculteur</option>
-                  <option value="autre">Autre</option>
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.nationalite)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  {loadingNationalites ? (
+                    <option value="">Chargement...</option>
+                  ) : (
+                    Array.isArray(nationalites) && nationalites.map((nationalite: any) => (
+                      <option key={nationalite.id} value={nationalite.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {nationalite.libelle}
+                      </option>
+                    ))
+                  )}
                 </Select>
               )}
             />
-            {errors.profession && (
-              <Text color={errorRed} fontSize="sm">{String(errors.profession.message)}</Text>
+            {errors.nationalite && (
+              <Text color={errorRed} fontSize="sm">{String(errors.nationalite.message)}</Text>
             )}
           </FormControl>
         </GridItem>
+      </Grid>
 
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.fonction}>
             <FormLabel color={labelColor}>Fonction</FormLabel>
@@ -385,16 +455,59 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="fonction"
               control={control}
               render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner une fonction" {...getFieldStyles(!!errors.fonction)}>
-                  <option value="directeur">Directeur</option>
-                  <option value="manager">Manager</option>
-                  <option value="employe">Employé</option>
-                  <option value="autre">Autre</option>
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.fonction)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  {loadingFonctions ? (
+                    <option value="">Chargement...</option>
+                  ) : (
+                    Array.isArray(fonctions) && fonctions.map((fonction: any) => (
+                      <option key={fonction.id} value={fonction.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {fonction.libelle}
+                      </option>
+                    ))
+                  )}
                 </Select>
               )}
             />
             {errors.fonction && (
               <Text color={errorRed} fontSize="sm">{String(errors.fonction.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.profession}>
+            <FormLabel color={labelColor}>Profession</FormLabel>
+            <Controller
+              name="profession"
+              control={control}
+              render={({ field }) => (
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.profession)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  {loadingProfessions ? (
+                    <option value="">Chargement...</option>
+                  ) : (
+                    Array.isArray(professions) && professions.map((profession: any) => (
+                      <option key={profession.id} value={profession.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {profession.libelle}
+                      </option>
+                    ))
+                  )}
+                </Select>
+              )}
+            />
+            {errors.profession && (
+              <Text color={errorRed} fontSize="sm">{String(errors.profession.message)}</Text>
             )}
           </FormControl>
         </GridItem>
@@ -408,7 +521,23 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="employeur"
               control={control}
               render={({ field }) => (
-                <Input {...field} placeholder="Ex: Ministère des Finances" {...getFieldStyles(!!errors.employeur)} />
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.employeur)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  {loadingEntites ? (
+                    <option value="">Chargement...</option>
+                  ) : (
+                    Array.isArray(entites) && entites.map((entite: any) => (
+                      <option key={entite.id} value={entite.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {entite.libelle}
+                      </option>
+                    ))
+                  )}
+                </Select>
               )}
             />
             {errors.employeur && (
@@ -419,16 +548,27 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
 
         <GridItem>
           <FormControl isInvalid={!!errors.statutSalarie}>
-            <FormLabel color={labelColor}>Statut salarié</FormLabel>
+            <FormLabel color={labelColor}>Statut Salarié</FormLabel>
             <Controller
               name="statutSalarie"
               control={control}
               render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner un statut" {...getFieldStyles(!!errors.statutSalarie)}>
-                  <option value="actif">Actif</option>
-                  <option value="retraite">Retraité</option>
-                  <option value="chomeur">Chômeur</option>
-                  <option value="autre">Autre</option>
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.statutSalarie)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  {loadingStatutsSalarie ? (
+                    <option value="">Chargement...</option>
+                  ) : (
+                    Array.isArray(statutsSalarie) && statutsSalarie.map((statut: any) => (
+                      <option key={statut.id} value={statut.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {statut.libelle}
+                      </option>
+                    ))
+                  )}
                 </Select>
               )}
             />
@@ -438,44 +578,611 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
           </FormControl>
         </GridItem>
       </Grid>
-
+      
       <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
-          <FormControl isInvalid={!!errors.typeDomicil}>
-            <FormLabel color={labelColor}>Type de domiciliation</FormLabel>
+          <FormControl isInvalid={!!errors.matricule}>
+            <FormLabel color={labelColor}>Matricule</FormLabel>
             <Controller
-              name="typeDomicil"
+              name="matricule"
               control={control}
               render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner un type" {...getFieldStyles(!!errors.typeDomicil)}>
-                  <option value="domicile">Domicile</option>
-                  <option value="bureau">Bureau</option>
-                  <option value="autre">Autre</option>
+                <Input {...field} placeholder="Ex: MAT123456" {...getFieldStyles(!!errors.matricule)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.sexe}>
+            <FormLabel color={labelColor}>Sexe</FormLabel>
+            <Controller
+              name="sexe"
+              control={control}
+              render={({ field }) => (
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.sexe)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  <option value="M" style={{ backgroundColor: 'white', color: 'black' }}>Masculin</option>
+                  <option value="F" style={{ backgroundColor: 'white', color: 'black' }}>Féminin</option>
                 </Select>
               )}
             />
-            {errors.typeDomicil && (
-              <Text color={errorRed} fontSize="sm">{String(errors.typeDomicil.message)}</Text>
+            {errors.sexe && (
+              <Text color={errorRed} fontSize="sm">{String(errors.sexe.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.dateDeces}>
+            <FormLabel color={labelColor}>Date de décès</FormLabel>
+            <Controller
+              name="dateDeces"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} type="date" {...getFieldStyles(!!errors.dateDeces)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.naturePieceIdentite}>
+            <FormLabel color={labelColor}>Nature de pièce d'identité</FormLabel>
+            <Controller
+              name="naturePieceIdentite"
+              control={control}
+              render={({ field }) => (
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.naturePieceIdentite)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  <option value="CNI" style={{ backgroundColor: 'white', color: 'black' }}>CNI</option>
+                  <option value="Passeport" style={{ backgroundColor: 'white', color: 'black' }}>Passeport</option>
+                  <option value="Permis" style={{ backgroundColor: 'white', color: 'black' }}>Permis de conduire</option>
+                  <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
+                </Select>
+              )}
+            />
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.numeroPieceIdentite}>
+            <FormLabel color={labelColor}>Numéro de pièce d'identité</FormLabel>
+            <Controller
+              name="numeroPieceIdentite"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: 123456789" {...getFieldStyles(!!errors.numeroPieceIdentite)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.dateEtablie}>
+            <FormLabel color={labelColor}>Date établie</FormLabel>
+            <Controller
+              name="dateEtablie"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} type="date" {...getFieldStyles(!!errors.dateEtablie)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.lieuEtablie}>
+            <FormLabel color={labelColor}>Lieu établi</FormLabel>
+            <Controller
+              name="lieuEtablie"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: Abidjan" {...getFieldStyles(!!errors.lieuEtablie)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.statutMatrimonial}>
+            <FormLabel color={labelColor}>Statut matrimonial</FormLabel>
+            <Controller
+              name="statutMatrimonial"
+              control={control}
+              render={({ field }) => (
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.statutMatrimonial)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  <option value="celibataire" style={{ backgroundColor: 'white', color: 'black' }}>Célibataire</option>
+                  <option value="marie" style={{ backgroundColor: 'white', color: 'black' }}>Marié(e)</option>
+                  <option value="divorce" style={{ backgroundColor: 'white', color: 'black' }}>Divorcé(e)</option>
+                  <option value="veuf" style={{ backgroundColor: 'white', color: 'black' }}>Veuf/Veuve</option>
+                </Select>
+              )}
+            />
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.regimeMariage}>
+            <FormLabel color={labelColor}>Régime de mariage</FormLabel>
+            <Controller
+              name="regimeMariage"
+              control={control}
+              render={({ field }) => (
+                <Select {...field} placeholder="Sélectionner" {...getFieldStyles(!!errors.regimeMariage)}>
+                  <option value="communaute">Communauté</option>
+                  <option value="separation">Séparation de biens</option>
+                  <option value="participation">Participation aux acquêts</option>
+                </Select>
+              )}
+            />
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.nombreEnfant}>
+            <FormLabel color={labelColor}>Nombre d'enfant</FormLabel>
+            <Controller
+              name="nombreEnfant"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} type="number" placeholder="0" min="0" {...getFieldStyles(!!errors.nombreEnfant)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Divider />
+
+      <Text fontSize="md" fontWeight="semibold" color={titleColor}>Informations du conjoint</Text>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.nomConjoint}>
+            <FormLabel color={labelColor}>Nom du conjoint</FormLabel>
+            <Controller
+              name="nomConjoint"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: Traoré" {...getFieldStyles(!!errors.nomConjoint)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.prenomsConjoint}>
+            <FormLabel color={labelColor}>Prénoms du conjoint</FormLabel>
+            <Controller
+              name="prenomsConjoint"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: Fatou" {...getFieldStyles(!!errors.prenomsConjoint)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.dateNaissanceConjoint}>
+            <FormLabel color={labelColor}>Date de naissance du conjoint</FormLabel>
+            <Controller
+              name="dateNaissanceConjoint"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} type="date" {...getFieldStyles(!!errors.dateNaissanceConjoint)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.telConjoint}>
+            <FormLabel color={labelColor}>Téléphone du conjoint</FormLabel>
+            <Controller
+              name="telConjoint"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: +225 07 12 34 56 78" {...getFieldStyles(!!errors.telConjoint)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.adresseConjoint}>
+            <FormLabel color={labelColor}>Adresse du conjoint</FormLabel>
+            <Controller
+              name="adresseConjoint"
+              control={control}
+              render={({ field }) => (
+                <Textarea {...field} placeholder="Adresse complète" rows={2} {...getFieldStyles(!!errors.adresseConjoint)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.numeroPieceConjoint}>
+            <FormLabel color={labelColor}>Numéro de pièce du conjoint</FormLabel>
+            <Controller
+              name="numeroPieceConjoint"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: 987654321" {...getFieldStyles(!!errors.numeroPieceConjoint)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Divider />
+
+      <Text fontSize="md" fontWeight="semibold" color={titleColor}>Informations des parents</Text>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.nomPere}>
+            <FormLabel color={labelColor}>Nom du père</FormLabel>
+            <Controller
+              name="nomPere"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: Koné" {...getFieldStyles(!!errors.nomPere)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.prenomsPere}>
+            <FormLabel color={labelColor}>Prénoms du père</FormLabel>
+            <Controller
+              name="prenomsPere"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: Mamadou" {...getFieldStyles(!!errors.prenomsPere)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.nomMere}>
+            <FormLabel color={labelColor}>Nom de la mère</FormLabel>
+            <Controller
+              name="nomMere"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: Traoré" {...getFieldStyles(!!errors.nomMere)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.prenomsMere}>
+            <FormLabel color={labelColor}>Prénoms de la mère</FormLabel>
+            <Controller
+              name="prenomsMere"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: Aminata" {...getFieldStyles(!!errors.prenomsMere)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <FormControl isInvalid={!!errors.rue}>
+        <FormLabel color={labelColor}>Rue</FormLabel>
+        <Controller
+          name="rue"
+          control={control}
+          render={({ field }) => (
+            <Input {...field} placeholder="Ex: Rue des Écoles, N°123" {...getFieldStyles(!!errors.rue)} />
+          )}
+        />
+      </FormControl>
+    </VStack>
+  );
+
+  // Étape 2: Personne morale
+  const renderStep2Moral = () => (
+    <VStack spacing={4} align="stretch">
+      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Personne morale</Text>
+      
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.registreCommerce}>
+            <FormLabel color={labelColor}>Registre de commerce</FormLabel>
+            <Controller
+              name="registreCommerce"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: CI-ABJ-2024-A-12345" {...getFieldStyles(!!errors.registreCommerce)} />
+              )}
+            />
+            {errors.registreCommerce && (
+              <Text color={errorRed} fontSize="sm">{String(errors.registreCommerce.message)}</Text>
             )}
           </FormControl>
         </GridItem>
 
         <GridItem>
-          <FormControl isInvalid={!!errors.agenceBanque}>
-            <FormLabel color={labelColor}>Agence de banque</FormLabel>
+          <FormControl isInvalid={!!errors.raisonSociale}>
+            <FormLabel color={labelColor}>Raison sociale</FormLabel>
             <Controller
-              name="agenceBanque"
+              name="raisonSociale"
               control={control}
               render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner une agence" {...getFieldStyles(!!errors.agenceBanque)}>
-                  <option value="agence1">Agence Plateau</option>
-                  <option value="agence2">Agence Cocody</option>
-                  <option value="agence3">Agence Yopougon</option>
+                <Input {...field} placeholder="Ex: Société ABC SARL" {...getFieldStyles(!!errors.raisonSociale)} />
+              )}
+            />
+            {errors.raisonSociale && (
+              <Text color={errorRed} fontSize="sm">{String(errors.raisonSociale.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.capitalSocial}>
+            <FormLabel color={labelColor}>Capital social</FormLabel>
+            <Controller
+              name="capitalSocial"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: 10 000 000 FCFA" {...getFieldStyles(!!errors.capitalSocial)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.formeJuridique}>
+            <FormLabel color={labelColor}>Forme juridique</FormLabel>
+            <Controller
+              name="formeJuridique"
+              control={control}
+              render={({ field }) => (
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.formeJuridique)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  <option value="SARL" style={{ backgroundColor: 'white', color: 'black' }}>SARL</option>
+                  <option value="SA" style={{ backgroundColor: 'white', color: 'black' }}>SA</option>
+                  <option value="SNC" style={{ backgroundColor: 'white', color: 'black' }}>SNC</option>
+                  <option value="EURL" style={{ backgroundColor: 'white', color: 'black' }}>EURL</option>
+                  <option value="SAS" style={{ backgroundColor: 'white', color: 'black' }}>SAS</option>
+                  <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
                 </Select>
               )}
             />
-            {errors.agenceBanque && (
-              <Text color={errorRed} fontSize="sm">{String(errors.agenceBanque.message)}</Text>
+            {errors.formeJuridique && (
+              <Text color={errorRed} fontSize="sm">{String(errors.formeJuridique.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <FormControl isInvalid={!!errors.domaineActivite}>
+        <FormLabel color={labelColor}>Domaine d'activité</FormLabel>
+        <Controller
+          name="domaineActivite"
+          control={control}
+          render={({ field }) => (
+            <Select 
+              {...field} 
+              placeholder="Sélectionner" 
+              {...getFieldStyles(!!errors.domaineActivite)}
+              bg="white"
+              color="gray.800"
+            >
+              <option value="commerce" style={{ backgroundColor: 'white', color: 'black' }}>Commerce</option>
+              <option value="industrie" style={{ backgroundColor: 'white', color: 'black' }}>Industrie</option>
+              <option value="services" style={{ backgroundColor: 'white', color: 'black' }}>Services</option>
+              <option value="agriculture" style={{ backgroundColor: 'white', color: 'black' }}>Agriculture</option>
+              <option value="batiment" style={{ backgroundColor: 'white', color: 'black' }}>Bâtiment</option>
+              <option value="transport" style={{ backgroundColor: 'white', color: 'black' }}>Transport</option>
+              <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
+            </Select>
+          )}
+        />
+        {errors.domaineActivite && (
+          <Text color={errorRed} fontSize="sm">{String(errors.domaineActivite.message)}</Text>
+        )}
+      </FormControl>
+
+      <FormControl isInvalid={!!errors.siegeSocial}>
+        <FormLabel color={labelColor}>Siège social</FormLabel>
+        <Controller
+          name="siegeSocial"
+          control={control}
+          render={({ field }) => (
+            <Textarea {...field} placeholder="Ex: Cocody, Angré 8ème Tranche, Abidjan" rows={3} {...getFieldStyles(!!errors.siegeSocial)} />
+          )}
+        />
+        {errors.siegeSocial && (
+          <Text color={errorRed} fontSize="sm">{String(errors.siegeSocial.message)}</Text>
+        )}
+      </FormControl>
+
+      <FormControl isInvalid={!!errors.nomGerant}>
+        <FormLabel color={labelColor}>Nom du gérant</FormLabel>
+        <Controller
+          name="nomGerant"
+          control={control}
+          render={({ field }) => (
+            <Input {...field} placeholder="Ex: Koné Amadou" {...getFieldStyles(!!errors.nomGerant)} />
+          )}
+        />
+        {errors.nomGerant && (
+          <Text color={errorRed} fontSize="sm">{String(errors.nomGerant.message)}</Text>
+        )}
+      </FormControl>
+        </VStack>
+  );
+
+  // Étape 3: Domiciliation
+  const renderStep3 = () => (
+    <VStack spacing={4} align="stretch">
+      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Domiciliation</Text>
+      
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.type}>
+            <FormLabel color={labelColor}>Type</FormLabel>
+        <Controller
+              name="type"
+          control={control}
+          render={({ field }) => (
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.type)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  <option value="domicile" style={{ backgroundColor: 'white', color: 'black' }}>Domicile</option>
+                  <option value="bureau" style={{ backgroundColor: 'white', color: 'black' }}>Bureau</option>
+                  <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
+                </Select>
+              )}
+            />
+            {errors.type && (
+              <Text color={errorRed} fontSize="sm">{String(errors.type.message)}</Text>
+        )}
+      </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.numeroCompte}>
+            <FormLabel color={labelColor}>Numéro du compte</FormLabel>
+        <Controller
+              name="numeroCompte"
+          control={control}
+          render={({ field }) => (
+                <Input {...field} placeholder="Ex: 1234567890123456" {...getFieldStyles(!!errors.numeroCompte)} />
+          )}
+        />
+            {errors.numeroCompte && (
+              <Text color={errorRed} fontSize="sm">{String(errors.numeroCompte.message)}</Text>
+            )}
+      </FormControl>
+        </GridItem>
+      </Grid>
+
+      <FormControl isInvalid={!!errors.libelle}>
+        <FormLabel color={labelColor}>Libellé</FormLabel>
+        <Controller
+          name="libelle"
+          control={control}
+          render={({ field }) => (
+            <Input {...field} placeholder="Ex: Compte principal" {...getFieldStyles(!!errors.libelle)} />
+          )}
+        />
+        {errors.libelle && (
+          <Text color={errorRed} fontSize="sm">{String(errors.libelle.message)}</Text>
+        )}
+      </FormControl>
+
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.banque}>
+            <FormLabel color={labelColor}>Banque</FormLabel>
+            <Controller
+              name="banque"
+              control={control}
+              render={({ field }) => (
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.banque)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  {loadingBanques ? (
+                    <option value="">Chargement...</option>
+                  ) : (
+                    Array.isArray(banques) && banques.map((banque: any) => (
+                      <option key={banque.id} value={banque.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {banque.libelle}
+                      </option>
+                    ))
+                  )}
+                </Select>
+              )}
+            />
+            {errors.banque && (
+              <Text color={errorRed} fontSize="sm">{String(errors.banque.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.banqueAgence}>
+            <FormLabel color={labelColor}>Banque agence</FormLabel>
+            <Controller
+              name="banqueAgence"
+              control={control}
+              render={({ field }) => (
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.banqueAgence)}
+                  bg="white"
+                  color="gray.800"
+                >
+                  {loadingAgencesBanque ? (
+                    <option value="">Chargement...</option>
+                  ) : (
+                    Array.isArray(agencesBanque) && agencesBanque.map((agence: any) => (
+                      <option key={agence.id} value={agence.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {agence.libelle}
+                      </option>
+                    ))
+                  )}
+                </Select>
+              )}
+            />
+            {errors.banqueAgence && (
+              <Text color={errorRed} fontSize="sm">{String(errors.banqueAgence.message)}</Text>
             )}
           </FormControl>
         </GridItem>
@@ -483,74 +1190,11 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
     </VStack>
   );
 
-  const renderStep4 = () => (
-    <VStack spacing={4} align="stretch">
-      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Validation et enregistrement</Text>
-      
-      <Box p={4} bg="gray.50" borderRadius="md">
-        <Text fontSize="md" fontWeight="semibold" mb={2}>Récapitulatif</Text>
-        <VStack align="stretch" spacing={2}>
-          <HStack justify="space-between">
-            <Text>Code débiteur:</Text>
-            <Text fontWeight="bold">{formData.codeDebiteur || 'Non défini'}</Text>
-          </HStack>
-          <HStack justify="space-between">
-            <Text>Nom:</Text>
-            <Text fontWeight="bold">{formData.nom || 'Non défini'}</Text>
-          </HStack>
-          <HStack justify="space-between">
-            <Text>Prénom:</Text>
-            <Text fontWeight="bold">{formData.prenom || 'Non défini'}</Text>
-          </HStack>
-          <HStack justify="space-between">
-            <Text>Type:</Text>
-            <Text fontWeight="bold">{formData.typeDebiteur || 'Non défini'}</Text>
-          </HStack>
-          <HStack justify="space-between">
-            <Text>Localisation:</Text>
-            <Text fontWeight="bold">{formData.localisation || 'Non défini'}</Text>
-          </HStack>
-        </VStack>
-      </Box>
-
-      <FormControl isInvalid={!!errors.validation}>
-        <Controller
-          name="validation"
-          control={control}
-          render={({ field }) => (
-            <Checkbox 
-              isChecked={field.value || false} 
-              onChange={(e) => field.onChange(e.target.checked)}
-              _checked={{ bg: primaryGreen, borderColor: primaryGreen }}
-            >
-              Je confirme que toutes les informations sont exactes et valides
-            </Checkbox>
-          )}
-        />
-        {errors.validation && (
-          <Text color={errorRed} fontSize="sm">{String(errors.validation.message)}</Text>
-        )}
-      </FormControl>
-
-      <FormControl>
-        <FormLabel color={labelColor}>Commentaires (optionnel)</FormLabel>
-        <Controller
-          name="commentaires"
-          control={control}
-          render={({ field }) => (
-            <Textarea {...field} placeholder="Commentaires supplémentaires" rows={3} {...getFieldStyles(false)} />
-          )}
-        />
-      </FormControl>
-    </VStack>
-  );
-
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1: return renderStep1();
-      case 2: return renderStep2();
+      case 2: return typeDebiteur === 'physique' ? renderStep2Physique() : renderStep2Moral();
       case 3: return renderStep3();
-      case 4: return renderStep4();
       default: return null;
     }
   };

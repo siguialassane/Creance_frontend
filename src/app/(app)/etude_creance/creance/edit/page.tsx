@@ -10,7 +10,7 @@ const EditerCreancePage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(true);
-  const totalSteps = 4;
+  const totalSteps = 5;
   const formRef = useRef<any>(null);
   const toast = useToast();
   const router = useRouter();
@@ -19,32 +19,77 @@ const EditerCreancePage = () => {
 
   // Données de test (en réalité, vous récupéreriez ces données depuis l'API)
   const mockCreanceData = {
-    numeroCreance: "CRE-2024-001",
-    objetCreance: "Prêt immobilier",
-    groupeCreance: "Prêts immobiliers",
-    debiteurCode: "DEB-001",
-    periodicite: "Mensuelle",
+    // Étape 1: Informations générales
+    debiteur: "deb1",
+    groupeCreance: "GC001",
+    typeObjet: "OC001",
     capitalInitial: 5000000,
-    montantInteretConventionnel: 500000,
-    montantCommissionBanque: 100000,
-    montantARembourser: 5600000,
+    montantDecaisse: 5000000,
+    steCaution: "Société de Caution ABC",
+    statutRecouvrement: "oui",
+    numeroPrecedent: "CRE-2023-999",
+    numeroAncien: "OLD-001",
+    typeStructure: "SARL",
+    classeCreance: "CLAS001",
+    
+    // Étape 2: Informations générales 2
+    numeroCreance: "CRE-2024-001",
+    entite: "ENT001",
+    objetCreance: "Prêt immobilier",
+    periodicite: "mensuelle",
+    nbEch: 12,
+    dateReconnaissance: "2024-01-15",
+    datePremiereEcheance: "2024-02-15",
+    dateDerniereEcheance: "2024-12-15",
+    dateOctroi: "2024-01-10",
+    datePremierPrecept: "2024-01-20",
+    creanceSoldeAvantLid: "Solde avant LID",
+    
+    // Étape 3: Détails financiers
+    ordonnateur: "Ministère des Finances",
+    montantRembourse: 5600000,
+    montantDu: 5600000,
     montantDejaRembourse: 3600000,
     montantImpaye: 2000000,
-    montantInteretRetard: 100000,
-    frais: 50000,
-    penalite: 20000,
-    totalSolde: 2170000,
-    garantiePersonnelle: true,
-    garantieReelle: false,
-    validation: true,
-    commentaires: "Créance en cours de remboursement"
+    diversFrais: 50000,
+    commission: 100000,
+    montantAss: 25000,
+    intConvPourcentage: 10,
+    montantIntConvPaye: 500000,
+    intRetPourcentage: 2,
+    encours: 100000,
+    totalDu: 2150000,
+    penalite1Pourcent: 21500,
+    totalARecouvrer: 2271500,
+    
+    // Étape 4: Pièces
+    typePiece: "contrat",
+    reference: "REF-001",
+    libelle: "Contrat de prêt immobilier",
+    dateEmission: "2024-01-15",
+    dateReception: "2024-01-16",
+    
+    // Étape 5: Garanties
+    typeGarantie: "personnelles",
+    type: "Caution personnelle",
+    employeur: "ENT002",
+    statutSal: "Actif",
+    quartier: "Q001",
+    priorite: "Haute",
+    nom: "Koné",
+    prenoms: "Amadou",
+    dateInscription: "2024-01-15",
+    fonction: "Directeur",
+    profession: "Fonctionnaire",
+    adressePostale: "Cocody, Angré 8ème Tranche, Abidjan"
   };
 
   const steps = [
-    { id: 1, title: "Informations générales", description: "Données de base de la créance" },
-    { id: 2, title: "Détails financiers", description: "Montants et échéances" },
-    { id: 3, title: "Garanties", description: "Garanties et sûretés" },
-    { id: 4, title: "Validation", description: "Vérification et enregistrement" }
+    { id: 1, title: "Informations générales", description: "Débiteur, groupe créance, type d'objet, capital initial" },
+    { id: 2, title: "Informations générales 2", description: "Numéro, entité, objet, dates et échéances" },
+    { id: 3, title: "Détails financiers", description: "Montants, intérêts, commissions et totaux" },
+    { id: 4, title: "Pièces", description: "Type, référence, libellé et dates" },
+    { id: 5, title: "Garanties", description: "Garanties personnelles ou réelles" }
   ];
 
   useEffect(() => {
@@ -64,18 +109,7 @@ const EditerCreancePage = () => {
 
   const handleNext = async () => {
     if (currentStep < totalSteps) {
-      const isValid = await validateCurrentStep();
-      if (isValid) {
-        setCurrentStep(currentStep + 1);
-      } else {
-        toast({
-          title: "Validation requise",
-          description: "Veuillez remplir tous les champs obligatoires avant de continuer.",
-          status: "warning",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -116,22 +150,31 @@ const EditerCreancePage = () => {
   return (
     <Box p={6} maxW="1200px" mx="auto">
       <VStack spacing={6} align="stretch">
-        {/* En-tête avec bouton retour */}
-        <HStack justify="space-between" align="start">
-          <Box>
-            <Heading size="lg" mb={2} color="#1a202c">Modification d'une Créance</Heading>
-            <Text color="#718096">Modifiez la créance {mockCreanceData.numeroCreance}</Text>
-          </Box>
-          <Button
-            leftIcon={<ArrowBackIcon />}
-            onClick={handleBack}
-            variant="outline"
-            colorScheme="gray"
-            size="md"
-          >
-            Retour à la liste
-          </Button>
-        </HStack>
+        {/* En-tête avec design moderne */}
+        <div className="py-6 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="space-y-2 mb-5 bg-primary w-full py-4 px-8">
+              <h1 className="text-2xl tracking-tight" style={{ fontWeight: 'bold', color: '#fff' }}>
+                Modification d'une Créance
+              </h1>
+              <p className="text-base text-white">
+                Modifiez la créance {mockCreanceData.numeroCreance}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-end gap-6 px-8">
+            <Button
+              leftIcon={<ArrowBackIcon />}
+              onClick={handleBack}
+              variant="outline"
+              colorScheme="gray"
+              size="md"
+            >
+              Retour à la liste
+            </Button>
+          </div>
+        </div>
 
         {/* Indicateur de progression */}
         <Card>
@@ -218,7 +261,7 @@ const EditerCreancePage = () => {
                   onClick={() => handleSubmit(formData)}
                   colorScheme="green"
                 >
-                  Enregistrer les modifications
+                  Mettre à jour la créance
                 </Button>
               )}
             </HStack>
