@@ -32,3 +32,5 @@ export interface JournalUpdateRequest extends Partial<JournalCreateRequest> {
 
 
 
+
+

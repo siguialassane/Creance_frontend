@@ -32,3 +32,5 @@ export interface GroupeCreanceUpdateRequest extends Partial<GroupeCreanceCreateR
 
 
 
+
+

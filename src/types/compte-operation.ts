@@ -32,3 +32,5 @@ export interface CompteOperationUpdateRequest extends Partial<CompteOperationCre
 
 
 
+
+
