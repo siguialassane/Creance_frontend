@@ -32,14 +32,15 @@ export default function AgenceBanqueForm({ agence, onSubmit, onCancel, isLoading
   useEffect(() => {
     if (agence) {
       setFormData({
-        AG_LIB: agence.AG_LIB || '',
+        // Mapping depuis AgenceBanque (lecture)
+        AG_LIB: agence.BQAG_LIB || '',
         BQ_CODE: agence.BQ_CODE || '',
-        AG_RESPONS: agence.AG_RESPONS || '',
-        AG_ADRESS: agence.AG_ADRESS || '',
-        AG_CONTACT: agence.AG_CONTACT || '',
-        AG_LIBLONG: agence.AG_LIBLONG || '',
-        AG_SIGLE: agence.AG_SIGLE || '',
-        AG_AUTLIB: agence.AG_AUTLIB || ''
+        AG_RESPONS: '',
+        AG_ADRESS: '',
+        AG_CONTACT: '',
+        AG_LIBLONG: '',
+        AG_SIGLE: '',
+        AG_AUTLIB: ''
       })
     } else {
       setFormData({
@@ -103,7 +104,8 @@ export default function AgenceBanqueForm({ agence, onSubmit, onCancel, isLoading
       if (agence) {
         // Mise à jour
         const updateData: AgenceBanqueUpdateRequest = {
-          AG_CODE: agence.AG_CODE,
+          // Utiliser l'identifiant existant côté lecture
+          AG_CODE: agence.BQAG_NUM,
           ...formData
         }
         onSubmit(updateData)

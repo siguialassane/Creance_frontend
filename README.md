@@ -13,6 +13,8 @@ pnpm dev
 # or
 bun dev
 ```
+# or
+npm run dev -- -p 4000
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 

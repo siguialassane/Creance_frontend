@@ -11,7 +11,7 @@ interface MainLayoutProps {
 }
 
 const MainLayout = ({ children }: MainLayoutProps) => {
-    const [isMobile, setIsMobile] = useState(false)
+    const [isMobile, setIsMobile] = useState<boolean | null>(null)
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
     // Détecter la taille d'écran
@@ -24,6 +24,33 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         window.addEventListener('resize', checkScreenSize)
         return () => window.removeEventListener('resize', checkScreenSize)
     }, [])
+
+    // Éviter l'erreur d'hydratation en attendant que isMobile soit défini
+    if (isMobile === null) {
+        return (
+            <div className="h-screen flex bg-gray-50">
+                {/* Desktop Sidebar par défaut pendant le chargement */}
+                <div className="w-64 flex-shrink-0">
+                    <Sidebar />
+                </div>
+                <main className="flex-1 flex flex-col overflow-hidden">
+                    <Header 
+                        onMenuToggle={() => setSidebarOpen(true)}
+                        isMobile={false}
+                    />
+                    <div 
+                        className="flex-1 overflow-y-auto bg-white"
+                        style={{
+                            maxHeight: 'calc(100vh - 80px)',
+                            overflowY: 'scroll'
+                        }}
+                    >
+                        {children}
+                    </div>
+                </main>
+            </div>
+        )
+    }
 
     return (
         <div className="h-screen flex bg-gray-50">
@@ -52,7 +79,13 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 />
                 
                 {/* Contenu principal */}
-                <div className="flex-1 bg-white">
+                <div 
+                    className="flex-1 overflow-y-auto bg-white"
+                    style={{
+                        maxHeight: 'calc(100vh - 80px)', // Ajustez selon la hauteur du header
+                        overflowY: 'scroll'
+                    }}
+                >
                     {children}
                 </div>
             </main>
