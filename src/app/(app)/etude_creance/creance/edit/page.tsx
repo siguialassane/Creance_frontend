@@ -1,12 +1,13 @@
 "use client"
 
+import { Suspense } from "react";
 import { useState, useRef, useEffect } from "react";
 import { Box, Button, Card, CardBody, CardHeader, Heading, Text, VStack, HStack, Progress, useToast } from "@chakra-ui/react";
 import { ChevronLeftIcon, ChevronRightIcon, ArrowBackIcon } from "@chakra-ui/icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import CreanceForm from "@/components/creance-form/creance-form";
 
-const EditerCreancePage = () => {
+const EditerCreancePageInner = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(true);
@@ -272,4 +273,10 @@ const EditerCreancePage = () => {
   );
 };
 
-export default EditerCreancePage;
+export default function EditerCreancePage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <EditerCreancePageInner />
+    </Suspense>
+  )
+}

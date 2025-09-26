@@ -94,7 +94,7 @@ export default function ParameterPage() {
                 description={`Gestion des ${subMenu.name.toLowerCase()}`} 
                 columns={COLUMN_CONFIGS['banque']}
                 type="banque"
-                useServerPagination={true}
+                useServerPagination={false}
                 />
             case 'civilite':
                 return <ParameterView 
@@ -116,7 +116,7 @@ export default function ParameterPage() {
                 description={`Gestion des ${subMenu.name.toLowerCase()}`} 
                 columns={COLUMN_CONFIGS['classe']}
                 type="classe"
-                useServerPagination={true} />
+                useServerPagination={false} />
             case 'fonction':
                 return <ParameterView title={subMenu.name} 
                 description={`Gestion des ${subMenu.name.toLowerCase()}`} 

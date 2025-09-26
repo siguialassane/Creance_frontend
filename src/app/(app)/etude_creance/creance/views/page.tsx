@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react";
 import { useState, useEffect } from "react";
 import { 
   Box, 
@@ -37,7 +38,7 @@ interface Creance {
   garantieReelle: boolean;
 }
 
-const CreancePage = () => {
+const CreancePageInner = () => {
   const [creances, setCreances] = useState<Creance[]>([]);
   const [filteredCreances, setFilteredCreances] = useState<Creance[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -316,4 +317,10 @@ const CreancePage = () => {
   );
 };
 
-export default CreancePage;
+export default function CreancePage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <CreancePageInner />
+    </Suspense>
+  )
+}

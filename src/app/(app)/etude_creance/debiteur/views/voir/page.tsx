@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react";
 import { useState, useEffect } from "react";
 import { 
   Box, 
@@ -87,7 +88,7 @@ interface Debiteur {
   statut: string;
 }
 
-const VoirDebiteurPage = () => {
+const VoirDebiteurPageInner = () => {
   const [debiteur, setDebiteur] = useState<Debiteur | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -617,4 +618,10 @@ const VoirDebiteurPage = () => {
   );
 };
 
-export default VoirDebiteurPage;
+export default function VoirDebiteurPage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <VoirDebiteurPageInner />
+    </Suspense>
+  )
+}
