@@ -187,6 +187,7 @@ const EditerDebiteurPageInner = () => {
   )
 }
 
+
 export default function EditerDebiteurPage() {
   return (
     <Suspense fallback={<div>Chargement...</div>}>
