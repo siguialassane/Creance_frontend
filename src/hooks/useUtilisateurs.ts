@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 
-export const useTypesDebiteur = () => {
+export const useUtilisateurs = () => {
   return useQuery({
-    queryKey: ['typesDebiteur'],
+    queryKey: ['utilisateurs'],
     queryFn: async () => {
-      const response = await apiClient.get('/types-debiteur');
+      const response = await apiClient.get('/utilisateurs');
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes

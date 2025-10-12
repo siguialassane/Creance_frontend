@@ -101,8 +101,8 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
   const [typeGarantie, setTypeGarantie] = useState<string>("");
 
   // Hooks pour les données dynamiques
-  const { data: groupesCreance } = useGroupesCreance();
-  const { data: objetsCreance } = useObjetsCreance();
+  const { data: groupesCreance, isLoading: loadingGroupesCreance } = useGroupesCreance();
+  const { data: objetsCreance, isLoading: loadingObjetsCreance } = useObjetsCreance();
   const { data: entites } = useEntites();
   const { data: classes } = useClasses();
   const { data: quartiers } = useQuartiers();
@@ -254,13 +254,14 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   placeholder="Sélectionner un débiteur" 
                   {...getFieldStyles(!!errors.debiteur)} 
                   isDisabled={readOnly}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
-                  <option value="">Chargement...</option>
-                  <option value="deb1">Koné Amadou</option>
-                  <option value="deb2">Traoré Fatou</option>
-                  <option value="deb3">Société ABC SARL</option>
+                  <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
+                  <option value="deb1" style={{ backgroundColor: 'white', color: 'black' }}>Koné Amadou</option>
+                  <option value="deb2" style={{ backgroundColor: 'white', color: 'black' }}>Traoré Fatou</option>
+                  <option value="deb3" style={{ backgroundColor: 'white', color: 'black' }}>Société ABC SARL</option>
                 </Select>
               )}
             />
@@ -281,16 +282,20 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   {...field} 
                   placeholder="Sélectionner un groupe" 
                   {...getFieldStyles(!!errors.groupeCreance)} 
-                  isDisabled={readOnly}
-                  bg="white"
-                  color="gray.800"
+                  isDisabled={readOnly || loadingGroupesCreance}
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
-                  <option value="">Chargement...</option>
-                  {Array.isArray(groupesCreance) && groupesCreance.map((groupe) => (
-                    <option key={groupe.GC_CODE} value={groupe.GC_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                      {groupe.GC_LIB}
-                    </option>
-                  ))}
+                  {loadingGroupesCreance ? (
+                    <option value="">Chargement...</option>
+                  ) : (
+                    Array.isArray(groupesCreance) && groupesCreance.map((groupe) => (
+                      <option key={groupe.GC_CODE} value={groupe.GC_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {groupe.GC_LIB}
+                      </option>
+                    ))
+                  )}
                 </Select>
               )}
             />
@@ -314,10 +319,11 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   placeholder="Sélectionner un type" 
                   {...getFieldStyles(!!errors.typeObjet)} 
                   isDisabled={readOnly}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
-                  <option value="">Chargement...</option>
+                  <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
                   {Array.isArray(objetsCreance) && objetsCreance.map((objet) => (
                     <option key={objet.OC_CODE} value={objet.OC_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
                       {objet.OC_LIB}
@@ -418,11 +424,12 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.statutRecouvrement)} 
                   isDisabled={readOnly}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
-                  <option value="oui">Oui</option>
-                  <option value="non">Non</option>
+                  <option value="oui" style={{ backgroundColor: 'white', color: 'black' }}>Oui</option>
+                  <option value="non" style={{ backgroundColor: 'white', color: 'black' }}>Non</option>
                 </Select>
               )}
             />
@@ -496,10 +503,11 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   placeholder="Sélectionner une classe" 
                   {...getFieldStyles(!!errors.classeCreance)} 
                   isDisabled={readOnly}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
-                  <option value="">Chargement...</option>
+                  <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
                   {Array.isArray(classes) && classes.map((classe) => (
                     <option key={classe.CLAS_CODE} value={classe.CLAS_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
                       {classe.CLAS_LIB}
@@ -550,10 +558,11 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   placeholder="Sélectionner une entité" 
                   {...getFieldStyles(!!errors.entite)} 
                   isDisabled={readOnly}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
-                  <option value="">Chargement...</option>
+                  <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
                   {Array.isArray(entites) && entites.map((entite) => (
                     <option key={entite.ENT_CODE} value={entite.ENT_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
                       {entite.ENT_LIB}
@@ -577,7 +586,12 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="objetCreance"
               control={control}
               render={({ field }) => (
-                <Input {...field} placeholder="Objet de la créance" {...getFieldStyles(!!errors.objetCreance)} isDisabled={readOnly} />
+                <Input 
+                  {...field} 
+                  placeholder="Saisir l'objet de la créance" 
+                  {...getFieldStyles(!!errors.objetCreance)} 
+                  isDisabled={readOnly}
+                />
               )}
             />
             {errors.objetCreance && (
@@ -598,13 +612,14 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   placeholder="Sélectionner une périodicité" 
                   {...getFieldStyles(!!errors.periodicite)} 
                   isDisabled={readOnly}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
-                  <option value="mensuelle">Mensuelle</option>
-                  <option value="trimestrielle">Trimestrielle</option>
-                  <option value="semestrielle">Semestrielle</option>
-                  <option value="annuelle">Annuelle</option>
+                  <option value="mensuelle" style={{ backgroundColor: 'white', color: 'black' }}>Mensuelle</option>
+                  <option value="trimestrielle" style={{ backgroundColor: 'white', color: 'black' }}>Trimestrielle</option>
+                  <option value="semestrielle" style={{ backgroundColor: 'white', color: 'black' }}>Semestrielle</option>
+                  <option value="annuelle" style={{ backgroundColor: 'white', color: 'black' }}>Annuelle</option>
                 </Select>
               )}
             />
@@ -784,7 +799,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   }}
                   {...getFieldStyles(!!errors.montantRembourse)} 
                   isDisabled={true}
-                  bg="gray.50"
+                  bg="gray.100"
                   color="gray.700"
                 />
               )}
@@ -874,7 +889,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   }}
                   {...getFieldStyles(!!errors.montantImpaye)} 
                   isDisabled={true}
-                  bg="gray.50"
+                  bg="gray.100"
                   color="gray.700"
                 />
               )}
@@ -1019,7 +1034,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   }}
                   {...getFieldStyles(!!errors.montantIntConvPaye)} 
                   isDisabled={true}
-                  bg="gray.50"
+                  bg="gray.100"
                   color="gray.700"
                 />
               )}
@@ -1110,7 +1125,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   }}
                   {...getFieldStyles(!!errors.totalDu)} 
                   isDisabled={true}
-                  bg="gray.50"
+                  bg="gray.100"
                   color="gray.700"
                 />
               )}
@@ -1142,7 +1157,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   }}
                   {...getFieldStyles(!!errors.penalite1Pourcent)} 
                   isDisabled={true}
-                  bg="gray.50"
+                  bg="gray.100"
                   color="gray.700"
                 />
               )}
@@ -1176,7 +1191,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   }}
                   {...getFieldStyles(!!errors.totalARecouvrer)} 
                   isDisabled={true}
-                  bg="gray.50"
+                  bg="gray.100"
                   color="gray.700"
                 />
               )}
@@ -1210,14 +1225,15 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   placeholder="Sélectionner un type" 
                   {...getFieldStyles(!!errors.typePiece)} 
                   isDisabled={readOnly}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
-                  <option value="contrat">Contrat</option>
-                  <option value="facture">Facture</option>
-                  <option value="bon_commande">Bon de commande</option>
-                  <option value="lettre_engagement">Lettre d'engagement</option>
-                  <option value="autre">Autre</option>
+                  <option value="contrat" style={{ backgroundColor: 'white', color: 'black' }}>Contrat</option>
+                  <option value="facture" style={{ backgroundColor: 'white', color: 'black' }}>Facture</option>
+                  <option value="bon_commande" style={{ backgroundColor: 'white', color: 'black' }}>Bon de commande</option>
+                  <option value="lettre_engagement" style={{ backgroundColor: 'white', color: 'black' }}>Lettre d'engagement</option>
+                  <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
                 </Select>
               )}
             />

@@ -16,6 +16,10 @@ import { useStatutsSalarie } from "@/hooks/useStatutsSalarie";
 import { useBanques } from "@/hooks/useBanques";
 import { useAgencesBanque } from "@/hooks/useAgencesBanque";
 import { useEntites } from "@/hooks/useEntites";
+import { useTypesDebiteur } from "@/hooks/useTypesDebiteur";
+import { useCategoriesDebiteur } from "@/hooks/useCategoriesDebiteur";
+import { useTypesDomicil } from "@/hooks/useTypesDomicil";
+import { useUtilisateurs } from "@/hooks/useUtilisateurs";
 
 // Schémas de validation pour chaque étape
 const step1Schema = z.object({
@@ -101,6 +105,12 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
   const { data: banques, isLoading: loadingBanques } = useBanques();
   const { data: agencesBanque, isLoading: loadingAgencesBanque } = useAgencesBanque();
   const { data: entites, isLoading: loadingEntites } = useEntites();
+  
+  // Hooks pour les champs d'interrogation (récupérés automatiquement)
+  const { data: typesDebiteur, isLoading: loadingTypesDebiteur } = useTypesDebiteur();
+  const { data: categoriesDebiteur, isLoading: loadingCategoriesDebiteur } = useCategoriesDebiteur();
+  const { data: typesDomicil, isLoading: loadingTypesDomicil } = useTypesDomicil();
+  const { data: utilisateurs, isLoading: loadingUtilisateurs } = useUtilisateurs();
 
   const getSchemaForStep = (step: number) => {
     switch (step) {
@@ -183,7 +193,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   isReadOnly 
                   color="gray.700"
                   {...getFieldStyles(!!errors.codeDebiteur)} 
-                  bg="gray.50"
+                  bg="gray.100"
                 />
                 <Text fontSize="xs" color="gray.500" mt={1}>
                   Code existant du débiteur
@@ -196,7 +206,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   isReadOnly 
                   color="gray.500"
                   {...getFieldStyles(!!errors.codeDebiteur)} 
-                  bg="gray.50"
+                  bg="gray.100"
                 />
                 <Text fontSize="xs" color="gray.500" mt={1}>
                   Le code sera généré automatiquement après validation
@@ -213,11 +223,24 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="categorieDebiteur"
               control={control}
               render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner une catégorie" {...getFieldStyles(!!errors.categorieDebiteur)}>
-                  <option value="particulier">Particulier</option>
-                  <option value="entreprise">Entreprise</option>
-                  <option value="association">Association</option>
-                  <option value="autre">Autre</option>
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner une catégorie" 
+                  {...getFieldStyles(!!errors.categorieDebiteur)}
+                  bg="gray.100"
+                  color="gray.700"
+                  isDisabled={loadingCategoriesDebiteur}
+                  _hover={{ bg: "gray.100" }}
+                >
+                  {loadingCategoriesDebiteur ? (
+                    <option value="">Chargement...</option>
+                  ) : (
+                    Array.isArray(categoriesDebiteur) && categoriesDebiteur.map((categorie: any) => (
+                      <option key={categorie.id} value={categorie.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {categorie.libelle}
+                      </option>
+                    ))
+                  )}
                 </Select>
               )}
             />
@@ -266,9 +289,16 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="typeDebiteur"
               control={control}
               render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner un type" {...getFieldStyles(!!errors.typeDebiteur)}>
-                  <option value="physique">Personne physique</option>
-                  <option value="moral">Personne morale</option>
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner un type" 
+                  {...getFieldStyles(!!errors.typeDebiteur)}
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
+                >
+                  <option value="physique" style={{ backgroundColor: 'white', color: 'black' }}>Personne physique</option>
+                  <option value="moral" style={{ backgroundColor: 'white', color: 'black' }}>Personne morale</option>
                 </Select>
               )}
             />
@@ -298,8 +328,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.civilite)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   <option value="monsieur" style={{ backgroundColor: 'white', color: 'black' }}>Monsieur</option>
                   <option value="madame" style={{ backgroundColor: 'white', color: 'black' }}>Madame</option>
@@ -393,8 +424,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.quartier)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   {loadingQuartiers ? (
                     <option value="">Chargement...</option>
@@ -425,8 +457,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.nationalite)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   {loadingNationalites ? (
                     <option value="">Chargement...</option>
@@ -459,8 +492,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.fonction)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   {loadingFonctions ? (
                     <option value="">Chargement...</option>
@@ -491,8 +525,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.profession)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   {loadingProfessions ? (
                     <option value="">Chargement...</option>
@@ -525,8 +560,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.employeur)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   {loadingEntites ? (
                     <option value="">Chargement...</option>
@@ -557,8 +593,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.statutSalarie)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   {loadingStatutsSalarie ? (
                     <option value="">Chargement...</option>
@@ -604,8 +641,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.sexe)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   <option value="M" style={{ backgroundColor: 'white', color: 'black' }}>Masculin</option>
                   <option value="F" style={{ backgroundColor: 'white', color: 'black' }}>Féminin</option>
@@ -644,8 +682,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.naturePieceIdentite)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   <option value="CNI" style={{ backgroundColor: 'white', color: 'black' }}>CNI</option>
                   <option value="Passeport" style={{ backgroundColor: 'white', color: 'black' }}>Passeport</option>
@@ -711,8 +750,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.statutMatrimonial)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   <option value="celibataire" style={{ backgroundColor: 'white', color: 'black' }}>Célibataire</option>
                   <option value="marie" style={{ backgroundColor: 'white', color: 'black' }}>Marié(e)</option>
@@ -733,10 +773,17 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="regimeMariage"
               control={control}
               render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner" {...getFieldStyles(!!errors.regimeMariage)}>
-                  <option value="communaute">Communauté</option>
-                  <option value="separation">Séparation de biens</option>
-                  <option value="participation">Participation aux acquêts</option>
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner" 
+                  {...getFieldStyles(!!errors.regimeMariage)}
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
+                >
+                  <option value="communaute" style={{ backgroundColor: 'white', color: 'black' }}>Communauté</option>
+                  <option value="separation" style={{ backgroundColor: 'white', color: 'black' }}>Séparation de biens</option>
+                  <option value="participation" style={{ backgroundColor: 'white', color: 'black' }}>Participation aux acquêts</option>
                 </Select>
               )}
             />
@@ -982,8 +1029,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.formeJuridique)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   <option value="SARL" style={{ backgroundColor: 'white', color: 'black' }}>SARL</option>
                   <option value="SA" style={{ backgroundColor: 'white', color: 'black' }}>SA</option>
@@ -1011,8 +1059,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               {...field} 
               placeholder="Sélectionner" 
               {...getFieldStyles(!!errors.domaineActivite)}
-              bg="white"
-              color="gray.800"
+              bg="gray.100"
+              color="gray.700"
+              _hover={{ bg: "gray.100" }}
             >
               <option value="commerce" style={{ backgroundColor: 'white', color: 'black' }}>Commerce</option>
               <option value="industrie" style={{ backgroundColor: 'white', color: 'black' }}>Industrie</option>
@@ -1076,12 +1125,20 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.type)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  isDisabled={loadingTypesDomicil}
+                  _hover={{ bg: "gray.100" }}
                 >
-                  <option value="domicile" style={{ backgroundColor: 'white', color: 'black' }}>Domicile</option>
-                  <option value="bureau" style={{ backgroundColor: 'white', color: 'black' }}>Bureau</option>
-                  <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
+                  {loadingTypesDomicil ? (
+                    <option value="">Chargement...</option>
+                  ) : (
+                    Array.isArray(typesDomicil) && typesDomicil.map((type: any) => (
+                      <option key={type.id} value={type.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {type.libelle}
+                      </option>
+                    ))
+                  )}
                 </Select>
               )}
             />
@@ -1134,8 +1191,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.banque)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   {loadingBanques ? (
                     <option value="">Chargement...</option>
@@ -1166,8 +1224,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...field} 
                   placeholder="Sélectionner" 
                   {...getFieldStyles(!!errors.banqueAgence)}
-                  bg="white"
-                  color="gray.800"
+                  bg="gray.100"
+                  color="gray.700"
+                  _hover={{ bg: "gray.100" }}
                 >
                   {loadingAgencesBanque ? (
                     <option value="">Chargement...</option>
