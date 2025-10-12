@@ -1,22 +1,18 @@
 "use client"
 
 import { Suspense } from "react";
-import { useState, useRef, useEffect } from "react";
-import { Box, Button, Card, CardBody, CardHeader, Heading, Text, VStack, HStack, Progress, useToast } from "@chakra-ui/react";
-import { ChevronLeftIcon, ChevronRightIcon, ArrowBackIcon } from "@chakra-ui/icons";
+import * as React from "react";
+import { Button } from "@/components/ui/button"
 import { useRouter, useSearchParams } from "next/navigation";
 import DebiteurForm from "@/components/debiteur-form/debiteur-form";
 
 const EditerDebiteurPageInner = () => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({});
-  const [loading, setLoading] = useState(true);
-  const totalSteps = 3;
-  const formRef = useRef<any>(null);
-  const toast = useToast();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const debiteurId = searchParams.get('id');
+  const [step, setStep] = React.useState(0)
+  const [loading, setLoading] = React.useState(true)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const debiteurId = searchParams.get('id')
+  const formRef = React.useRef<any>(null)
 
   // Données de test (en réalité, vous récupéreriez ces données depuis l'API)
   const mockDebiteurData = {
@@ -69,192 +65,127 @@ const EditerDebiteurPageInner = () => {
     banqueAgence: "agence1"
   };
 
-  const steps = [
-    { id: 1, title: "Informations générales", description: "Code, catégorie, adresse, email et type de débiteur" },
-    { id: 2, title: "Personne physique/morale", description: "Informations détaillées selon le type sélectionné" },
-    { id: 3, title: "Domiciliation", description: "Type, compte, banque et agence" }
-  ];
+  const [formData, setFormData] = React.useState({})
 
-  useEffect(() => {
+  const steps = [
+    { id: 0, title: "Informations générales", description: "Code, catégorie, adresse, email et type de débiteur" },
+    { id: 1, title: "Personne physique/morale", description: "Informations détaillées selon le type sélectionné" },
+    { id: 2, title: "Domiciliation", description: "Type, compte, banque et agence" }
+  ]
+
+  React.useEffect(() => {
     // Simulation du chargement des données
     setTimeout(() => {
-      setFormData(mockDebiteurData);
-      setLoading(false);
-    }, 1000);
-  }, [debiteurId]);
-
-  const validateCurrentStep = () => {
-    if (!formRef.current) return false;
-    
-    // Déclencher la validation du formulaire
-    return formRef.current.validateStep();
-  };
-
-  const handleNext = async () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+      setFormData(mockDebiteurData)
+      setLoading(false)
+    }, 1000)
+  }, [debiteurId])
 
   const handleSubmit = (data: any) => {
     console.log("Données du débiteur modifié:", data);
-    // Ici vous pouvez ajouter la logique de mise à jour
-    toast({
-      title: "Débiteur modifié",
-      description: "Le débiteur a été modifié avec succès.",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-    // Rediriger vers la liste des débiteurs
     router.push("/etude_creance/debiteur/views");
   };
-
-  const handleBack = () => {
-    router.push("/etude_creance/debiteur/views");
-  };
-
-  const progressPercentage = (currentStep / totalSteps) * 100;
 
   if (loading) {
     return (
-      <Box p={6} maxW="1200px" mx="auto">
-        <Text>Chargement du débiteur...</Text>
-      </Box>
-    );
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Chargement du débiteur...</div>
+      </div>
+    )
   }
 
   return (
-    <Box p={6} maxW="1200px" mx="auto">
-      <VStack spacing={6} align="stretch">
-        {/* En-tête avec design moderne */}
-        <div className="py-6 border-b border-gray-200">
+    <div className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-6xl px-6 py-6">
+        {/* En-tête comme dans l'image */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold text-gray-900 mb-2">Modifier un débiteur</h1>
           <div className="flex items-center justify-between mb-4">
-            <div className="space-y-2 mb-5 bg-primary w-full py-4 px-8">
-              <h1 className="text-2xl tracking-tight" style={{ fontWeight: 'bold', color: '#fff' }}>
-                Modification d'un Débiteur
-              </h1>
-              <p className="text-base text-white">
-                Modifiez le débiteur {mockDebiteurData.codeDebiteur}
-              </p>
+            <div className="flex items-center justify-between w-full">
+              <div className={`text-sm font-medium ${step >= 0 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Informations générales
+              </div>
+              <div className={`text-sm font-medium ${step >= 1 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Personne physique/morale
+              </div>
+              <div className={`text-sm font-medium ${step >= 2 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Domiciliation
+              </div>
             </div>
           </div>
-          
-          <div className="flex items-center justify-end gap-6 px-8">
-            <Button
-              leftIcon={<ArrowBackIcon />}
-              onClick={handleBack}
-              variant="outline"
-              colorScheme="gray"
-              size="md"
-            >
-              Retour à la liste
-            </Button>
+          <div className="w-full bg-gray-200 rounded-full h-1">
+            <div 
+              className="bg-orange-500 h-1 rounded-full transition-all duration-300" 
+              style={{ width: `${((step + 1) / 3) * 100}%` }}
+            ></div>
           </div>
         </div>
 
-        {/* Indicateur de progression */}
-        <Card>
-          <CardBody>
-            <VStack spacing={4}>
-              <HStack w="full" justify="space-between">
-                {steps.map((step, index) => (
-                  <VStack key={step.id} spacing={2} flex={1}>
-                    <Box
-                      w={8}
-                      h={8}
-                      borderRadius="full"
-                      bg={currentStep >= step.id ? "#28A325" : "gray.200"}
-                      color={currentStep >= step.id ? "white" : "gray.500"}
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      fontWeight="bold"
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-12 space-y-6">
+
+            {/* Contenu du formulaire */}
+            <div className="bg-white rounded-lg border p-6 shadow-sm">
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-orange-600 mb-2">
+                  {steps[step].title}
+                </h2>
+                <p className="text-sm text-gray-600">
+                  {steps[step].description}
+                </p>
+              </div>
+
+              <DebiteurForm
+                ref={formRef}
+                currentStep={step + 1}
+                formData={formData}
+                onDataChange={setFormData}
+                onSubmit={handleSubmit}
+                isEditMode={true}
+              />
+            </div>
+
+            {/* Navigation comme dans l'image - pied de page */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <div className="flex justify-between items-center">
+                <div>
+                  {step > 0 && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setStep(step - 1)}
+                      className="text-gray-600 border-gray-300 hover:bg-gray-50 bg-white px-24 py-4 text-base min-w-[120px]"
                     >
-                      {step.id}
-                    </Box>
-                    <Text fontSize="sm" fontWeight="medium" textAlign="center">
-                      {step.title}
-                    </Text>
-                    <Text fontSize="xs" color="gray.500" textAlign="center">
-                      {step.description}
-                    </Text>
-                  </VStack>
-                ))}
-              </HStack>
-              <Progress value={progressPercentage} w="full" colorScheme="green" size="sm" />
-            </VStack>
-          </CardBody>
-        </Card>
-
-        {/* Formulaire */}
-        <Card>
-          <CardHeader>
-            <Heading size="md" color="#1a202c">
-              Étape {currentStep} : {steps[currentStep - 1].title}
-            </Heading>
-            <Text color="#718096">{steps[currentStep - 1].description}</Text>
-          </CardHeader>
-          <CardBody>
-            <DebiteurForm
-              ref={formRef}
-              currentStep={currentStep}
-              formData={formData}
-              onDataChange={setFormData}
-              onSubmit={handleSubmit}
-              isEditMode={true}
-            />
-          </CardBody>
-        </Card>
-
-        {/* Navigation */}
-        <Card>
-          <CardBody>
-            <HStack justify="space-between">
-              <Button
-                leftIcon={<ChevronLeftIcon />}
-                onClick={handlePrevious}
-                isDisabled={currentStep === 1}
-                variant="outline"
-              >
-                Précédent
-              </Button>
-              
-              <HStack spacing={4}>
-                <Text fontSize="sm" color="gray.500">
-                  Étape {currentStep} sur {totalSteps}
-                </Text>
-              </HStack>
-
-              {currentStep < totalSteps ? (
-                <Button
-                  rightIcon={<ChevronRightIcon />}
-                  onClick={handleNext}
-                  colorScheme="green"
-                >
-                  Suivant
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => handleSubmit(formData)}
-                  colorScheme="green"
-                >
-                  Mettre à jour le débiteur
-                </Button>
-              )}
-            </HStack>
-          </CardBody>
-        </Card>
-      </VStack>
-    </Box>
-  );
-};
+                      Précédent
+                    </Button>
+                  )}
+                </div>
+                <div>
+                  {step < 2 ? (
+                    <Button 
+                      onClick={() => setStep(step + 1)}
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px]"
+                      style={{ backgroundColor: '#f97316', color: 'white' }}
+                    >
+                      Suivant
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={() => handleSubmit(formData)}
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px]"
+                      style={{ backgroundColor: '#f97316', color: 'white' }}
+                    >
+                      Mettre à jour
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function EditerDebiteurPage() {
   return (
