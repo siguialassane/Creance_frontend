@@ -13,7 +13,7 @@ import { MenuItem } from "../../lib/types/menu";
 const StyledSideBarMenu = styled.div`
   padding: 20px 0 18px 0px;
   height: 100vh;
-  background: linear-gradient(180deg, ${colors.darkGreen} 0%, #1A3D2E 100%);
+  background: linear-gradient(180deg, ${colors.darkGreen} 0%, #0E3B2A 100%);
   overflow-y: auto;
   width: 100%;
   display: flex;

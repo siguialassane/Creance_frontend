@@ -23,13 +23,12 @@ padding-left: 1rem;
 padding-top: 0.5rem;
 padding-bottom: 0.5rem;
 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-// background-color: ${props => props.$isSelected ? 'rgba(34, 197, 94, 0.15)' : 'transparent'};
-// margin-bottom: 0.5rem;
-// border-radius: 6px;
+background-color: ${props => props.$isSelected ? 'rgba(255, 255, 255, 0.12)' : 'transparent'};
+border-radius: 8px;
 display: block;
 cursor: pointer;
-border: ${props => props.$isSelected ? '2px solid green' : '2px solid transparent'};
-// box-shadow: ${props => props.$isSelected ? '0 2px 8px rgba(34, 197, 94, 0.2)' : 'none'};
+border: none; /* pas de cadre rectangulaire autour de l'élément sélectionné */
+// box-shadow: ${props => props.$isSelected ? '0 2px 8px rgba(255, 255, 255, 0.2)' : 'none'};
 transform: ${props => props.$isHovered ? 'translateX(4px)' : 'translateX(0px)'};
 position: relative;
 margin: 0.5rem 0;
@@ -37,7 +36,7 @@ margin: 0.5rem 0;
 &:hover {
     background-color: rgba(255, 255, 255, 0.08);
     transform: translateX(4px);
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: transparent;
 }
 
 &:last-child {
@@ -57,7 +56,7 @@ const SubMenuNameStyled = styled.div`
 const AnimatedSubIcon = styled.div<{ $isSelected: boolean; $isHovered?: boolean }>`
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform: ${props => props.$isSelected ? 'scale(1.1)' : props.$isHovered ? 'scale(1.05)' : 'scale(1)'};
-  color: ${props => props.$isSelected ? colors.green : props.$isHovered ? '#E5E7EB' : '#fff'};
+  color: ${props => props.$isSelected ? '#FFFFFF' : props.$isHovered ? '#E5E7EB' : '#fff'};
   font-size: 12px;
   filter: ${props => props.$isSelected ? 'brightness(1.2)' : 'brightness(1)'};
 `
@@ -74,7 +73,7 @@ const SubMenuItemComponent = ({ subMenu, isSelected, onPressed, hasLeftIndicator
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                 >
-                    <StyledMenuItem $textColor={isSelected ? colors.green : isHovered ? '#E5E7EB' : colors.lightGray}>
+                    <StyledMenuItem $textColor={isSelected ? '#FFFFFF' : isHovered ? '#E5E7EB' : colors.lightGray}>
                             
                         <Stack direction='row' gap={2} justifyContent="start" alignItems="center" >
                             {/* <AnimatedSubIcon $isSelected={isSelected} $isHovered={isHovered}>

@@ -193,7 +193,7 @@ const EtudeCreancePage = () => {
         {/* En-tête avec bouton de création */}
         <HStack justify="space-between">
           <Box>
-            <Heading size="lg" mb={2} color="#1a202c">Gestion des Créances</Heading>
+            <Heading size="lg" mb={2} color="#28A325">Gestion des Créances</Heading>
             <Text color="#718096">Consultez et gérez toutes vos créances</Text>
           </Box>
           <Button

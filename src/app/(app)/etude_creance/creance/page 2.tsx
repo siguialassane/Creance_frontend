@@ -61,7 +61,7 @@ const CreancePage = () => {
       <VStack spacing={6} align="stretch">
         {/* En-tête */}
         <Box>
-          <Heading size="lg" mb={2} color="#1a202c">Gestion des Créances</Heading>
+          <Heading size="lg" mb={2} color="#28A325">Gestion des Créances</Heading>
           <Text color="#718096">Créez et gérez vos créances en quelques étapes</Text>
         </Box>
 

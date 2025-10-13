@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
-import { Box, VStack, HStack, FormControl, FormLabel, Input, Select, Textarea, Text, Divider, Grid, GridItem, Checkbox, Stack } from "@chakra-ui/react";
-import { useForm, Controller } from "react-hook-form";
+import { useState, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle, FC } from "react";
+import { Box, VStack, HStack, FormControl, FormLabel, Input, Select, Textarea, Text, Divider, Grid, GridItem, Checkbox, Stack, InputProps } from "@chakra-ui/react";
+import { useForm, Controller, ControllerRenderProps } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useGroupesCreance } from "@/hooks/useGroupesCreance";
@@ -10,6 +10,108 @@ import { useObjetsCreance } from "@/hooks/useObjetsCreance";
 import { useEntites } from "@/hooks/useEntites";
 import { useClasses } from "@/hooks/useClasses";
 import { useQuartiers } from "@/hooks/useQuartiers";
+
+// Composant NumberInput personnalisé pour gérer la saisie de nombres avec formatage
+interface NumberInputFieldProps extends Omit<InputProps, 'value' | 'onChange'> {
+  value: number | undefined | null;
+  onChange: (value: number | undefined) => void;
+}
+
+const NumberInputField: FC<NumberInputFieldProps> = ({ value, onChange, ...props }) => {
+  // Fonction pour formater un nombre pour l'affichage
+  const formatNumberForDisplay = useCallback((num: number | undefined | null): string => {
+    if (num === undefined || num === null || isNaN(num)) return '';
+    
+    const strValue = num.toString();
+    const parts = strValue.split('.');
+    const integerPart = parts[0];
+    const decimalPart = parts[1] || '';
+    
+    // Formater avec séparateurs de milliers (espaces)
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    
+    if (decimalPart) {
+      return formattedInteger + ',' + decimalPart;
+    }
+    return formattedInteger;
+  }, []);
+
+  const [localValue, setLocalValue] = useState<string>(() => formatNumberForDisplay(value));
+  const [isFocused, setIsFocused] = useState(false);
+
+  // Fonction pour formater un nombre avec séparateurs de milliers pendant la saisie
+  const formatWithThousandsSeparator = useCallback((str: string): string => {
+    // Séparer la partie entière de la partie décimale
+    const parts = str.split(',');
+    const integerPart = parts[0].replace(/\D/g, '');
+    const decimalPart = parts[1] ? parts[1].replace(/\D/g, '') : '';
+    
+    if (!integerPart) return '';
+    
+    // Ajouter les séparateurs de milliers (espaces)
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    
+    // Retourner avec la virgule si il y a une partie décimale
+    if (parts.length > 1) {
+      return formattedInteger + ',' + decimalPart;
+    }
+    return formattedInteger;
+  }, []);
+
+  // Synchroniser avec la valeur externe quand le champ n'est pas focus
+  useEffect(() => {
+    if (!isFocused) {
+      setLocalValue(formatNumberForDisplay(value));
+    }
+  }, [value, isFocused, formatNumberForDisplay]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    
+    // Supprimer tout sauf les chiffres et la virgule
+    let cleaned = inputValue.replace(/[^\d,]/g, '');
+    
+    // S'assurer qu'il n'y a qu'une seule virgule
+    const parts = cleaned.split(',');
+    if (parts.length > 2) {
+      cleaned = parts[0] + ',' + parts.slice(1).join('');
+    }
+    
+    // Appliquer le formatage en temps réel
+    const formatted = formatWithThousandsSeparator(cleaned);
+    setLocalValue(formatted);
+    
+    // Parser et envoyer la valeur
+    const numericStr = cleaned.replace(/\s/g, '').replace(/,/g, '.');
+    if (numericStr === '' || numericStr === '.') {
+      onChange(undefined);
+    } else {
+      const parsed = parseFloat(numericStr);
+      onChange(isNaN(parsed) ? undefined : parsed);
+    }
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    // Reformater à la sortie
+    setLocalValue(formatNumberForDisplay(value));
+  };
+
+  return (
+    <Input
+      {...props}
+      type="text"
+      value={localValue}
+      onChange={handleChange}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+    />
+  );
+};
 
 // Schémas de validation pour chaque étape
 const step1Schema = z.object({
@@ -224,17 +326,40 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
     isDisabled: readOnly,
   })
 
-  // Fonction pour formater les nombres avec séparateurs de milliers
-  const formatNumber = (value: string) => {
-    const numericValue = value.replace(/\D/g, '')
-    return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  // Fonctions helper pour obtenir les libellés des options
+  const getGroupeCreanceLibelle = (id: string) => {
+    if (!id) return '';
+    if (!groupesCreance || !Array.isArray(groupesCreance)) return id;
+    const groupe: any = groupesCreance.find((g: any) => g.GC_CODE === id);
+    return groupe?.GC_LIB || id;
   }
 
-  // Fonction pour parser les nombres formatés
-  const parseNumber = (value: string) => {
-    const cleaned = value.replace(/\s/g, '')
-    if (cleaned === '' || cleaned === '0') return 0
-    return parseFloat(cleaned) || 0
+  const getObjetCreanceLibelle = (id: string) => {
+    if (!id) return '';
+    if (!objetsCreance || !Array.isArray(objetsCreance)) return id;
+    const objet: any = objetsCreance.find((o: any) => o.OC_CODE === id);
+    return objet?.OC_LIB || id;
+  }
+
+  const getClasseLibelle = (id: string) => {
+    if (!id) return '';
+    if (!classes || !Array.isArray(classes)) return id;
+    const classe: any = classes.find((c: any) => c.CLAS_CODE === id);
+    return classe?.CLAS_LIB || id;
+  }
+
+  const getEntiteLibelle = (id: string) => {
+    if (!id) return '';
+    if (!entites || !Array.isArray(entites)) return id;
+    const entite: any = entites.find((e: any) => e.ENT_CODE === id);
+    return entite?.ENT_LIB || id;
+  }
+
+  const getQuartierLibelle = (id: string) => {
+    if (!id) return '';
+    if (!quartiers || !Array.isArray(quartiers)) return id;
+    const quartier: any = quartiers.find((q: any) => q.Q_CODE === id);
+    return quartier?.Q_LIB || id;
   }
 
   const renderStep1 = () => (
@@ -249,20 +374,28 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="debiteur"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner un débiteur" 
-                  {...getFieldStyles(!!errors.debiteur)} 
-                  isDisabled={readOnly}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
-                  <option value="deb1" style={{ backgroundColor: 'white', color: 'black' }}>Koné Amadou</option>
-                  <option value="deb2" style={{ backgroundColor: 'white', color: 'black' }}>Traoré Fatou</option>
-                  <option value="deb3" style={{ backgroundColor: 'white', color: 'black' }}>Société ABC SARL</option>
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={field.value === 'deb1' ? 'Koné Amadou' : field.value === 'deb2' ? 'Traoré Fatou' : field.value === 'deb3' ? 'Société ABC SARL' : field.value} 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.debiteur)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner un débiteur" 
+                    borderColor={primaryGreen}
+                    bg="gray.100"
+                    color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
+                  >
+                    <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
+                    <option value="deb1" style={{ backgroundColor: 'white', color: 'black' }}>Koné Amadou</option>
+                    <option value="deb2" style={{ backgroundColor: 'white', color: 'black' }}>Traoré Fatou</option>
+                    <option value="deb3" style={{ backgroundColor: 'white', color: 'black' }}>Société ABC SARL</option>
+                  </Select>
+                )
               )}
             />
             {errors.debiteur && (
@@ -278,25 +411,33 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="groupeCreance"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner un groupe" 
-                  {...getFieldStyles(!!errors.groupeCreance)} 
-                  isDisabled={readOnly || loadingGroupesCreance}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  {loadingGroupesCreance ? (
-                    <option value="">Chargement...</option>
-                  ) : (
-                    Array.isArray(groupesCreance) && groupesCreance.map((groupe) => (
-                      <option key={groupe.GC_CODE} value={groupe.GC_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {groupe.GC_LIB}
-                      </option>
-                    ))
-                  )}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getGroupeCreanceLibelle(field.value)} 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.groupeCreance)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner un groupe" 
+                    borderColor={primaryGreen}
+                    bg="gray.100"
+                    color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
+                  >
+                    {loadingGroupesCreance ? (
+                      <option value="">Chargement...</option>
+                    ) : (
+                      Array.isArray(groupesCreance) && groupesCreance.map((groupe) => (
+                        <option key={groupe.GC_CODE} value={groupe.GC_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
+                          {groupe.GC_LIB}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                )
               )}
             />
             {errors.groupeCreance && (
@@ -314,22 +455,30 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="typeObjet"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner un type" 
-                  {...getFieldStyles(!!errors.typeObjet)} 
-                  isDisabled={readOnly}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
-                  {Array.isArray(objetsCreance) && objetsCreance.map((objet) => (
-                    <option key={objet.OC_CODE} value={objet.OC_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                      {objet.OC_LIB}
-                    </option>
-                  ))}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getObjetCreanceLibelle(field.value)} 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.typeObjet)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner un type" 
+                    borderColor={primaryGreen}
+                    bg="gray.100"
+                    color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
+                  >
+                    <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
+                    {Array.isArray(objetsCreance) && objetsCreance.map((objet) => (
+                      <option key={objet.OC_CODE} value={objet.OC_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {objet.OC_LIB}
+                      </option>
+                    ))}
+                  </Select>
+                )
               )}
             />
             {errors.typeObjet && (
@@ -345,15 +494,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="capitalInitial"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.capitalInitial)} 
                   isDisabled={readOnly}
                 />
@@ -374,15 +518,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="montantDecaisse"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.montantDecaisse)} 
                   isDisabled={readOnly}
                 />
@@ -419,18 +558,26 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="statutRecouvrement"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.statutRecouvrement)} 
-                  isDisabled={readOnly}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="oui" style={{ backgroundColor: 'white', color: 'black' }}>Oui</option>
-                  <option value="non" style={{ backgroundColor: 'white', color: 'black' }}>Non</option>
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={field.value === 'oui' ? 'Oui' : field.value === 'non' ? 'Non' : field.value} 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.statutRecouvrement)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    borderColor={primaryGreen}
+                    bg="gray.100"
+                    color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
+                  >
+                    <option value="oui" style={{ backgroundColor: 'white', color: 'black' }}>Oui</option>
+                    <option value="non" style={{ backgroundColor: 'white', color: 'black' }}>Non</option>
+                  </Select>
+                )
               )}
             />
             {errors.statutRecouvrement && (
@@ -498,22 +645,30 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="classeCreance"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner une classe" 
-                  {...getFieldStyles(!!errors.classeCreance)} 
-                  isDisabled={readOnly}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
-                  {Array.isArray(classes) && classes.map((classe) => (
-                    <option key={classe.CLAS_CODE} value={classe.CLAS_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                      {classe.CLAS_LIB}
-                    </option>
-                  ))}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getClasseLibelle(field.value)} 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.classeCreance)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner une classe" 
+                    borderColor={primaryGreen}
+                    bg="gray.100"
+                    color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
+                  >
+                    <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
+                    {Array.isArray(classes) && classes.map((classe) => (
+                      <option key={classe.CLAS_CODE} value={classe.CLAS_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {classe.CLAS_LIB}
+                      </option>
+                    ))}
+                  </Select>
+                )
               )}
             />
             {errors.classeCreance && (
@@ -553,22 +708,30 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="entite"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner une entité" 
-                  {...getFieldStyles(!!errors.entite)} 
-                  isDisabled={readOnly}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
-                  {Array.isArray(entites) && entites.map((entite) => (
-                    <option key={entite.ENT_CODE} value={entite.ENT_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                      {entite.ENT_LIB}
-                    </option>
-                  ))}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getEntiteLibelle(field.value)} 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.entite)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner une entité" 
+                    borderColor={primaryGreen}
+                    bg="gray.100"
+                    color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
+                  >
+                    <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
+                    {Array.isArray(entites) && entites.map((entite) => (
+                      <option key={entite.ENT_CODE} value={entite.ENT_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {entite.ENT_LIB}
+                      </option>
+                    ))}
+                  </Select>
+                )
               )}
             />
             {errors.entite && (
@@ -607,20 +770,28 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="periodicite"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner une périodicité" 
-                  {...getFieldStyles(!!errors.periodicite)} 
-                  isDisabled={readOnly}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="mensuelle" style={{ backgroundColor: 'white', color: 'black' }}>Mensuelle</option>
-                  <option value="trimestrielle" style={{ backgroundColor: 'white', color: 'black' }}>Trimestrielle</option>
-                  <option value="semestrielle" style={{ backgroundColor: 'white', color: 'black' }}>Semestrielle</option>
-                  <option value="annuelle" style={{ backgroundColor: 'white', color: 'black' }}>Annuelle</option>
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={field.value === 'mensuelle' ? 'Mensuelle' : field.value === 'trimestrielle' ? 'Trimestrielle' : field.value === 'semestrielle' ? 'Semestrielle' : field.value === 'annuelle' ? 'Annuelle' : field.value} 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.periodicite)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner une périodicité" 
+                    borderColor={primaryGreen}
+                    bg="gray.100"
+                    color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
+                  >
+                    <option value="mensuelle" style={{ backgroundColor: 'white', color: 'black' }}>Mensuelle</option>
+                    <option value="trimestrielle" style={{ backgroundColor: 'white', color: 'black' }}>Trimestrielle</option>
+                    <option value="semestrielle" style={{ backgroundColor: 'white', color: 'black' }}>Semestrielle</option>
+                    <option value="annuelle" style={{ backgroundColor: 'white', color: 'black' }}>Annuelle</option>
+                  </Select>
+                )
               )}
             />
             {errors.periodicite && (
@@ -642,8 +813,12 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   {...field} 
                   type="number" 
                   placeholder="0" 
-                  value={field.value || ''}
-                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                  value={field.value ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') { field.onChange(undefined); return; }
+                    field.onChange(parseInt(v));
+                  }}
                   {...getFieldStyles(!!errors.nbEch)} 
                   isDisabled={readOnly}
                 />
@@ -788,15 +963,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="montantRembourse"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.montantRembourse)} 
                   isDisabled={true}
                   bg="gray.100"
@@ -804,9 +974,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                 />
               )}
             />
-            <Text fontSize="xs" color="gray.500" mt={1}>
-              Calculé automatiquement : Capital + Intérêt Conv + Commission
-            </Text>
+            
             {errors.montantRembourse && (
               <Text color={errorRed} fontSize="sm">{String(errors.montantRembourse.message)}</Text>
             )}
@@ -822,15 +990,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="montantDu"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.montantDu)} 
                   isDisabled={readOnly}
                 />
@@ -849,15 +1012,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="montantDejaRembourse"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.montantDejaRembourse)} 
                   isDisabled={readOnly}
                 />
@@ -878,15 +1036,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="montantImpaye"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.montantImpaye)} 
                   isDisabled={true}
                   bg="gray.100"
@@ -894,9 +1047,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                 />
               )}
             />
-            <Text fontSize="xs" color="gray.500" mt={1}>
-              Calculé automatiquement : Montant dû - Montant déjà remboursé
-            </Text>
+            
             {errors.montantImpaye && (
               <Text color={errorRed} fontSize="sm">{String(errors.montantImpaye.message)}</Text>
             )}
@@ -910,15 +1061,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="diversFrais"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.diversFrais)} 
                   isDisabled={readOnly}
                 />
@@ -939,15 +1085,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="commission"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.commission)} 
                   isDisabled={readOnly}
                 />
@@ -966,15 +1107,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="montantAss"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.montantAss)} 
                   isDisabled={readOnly}
                 />
@@ -1000,16 +1136,18 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   type="number" 
                   placeholder="0" 
                   step="0.01"
-                  value={field.value || ''}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  value={field.value ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') { field.onChange(undefined); return; }
+                    field.onChange(parseFloat(v));
+                  }}
                   {...getFieldStyles(!!errors.intConvPourcentage)} 
                   isDisabled={readOnly}
                 />
               )}
             />
-            <Text fontSize="xs" color="gray.500" mt={1}>
-              Pourcentage d'intérêt conventionnel
-            </Text>
+            
             {errors.intConvPourcentage && (
               <Text color={errorRed} fontSize="sm">{String(errors.intConvPourcentage.message)}</Text>
             )}
@@ -1023,15 +1161,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="montantIntConvPaye"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.montantIntConvPaye)} 
                   isDisabled={true}
                   bg="gray.100"
@@ -1039,9 +1172,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                 />
               )}
             />
-            <Text fontSize="xs" color="gray.500" mt={1}>
-              Calculé automatiquement : Capital × Pourcentage Int. Conv
-            </Text>
+            
             {errors.montantIntConvPaye && (
               <Text color={errorRed} fontSize="sm">{String(errors.montantIntConvPaye.message)}</Text>
             )}
@@ -1062,16 +1193,18 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   type="number" 
                   placeholder="0" 
                   step="0.01"
-                  value={field.value || ''}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  value={field.value ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') { field.onChange(undefined); return; }
+                    field.onChange(parseFloat(v));
+                  }}
                   {...getFieldStyles(!!errors.intRetPourcentage)} 
                   isDisabled={readOnly}
                 />
               )}
             />
-            <Text fontSize="xs" color="gray.500" mt={1}>
-              Pourcentage d'intérêt de retard
-            </Text>
+            
             {errors.intRetPourcentage && (
               <Text color={errorRed} fontSize="sm">{String(errors.intRetPourcentage.message)}</Text>
             )}
@@ -1085,15 +1218,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="encours"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.encours)} 
                   isDisabled={readOnly}
                 />
@@ -1114,15 +1242,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="totalDu"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.totalDu)} 
                   isDisabled={true}
                   bg="gray.100"
@@ -1130,9 +1253,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                 />
               )}
             />
-            <Text fontSize="xs" color="gray.500" mt={1}>
-              Calculé automatiquement : Montant impayé + Intérêt retard + Frais
-            </Text>
+            
             {errors.totalDu && (
               <Text color={errorRed} fontSize="sm">{String(errors.totalDu.message)}</Text>
             )}
@@ -1146,15 +1267,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="penalite1Pourcent"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
                   {...getFieldStyles(!!errors.penalite1Pourcent)} 
                   isDisabled={true}
                   bg="gray.100"
@@ -1162,9 +1278,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                 />
               )}
             />
-            <Text fontSize="xs" color="gray.500" mt={1}>
-              Calculé automatiquement : 1% du Total dû
-            </Text>
+            
             {errors.penalite1Pourcent && (
               <Text color={errorRed} fontSize="sm">{String(errors.penalite1Pourcent.message)}</Text>
             )}
@@ -1180,25 +1294,18 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="totalARecouvrer"
               control={control}
               render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="text" 
-                  placeholder="0" 
-                  value={field.value !== undefined && field.value !== null ? formatNumber(field.value.toString()) : ''}
-                  onChange={(e) => {
-                    const formatted = formatNumber(e.target.value)
-                    field.onChange(parseNumber(formatted))
-                  }}
-                  {...getFieldStyles(!!errors.totalARecouvrer)} 
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
+                  {...getFieldStyles(!!errors.totalARecouvrer)}
                   isDisabled={true}
                   bg="gray.100"
                   color="gray.700"
                 />
               )}
             />
-            <Text fontSize="xs" color="gray.500" mt={1}>
-              Calculé automatiquement : Total dû + Encours + Pénalité
-            </Text>
+            
             {errors.totalARecouvrer && (
               <Text color={errorRed} fontSize="sm">{String(errors.totalARecouvrer.message)}</Text>
             )}
@@ -1220,21 +1327,29 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               name="typePiece"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner un type" 
-                  {...getFieldStyles(!!errors.typePiece)} 
-                  isDisabled={readOnly}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="contrat" style={{ backgroundColor: 'white', color: 'black' }}>Contrat</option>
-                  <option value="facture" style={{ backgroundColor: 'white', color: 'black' }}>Facture</option>
-                  <option value="bon_commande" style={{ backgroundColor: 'white', color: 'black' }}>Bon de commande</option>
-                  <option value="lettre_engagement" style={{ backgroundColor: 'white', color: 'black' }}>Lettre d'engagement</option>
-                  <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={field.value === 'contrat' ? 'Contrat' : field.value === 'facture' ? 'Facture' : field.value === 'bon_commande' ? 'Bon de commande' : field.value === 'lettre_engagement' ? "Lettre d'engagement" : field.value === 'autre' ? 'Autre' : field.value} 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.typePiece)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner un type" 
+                    borderColor={primaryGreen}
+                    bg="gray.100"
+                    color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
+                  >
+                    <option value="contrat" style={{ backgroundColor: 'white', color: 'black' }}>Contrat</option>
+                    <option value="facture" style={{ backgroundColor: 'white', color: 'black' }}>Facture</option>
+                    <option value="bon_commande" style={{ backgroundColor: 'white', color: 'black' }}>Bon de commande</option>
+                    <option value="lettre_engagement" style={{ backgroundColor: 'white', color: 'black' }}>Lettre d'engagement</option>
+                    <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
+                  </Select>
+                )
               )}
             />
             {errors.typePiece && (
@@ -1331,21 +1446,29 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             name="typeGarantie"
           control={control}
           render={({ field }) => (
-              <Select 
-                {...field} 
-                placeholder="Sélectionner un type de garantie" 
-                {...getFieldStyles(!!errors.typeGarantie)} 
-                isDisabled={readOnly}
-                bg="white"
-                color="gray.800"
-              onChange={(e) => {
-                  field.onChange(e.target.value);
-                  setTypeGarantie(e.target.value);
-                }}
-              >
-                <option value="personnelles">Garanties personnelles</option>
-                <option value="reelles">Garanties réelles</option>
-              </Select>
+              readOnly ? (
+                <Input 
+                  value={field.value === 'personnelles' ? 'Garanties personnelles' : field.value === 'reelles' ? 'Garanties réelles' : field.value} 
+                  color="gray.700"
+                  {...getFieldStyles(!!errors.typeGarantie)} 
+                  bg="gray.100"
+                />
+              ) : (
+                <Select 
+                  {...field} 
+                  placeholder="Sélectionner un type de garantie" 
+                  {...getFieldStyles(!!errors.typeGarantie)} 
+                  bg="white"
+                  color="gray.800"
+                  onChange={(e) => {
+                    field.onChange(e.target.value);
+                    setTypeGarantie(e.target.value);
+                  }}
+                >
+                  <option value="personnelles">Garanties personnelles</option>
+                  <option value="reelles">Garanties réelles</option>
+                </Select>
+              )
             )}
           />
           {errors.typeGarantie && (
@@ -1381,21 +1504,29 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                     name="employeur"
                     control={control}
                     render={({ field }) => (
-                      <Select 
-                        {...field} 
-                        placeholder="Sélectionner un employeur" 
-                        {...getFieldStyles(!!errors.employeur)} 
-              isDisabled={readOnly}
-                        bg="white"
-                        color="gray.800"
-                      >
-                        <option value="">Chargement...</option>
-                        {Array.isArray(entites) && entites.map((entite) => (
-                          <option key={entite.ENT_CODE} value={entite.ENT_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                            {entite.ENT_LIB}
-                          </option>
-                        ))}
-                      </Select>
+                      readOnly ? (
+                        <Input 
+                          value={getEntiteLibelle(field.value)} 
+                          color="gray.700"
+                          {...getFieldStyles(!!errors.employeur)} 
+                          bg="gray.100"
+                        />
+                      ) : (
+                        <Select 
+                          {...field} 
+                          placeholder="Sélectionner un employeur" 
+                          {...getFieldStyles(!!errors.employeur)} 
+                          bg="white"
+                          color="gray.800"
+                        >
+                          <option value="">Chargement...</option>
+                          {Array.isArray(entites) && entites.map((entite) => (
+                            <option key={entite.ENT_CODE} value={entite.ENT_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
+                              {entite.ENT_LIB}
+                            </option>
+                          ))}
+                        </Select>
+                      )
                     )}
                   />
                   {errors.employeur && (
@@ -1429,21 +1560,29 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                     name="quartier"
                     control={control}
                     render={({ field }) => (
-                      <Select 
-                        {...field} 
-                        placeholder="Sélectionner un quartier" 
-                        {...getFieldStyles(!!errors.quartier)} 
-              isDisabled={readOnly}
-                        bg="white"
-                        color="gray.800"
-                      >
-                        <option value="">Chargement...</option>
-                  {Array.isArray(quartiers) && quartiers.map((quartier) => (
-                    <option key={quartier.Q_CODE} value={quartier.Q_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                      {quartier.Q_LIB}
-                    </option>
-                  ))}
-                      </Select>
+                      readOnly ? (
+                        <Input 
+                          value={getQuartierLibelle(field.value)} 
+                          color="gray.700"
+                          {...getFieldStyles(!!errors.quartier)} 
+                          bg="gray.100"
+                        />
+                      ) : (
+                        <Select 
+                          {...field} 
+                          placeholder="Sélectionner un quartier" 
+                          {...getFieldStyles(!!errors.quartier)} 
+                          bg="white"
+                          color="gray.800"
+                        >
+                          <option value="">Chargement...</option>
+                          {Array.isArray(quartiers) && quartiers.map((quartier) => (
+                            <option key={quartier.Q_CODE} value={quartier.Q_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
+                              {quartier.Q_LIB}
+                            </option>
+                          ))}
+                        </Select>
+                      )
                     )}
                   />
                   {errors.quartier && (
@@ -1736,7 +1875,37 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
   };
 
   return (
-    <Box>
+    <Box
+      sx={{
+        '.chakra-form-control': {
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        },
+        '.chakra-form__label': {
+          marginBottom: 0,
+          width: '180px',
+          fontWeight: 600,
+          color: '#111827',
+          fontSize: '0.875rem'
+        },
+        '.chakra-input, .chakra-textarea': {
+          flex: 1,
+          borderColor: '#d1d5db',
+          backgroundColor: '#ffffff'
+        },
+        '.chakra-select': {
+          flex: 1,
+          borderColor: '#28A325 !important',
+          backgroundColor: '#f3f4f6 !important'
+        },
+        // Griser toutes les zones non saisissables (lecture seule / désactivées)
+        '.chakra-input[readonly], .chakra-textarea[readonly], .chakra-input[disabled], .chakra-textarea[disabled]': {
+          borderColor: '#28A325',
+          backgroundColor: '#f3f4f6'
+        }
+      }}
+    >
       {renderCurrentStep()}
     </Box>
   );

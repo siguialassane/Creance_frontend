@@ -33,22 +33,22 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
     }
 
     // Styles professionnels et dynamiques
+    const activeTextColor = '#FFFFFF' // blanc pour l'actif
+    const activeBg = 'rgba(255, 255, 255, 0.12)' // blanc léger pour la sélection
+
     const menuItemStyle = {
         padding: '14px 20px',
-        // backgroundColor: isSelected 
-        //     ? 'rgba(34, 197, 94, 0.15)' 
-        //     : 'transparent',
-        color: isSelected ? colors.green : '#9CA3AF',
+        backgroundColor: isSelected 
+            ? activeBg
+            : 'transparent',
+        color: isSelected ? activeTextColor : '#9CA3AF',
         cursor: 'pointer',
         borderRadius: '8px',
         margin: '2px 12px',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        border: isSelected 
-            ? `1px solid ${colors.green}` 
-            : '1px solid transparent',
-        // boxShadow: isSelected 
-        //     ? '0 4px 12px rgba(34, 197, 94, 0.2)' 
-        //     : 'none',
+        transition: 'all 0.2s ease',
+        border: 'none', // pas de cadre rectangulaire
+        outline: 'none',
+        boxShadow: 'none',
         position: 'relative' as const,
         overflow: 'hidden' as const,
         display: 'flex',
@@ -97,9 +97,9 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
                             transform: 'translateY(-50%)',
                             width: '4px',
                             height: '24px',
-                            backgroundColor: colors.green,
+                            backgroundColor: '#FFFFFF',
                             borderRadius: '0 2px 2px 0',
-                            boxShadow: `0 0 8px ${colors.green}`
+                            boxShadow: '0 0 8px rgba(255, 255, 255, 0.5)'
                         }}
                     />
                 )}
@@ -129,7 +129,7 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
                         flex: 1,
                         fontSize: '14px',
                         fontWeight: isSelected ? '600' : '500',
-                        color: isSelected ? colors.green : '#fff',
+                        color: isSelected ? activeTextColor : '#fff',
                         position: 'relative',
                         zIndex: 2
                     }}
@@ -141,7 +141,7 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
                 {menu.path !== '/settings' && menu.subMenus && (
                     <div
                         style={{
-                            color: isSelected ? colors.green : '#fff',
+                            color: '#fff',
                             fontSize: '12px',
                             position: 'relative',
                             zIndex: 2,
@@ -150,6 +150,8 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
                             justifyContent: 'center',
                             width: '20px',
                             height: '20px',
+                            marginLeft: 'auto', // pousser la flèche complètement à droite
+                            paddingRight: '2px',
                             transform: isSelected && !isClose ? 'rotate(90deg)' : 'rotate(0deg)',
                             transition: 'transform 0.2s ease'
                         }}
@@ -157,7 +159,7 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
                         <Icon icon={"mdi:chevron-right"} 
                         width={20}
                         height={20}
-                        color={isSelected ? colors.green : '#fff'}
+                        color='#fff'
                         />
                     </div>
                 )}

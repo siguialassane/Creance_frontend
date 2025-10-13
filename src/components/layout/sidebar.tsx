@@ -19,7 +19,7 @@ interface SidebarProps {
 const StyledSideBarMenu = styled.div`
   padding: 20px 0 18px 0px;
   height: 100%;
-  background: linear-gradient(180deg, ${colors.darkGreen} 0%, #1a4d1a 100%);
+  background: ${colors.darkGreen};
   overflow: hidden;
   width: 100%;
   display: flex;

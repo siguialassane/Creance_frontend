@@ -1,10 +1,10 @@
 "use client"
 
 import { Suspense } from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   Box, 
-  Button, 
+  Button as ChakraButton, 
   Card, 
   CardBody, 
   CardHeader, 
@@ -20,6 +20,8 @@ import {
 } from "@chakra-ui/react";
 import { ArrowBackIcon, EditIcon } from "@chakra-ui/icons";
 import { useRouter, useSearchParams } from "next/navigation";
+import DebiteurForm from "@/components/debiteur-form/debiteur-form";
+import { Button } from "@/components/ui/button";
 
 // Types pour les débiteurs
 interface Debiteur {
@@ -91,10 +93,20 @@ interface Debiteur {
 const VoirDebiteurPageInner = () => {
   const [debiteur, setDebiteur] = useState<Debiteur | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState({});
+  const totalSteps = 3;
+  const formRef = useRef<any>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const debiteurId = searchParams.get('id');
   const toast = useToast();
+
+  const steps = [
+    { id: 1, title: "Informations générales", description: "Code, catégorie, adresse, email et type de débiteur" },
+    { id: 2, title: "Personne physique/morale", description: "Informations détaillées selon le type sélectionné" },
+    { id: 3, title: "Domiciliation", description: "Type, compte, banque et agence" }
+  ];
 
   // Données de test (en réalité, vous récupéreriez ces données depuis l'API)
   const mockDebiteurPhysique: Debiteur = {
@@ -104,7 +116,7 @@ const VoirDebiteurPageInner = () => {
     categorieDebiteur: "Particulier",
     adressePostale: "Cocody, Angré 8ème Tranche, Abidjan",
     email: "amadou.kone@example.com",
-    typeDebiteur: "Physique",
+    typeDebiteur: "physique",
     
     // Étape 2: Personne physique
     nom: "Koné",
@@ -162,7 +174,7 @@ const VoirDebiteurPageInner = () => {
     categorieDebiteur: "Entreprise",
     adressePostale: "Plateau, Tour B, Abidjan",
     email: "contact@societe-abc.com",
-    typeDebiteur: "Moral",
+    typeDebiteur: "moral",
     
     // Étape 2: Personne morale
     nom: "Société ABC SARL",
@@ -194,7 +206,7 @@ const VoirDebiteurPageInner = () => {
     categorieDebiteur: "Entreprise",
     adressePostale: "Cocody, Boulevard de la République, Abidjan",
     email: "info@commerce-dia.com",
-    typeDebiteur: "Moral",
+    typeDebiteur: "moral",
     
     // Étape 2: Personne morale
     nom: "Commerce Dia SARL",
@@ -233,9 +245,24 @@ const VoirDebiteurPageInner = () => {
     // Simulation du chargement des données
     setTimeout(() => {
       setDebiteur(currentDebiteur);
+      if (currentDebiteur) {
+        setFormData(currentDebiteur);
+      }
       setLoading(false);
     }, 1000);
-  }, [debiteurId]);
+  }, [debiteurId, currentDebiteur]);
+
+  const handleNext = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -274,21 +301,18 @@ const VoirDebiteurPageInner = () => {
     <Box p={6} maxW="1200px" mx="auto">
       <VStack spacing={6} align="stretch">
         {/* En-tête avec design moderne */}
-        <div className="py-6 border-b border-gray-200">
+        <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <div className="space-y-2 mb-5 bg-primary w-full py-4 px-8">
-              <h1 className="text-2xl tracking-tight" style={{ fontWeight: 'bold', color: '#fff' }}>
+            <div>
+              <h1 className="text-2xl font-semibold mb-2" style={{ color: '#28A325' }}>
                 {debiteur.nom} {debiteur.prenom}
               </h1>
-              <p className="text-base text-white">
+              <p className="text-base text-gray-600">
                 Code: {debiteur.codeDebiteur}
               </p>
             </div>
-          </div>
-          
-          <div className="flex items-center justify-end gap-6 px-8">
             <HStack spacing={3}>
-              <Button
+              <ChakraButton
                 leftIcon={<EditIcon />}
                 onClick={handleEdit}
                 colorScheme="green"
@@ -296,321 +320,93 @@ const VoirDebiteurPageInner = () => {
                 _hover={{ bg: "#047857" }}
               >
                 Modifier
-              </Button>
-              <Button
+              </ChakraButton>
+              <ChakraButton
                 leftIcon={<ArrowBackIcon />}
                 onClick={handleBack}
                 variant="outline"
                 colorScheme="gray"
               >
                 Retour à la liste
-              </Button>
+              </ChakraButton>
             </HStack>
+          </div>
+          
+          {/* Indicateurs des étapes */}
+          <div className="flex items-center justify-between mb-4 mt-12">
+            <div className="flex items-center justify-between w-full">
+              <div className={`text-sm font-medium ${currentStep >= 1 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Informations générales
+              </div>
+              <div className={`text-sm font-medium ${currentStep >= 2 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Personne physique/morale
+              </div>
+              <div className={`text-sm font-medium ${currentStep >= 3 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Domiciliation
+              </div>
+            </div>
+          </div>
+          
+          {/* Barre de progression */}
+          <div className="w-full bg-gray-200 rounded-full h-1">
+            <div 
+              className="bg-orange-500 h-1 rounded-full transition-all duration-300" 
+              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+            ></div>
           </div>
         </div>
 
-        {/* Informations générales */}
-        <Card>
-          <CardHeader>
-            <Heading size="md" color="#1a202c">Informations générales</Heading>
-          </CardHeader>
-          <CardBody>
-            <Grid templateColumns="repeat(2, 1fr)" gap={6}>
-              <GridItem>
-                <VStack align="stretch" spacing={4}>
-                  <HStack justify="space-between">
-                    <Text fontWeight="semibold" color="#374151">Code débiteur:</Text>
-                    <Text>{debiteur.codeDebiteur}</Text>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontWeight="semibold" color="#374151">Catégorie:</Text>
-                    <Text>{debiteur.categorieDebiteur}</Text>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontWeight="semibold" color="#374151">Type:</Text>
-                    <Text>{debiteur.typeDebiteur}</Text>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontWeight="semibold" color="#374151">Email:</Text>
-                    <Text>{debiteur.email}</Text>
-                  </HStack>
-                </VStack>
-              </GridItem>
-              <GridItem>
-                <VStack align="stretch" spacing={4}>
-                  <HStack justify="space-between">
-                    <Text fontWeight="semibold" color="#374151">Adresse postale:</Text>
-                    <Text>{debiteur.adressePostale}</Text>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontWeight="semibold" color="#374151">Statut:</Text>
-                    <Badge colorScheme={getStatusColor(debiteur.statut)}>
-                      {debiteur.statut}
-                    </Badge>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontWeight="semibold" color="#374151">Date de création:</Text>
-                    <Text>{new Date(debiteur.dateCreation).toLocaleDateString('fr-FR')}</Text>
-                  </HStack>
-                </VStack>
-              </GridItem>
-            </Grid>
-          </CardBody>
-        </Card>
+        {/* Formulaire */}
+        <div className="bg-white rounded-lg border p-6 shadow-sm">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-orange-600 mb-2">
+              {steps[currentStep - 1].title}
+            </h2>
+            <p className="text-sm text-gray-600">
+              {steps[currentStep - 1].description}
+            </p>
+          </div>
 
-        {/* Informations personnelles - seulement pour personne physique */}
-        {debiteur.typeDebiteur?.toLowerCase() === 'physique' && (
-          <Card>
-            <CardHeader>
-              <Heading size="md" color="#1a202c">Informations personnelles</Heading>
-            </CardHeader>
-            <CardBody>
-              <Grid templateColumns="repeat(3, 1fr)" gap={6}>
-                <GridItem>
-                  <VStack align="stretch" spacing={4}>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Civilité:</Text>
-                      <Text>{debiteur.civilite}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Nom:</Text>
-                      <Text>{debiteur.nom}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Prénom:</Text>
-                      <Text>{debiteur.prenom}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Date de naissance:</Text>
-                      <Text>{debiteur.dateNaissance}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Lieu de naissance:</Text>
-                      <Text>{debiteur.lieuNaissance}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Sexe:</Text>
-                      <Text>{debiteur.sexe}</Text>
-                    </HStack>
-                  </VStack>
-                </GridItem>
-                <GridItem>
-                  <VStack align="stretch" spacing={4}>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Quartier:</Text>
-                      <Text>{debiteur.quartier}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Nationalité:</Text>
-                      <Text>{debiteur.nationalite}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Fonction:</Text>
-                      <Text>{debiteur.fonction}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Profession:</Text>
-                      <Text>{debiteur.profession}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Employeur:</Text>
-                      <Text>{debiteur.employeur}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Statut Salarié:</Text>
-                      <Text>{debiteur.statutSalarie}</Text>
-                    </HStack>
-                  </VStack>
-                </GridItem>
-                <GridItem>
-                  <VStack align="stretch" spacing={4}>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Matricule:</Text>
-                      <Text>{debiteur.matricule}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Nature pièce d'identité:</Text>
-                      <Text>{debiteur.naturePieceIdentite}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Numéro pièce d'identité:</Text>
-                      <Text>{debiteur.numeroPieceIdentite}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Date établie:</Text>
-                      <Text>{debiteur.dateEtablie}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Lieu établi:</Text>
-                      <Text>{debiteur.lieuEtablie}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Rue:</Text>
-                      <Text>{debiteur.rue}</Text>
-                    </HStack>
-                  </VStack>
-                </GridItem>
-              </Grid>
-            </CardBody>
-          </Card>
-        )}
+          <div>
+            <DebiteurForm
+              ref={formRef}
+              currentStep={currentStep}
+              formData={formData}
+              onDataChange={() => {}} // Pas de modification en mode consultation
+              onSubmit={() => {}} // Pas de soumission en mode consultation
+              readOnly={true} // Mode lecture seule
+            />
+          </div>
+        </div>
 
-        {/* Informations de l'entreprise - seulement pour personne morale */}
-        {debiteur.typeDebiteur?.toLowerCase() === 'moral' && (
-          <Card>
-            <CardHeader>
-              <Heading size="md" color="#1a202c">Informations de l'entreprise</Heading>
-            </CardHeader>
-            <CardBody>
-              <Grid templateColumns="repeat(2, 1fr)" gap={6}>
-                <GridItem>
-                  <VStack align="stretch" spacing={4}>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Raison sociale:</Text>
-                      <Text>{debiteur.raisonSociale}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Registre de commerce:</Text>
-                      <Text>{debiteur.registreCommerce}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Forme juridique:</Text>
-                      <Text>{debiteur.formeJuridique}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Domaine d'activité:</Text>
-                      <Text>{debiteur.domaineActivite}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Capital social:</Text>
-                      <Text>{debiteur.capitalSocial}</Text>
-                    </HStack>
-                  </VStack>
-                </GridItem>
-                <GridItem>
-                  <VStack align="stretch" spacing={4}>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Siège social:</Text>
-                      <Text>{debiteur.siegeSocial}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Nom du gérant:</Text>
-                      <Text>{debiteur.nomGerant}</Text>
-                    </HStack>
-                  </VStack>
-                </GridItem>
-              </Grid>
-            </CardBody>
-          </Card>
-        )}
-
-        {/* Informations familiales - seulement pour personne physique */}
-        {debiteur.typeDebiteur?.toLowerCase() === 'physique' && (
-          <Card>
-            <CardHeader>
-              <Heading size="md" color="#1a202c">Informations familiales</Heading>
-            </CardHeader>
-            <CardBody>
-              <Grid templateColumns="repeat(2, 1fr)" gap={6}>
-                <GridItem>
-                  <VStack align="stretch" spacing={4}>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Statut matrimonial:</Text>
-                      <Text>{debiteur.statutMatrimonial}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Régime de mariage:</Text>
-                      <Text>{debiteur.regimeMariage}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Nombre d'enfant:</Text>
-                      <Text>{debiteur.nombreEnfant}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Nom du conjoint:</Text>
-                      <Text>{debiteur.nomConjoint}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Prénoms du conjoint:</Text>
-                      <Text>{debiteur.prenomsConjoint}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Date de naissance conjoint:</Text>
-                      <Text>{debiteur.dateNaissanceConjoint}</Text>
-                    </HStack>
-                  </VStack>
-                </GridItem>
-                <GridItem>
-                  <VStack align="stretch" spacing={4}>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Adresse du conjoint:</Text>
-                      <Text>{debiteur.adresseConjoint}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Téléphone du conjoint:</Text>
-                      <Text>{debiteur.telConjoint}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Numéro de pièce du conjoint:</Text>
-                      <Text>{debiteur.numeroPieceConjoint}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Nom du père:</Text>
-                      <Text>{debiteur.nomPere}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Prénoms du père:</Text>
-                      <Text>{debiteur.prenomsPere}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontWeight="semibold" color="#374151">Nom de la mère:</Text>
-                      <Text>{debiteur.nomMere}</Text>
-                    </HStack>
-                  </VStack>
-                </GridItem>
-              </Grid>
-            </CardBody>
-          </Card>
-        )}
-
-        {/* Domiciliation */}
-        <Card>
-          <CardHeader>
-            <Heading size="md" color="#1a202c">Domiciliation</Heading>
-          </CardHeader>
-          <CardBody>
-            <Grid templateColumns="repeat(2, 1fr)" gap={6}>
-              <GridItem>
-                <VStack align="stretch" spacing={4}>
-                  <HStack justify="space-between">
-                    <Text fontWeight="semibold" color="#374151">Type:</Text>
-                    <Text>{debiteur.type}</Text>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontWeight="semibold" color="#374151">Numéro du compte:</Text>
-                    <Text>{debiteur.numeroCompte}</Text>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontWeight="semibold" color="#374151">Libellé:</Text>
-                    <Text>{debiteur.libelle}</Text>
-                  </HStack>
-                </VStack>
-              </GridItem>
-              <GridItem>
-                <VStack align="stretch" spacing={4}>
-                  <HStack justify="space-between">
-                    <Text fontWeight="semibold" color="#374151">Banque:</Text>
-                    <Text>{debiteur.banque}</Text>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontWeight="semibold" color="#374151">Banque agence:</Text>
-                    <Text>{debiteur.banqueAgence}</Text>
-                  </HStack>
-                </VStack>
-              </GridItem>
-            </Grid>
-          </CardBody>
-        </Card>
+        {/* Navigation */}
+        <div className="bg-white rounded-lg border shadow-sm">
+          <div className="pt-6 pb-6 px-6">
+            <div className="flex justify-between items-center">
+              <div>
+                {currentStep > 1 && (
+                  <Button 
+                    variant="outline" 
+                    onClick={handlePrevious}
+                    className="text-gray-600 border-gray-300 hover:bg-gray-50 bg-white px-24 py-4 text-base min-w-[120px]"
+                  >
+                    Précédent
+                  </Button>
+                )}
+              </div>
+              <div>
+                <Button 
+                  onClick={handleNext}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px]"
+                  style={{ backgroundColor: '#f97316', color: 'white' }}
+                  disabled={currentStep === totalSteps}
+                >
+                  Suivant
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         
       </VStack>

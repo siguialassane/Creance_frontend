@@ -28,7 +28,7 @@ export default function NouveauActePage() {
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-6xl px-6 py-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Nouvel acte (Gestion amiable)</h1>
+          <h1 className="text-2xl font-semibold" style={{ color: '#28A325' }}>Nouvel acte (Gestion amiable)</h1>
           <p className="text-gray-600">Étape {step + 1} sur 3</p>
         </div>
 

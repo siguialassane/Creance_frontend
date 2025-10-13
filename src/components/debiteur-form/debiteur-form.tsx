@@ -89,11 +89,12 @@ interface DebiteurFormProps {
   onDataChange: (data: any) => void;
   onSubmit: (data: any) => void;
   isEditMode?: boolean;
+  readOnly?: boolean;
 }
 
-const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData, onDataChange, onSubmit, isEditMode = false }, ref) => {
+const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData, onDataChange, onSubmit, isEditMode = false, readOnly = false }, ref) => {
   const [stepData, setStepData] = useState({});
-  const [typeDebiteur, setTypeDebiteur] = useState<string>('');
+  const [typeDebiteur, setTypeDebiteur] = useState<string>(formData?.typeDebiteur || '');
 
   // Hooks pour les données de sélection
   const { data: civilites, isLoading: loadingCivilites } = useCivilites();
@@ -148,9 +149,12 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
     return () => subscription.unsubscribe();
   }, [watch, handleDataChange, typeDebiteur]);
 
-  // Reset seulement quand l'étape change, pas quand formData change
+  // Reset seulement quand l'étape change
   useEffect(() => {
     reset(formData);
+    if (formData?.typeDebiteur) {
+      setTypeDebiteur(formData.typeDebiteur);
+    }
   }, [currentStep, reset]);
 
   // Exposer la méthode de validation au composant parent
@@ -173,9 +177,81 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
 
   const getFieldStyles = (hasError?: boolean) => ({
     borderColor: hasError ? errorRed : borderGray,
-    bg: hasError ? errorBg : 'white',
+    bg: hasError ? errorBg : (readOnly ? 'gray.50' : 'white'),
     _focus: { borderColor: primaryGreen },
+    isDisabled: readOnly,
   })
+
+  // Fonction helper pour obtenir le libellé d'une option à partir de son ID
+  const getCategorieLibelle = (id: string) => {
+    if (!id) return '';
+    if (!categoriesDebiteur || !Array.isArray(categoriesDebiteur)) return id;
+    const categorie: any = categoriesDebiteur.find((c: any) => c.id === id);
+    return categorie?.libelle || id;
+  }
+
+  const getNationaliteLibelle = (id: string) => {
+    if (!id) return '';
+    if (!nationalites || !Array.isArray(nationalites)) return id;
+    const nat: any = nationalites.find((n: any) => n.id === id);
+    return nat?.libelle || id;
+  }
+
+  const getQuartierLibelle = (id: string) => {
+    if (!id) return '';
+    if (!quartiers || !Array.isArray(quartiers)) return id;
+    const quartier: any = quartiers.find((q: any) => q.id === id);
+    return quartier?.libelle || id;
+  }
+
+  const getFonctionLibelle = (id: string) => {
+    if (!id) return '';
+    if (!fonctions || !Array.isArray(fonctions)) return id;
+    const fonction: any = fonctions.find((f: any) => f.id === id);
+    return fonction?.libelle || id;
+  }
+
+  const getProfessionLibelle = (id: string) => {
+    if (!id) return '';
+    if (!professions || !Array.isArray(professions)) return id;
+    const profession: any = professions.find((p: any) => p.id === id);
+    return profession?.libelle || id;
+  }
+
+  const getEntiteLibelle = (id: string) => {
+    if (!id) return '';
+    if (!entites || !Array.isArray(entites)) return id;
+    const entite: any = entites.find((e: any) => e.id === id);
+    return entite?.libelle || id;
+  }
+
+  const getStatutSalarieLibelle = (id: string) => {
+    if (!id) return '';
+    if (!statutsSalarie || !Array.isArray(statutsSalarie)) return id;
+    const statut: any = statutsSalarie.find((s: any) => s.id === id);
+    return statut?.libelle || id;
+  }
+
+  const getBanqueLibelle = (id: string) => {
+    if (!id) return '';
+    if (!banques || !Array.isArray(banques)) return id;
+    const banque: any = banques.find((b: any) => b.id === id);
+    return banque?.libelle || id;
+  }
+
+  const getAgenceBanqueLibelle = (id: string) => {
+    if (!id) return '';
+    if (!agencesBanque || !Array.isArray(agencesBanque)) return id;
+    const agence: any = agencesBanque.find((a: any) => a.id === id);
+    return agence?.libelle || id;
+  }
+
+  const getTypeDomicilLibelle = (id: string) => {
+    if (!id) return '';
+    if (!typesDomicil || !Array.isArray(typesDomicil)) return id;
+    const type: any = typesDomicil.find((t: any) => t.id === id);
+    return type?.libelle || id;
+  }
 
   // Étape 1: Informations générales
   const renderStep1 = () => (
@@ -183,10 +259,10 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
       <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Informations générales</Text>
       
       <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-        <GridItem>
+        <GridItem colSpan={isEditMode || readOnly ? 1 : 2}>
           <FormControl isInvalid={!!errors.codeDebiteur}>
             <FormLabel color={labelColor}>Code débiteur</FormLabel>
-            {isEditMode ? (
+            {isEditMode || readOnly ? (
               <>
                 <Input 
                   value={formData.codeDebiteur || "Code non disponible"} 
@@ -195,9 +271,11 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...getFieldStyles(!!errors.codeDebiteur)} 
                   bg="gray.100"
                 />
-                <Text fontSize="xs" color="gray.500" mt={1}>
-                  Code existant du débiteur
-                </Text>
+                {!readOnly && (
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    Code existant du débiteur
+                  </Text>
+                )}
               </>
             ) : (
               <>
@@ -223,25 +301,36 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="categorieDebiteur"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner une catégorie" 
-                  {...getFieldStyles(!!errors.categorieDebiteur)}
-                  bg="gray.100"
-                  color="gray.700"
-                  isDisabled={loadingCategoriesDebiteur}
-                  _hover={{ bg: "gray.100" }}
-                >
-                  {loadingCategoriesDebiteur ? (
-                    <option value="">Chargement...</option>
-                  ) : (
-                    Array.isArray(categoriesDebiteur) && categoriesDebiteur.map((categorie: any) => (
-                      <option key={categorie.id} value={categorie.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {categorie.libelle}
-                      </option>
-                    ))
-                  )}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getCategorieLibelle(field.value)} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.categorieDebiteur)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner une catégorie" 
+                    borderColor={primaryGreen}
+                    bg="gray.100"
+                    color="gray.700"
+                    isDisabled={loadingCategoriesDebiteur}
+                    _focus={{ borderColor: primaryGreen }}
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    {loadingCategoriesDebiteur ? (
+                      <option value="">Chargement...</option>
+                    ) : (
+                      Array.isArray(categoriesDebiteur) && categoriesDebiteur.map((categorie: any) => (
+                        <option key={categorie.id} value={categorie.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                          {categorie.libelle}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                )
               )}
             />
             {errors.categorieDebiteur && (
@@ -289,17 +378,28 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="typeDebiteur"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner un type" 
-                  {...getFieldStyles(!!errors.typeDebiteur)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="physique" style={{ backgroundColor: 'white', color: 'black' }}>Personne physique</option>
-                  <option value="moral" style={{ backgroundColor: 'white', color: 'black' }}>Personne morale</option>
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={field.value === 'physique' ? 'Personne physique' : field.value === 'moral' ? 'Personne morale' : field.value} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.typeDebiteur)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner un type" 
+                    borderColor={primaryGreen}
+                    bg="gray.100"
+                    color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    <option value="physique" style={{ backgroundColor: 'white', color: 'black' }}>Personne physique</option>
+                    <option value="moral" style={{ backgroundColor: 'white', color: 'black' }}>Personne morale</option>
+                  </Select>
+                )
               )}
             />
             {errors.typeDebiteur && (
@@ -316,7 +416,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
     <VStack spacing={4} align="stretch">
       <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Personne physique</Text>
       
-      <Grid templateColumns="repeat(3, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.civilite}>
             <FormLabel color={labelColor}>Civilité</FormLabel>
@@ -324,18 +424,28 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="civilite"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.civilite)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="monsieur" style={{ backgroundColor: 'white', color: 'black' }}>Monsieur</option>
-                  <option value="madame" style={{ backgroundColor: 'white', color: 'black' }}>Madame</option>
-                  <option value="mademoiselle" style={{ backgroundColor: 'white', color: 'black' }}>Mademoiselle</option>
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={field.value === 'monsieur' ? 'Monsieur' : field.value === 'madame' ? 'Madame' : field.value === 'mademoiselle' ? 'Mademoiselle' : field.value} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.civilite)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.civilite)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    <option value="monsieur" style={{ backgroundColor: 'white', color: 'black' }}>Monsieur</option>
+                    <option value="madame" style={{ backgroundColor: 'white', color: 'black' }}>Madame</option>
+                    <option value="mademoiselle" style={{ backgroundColor: 'white', color: 'black' }}>Mademoiselle</option>
+                  </Select>
+                )
               )}
             />
             {errors.civilite && (
@@ -361,7 +471,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
           </FormControl>
         </GridItem>
 
-        <GridItem>
+        <GridItem colSpan={2}>
           <FormControl isInvalid={!!errors.prenom}>
             <FormLabel color={labelColor}>Prénom</FormLabel>
             <Controller
@@ -420,24 +530,34 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="quartier"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.quartier)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  {loadingQuartiers ? (
-                    <option value="">Chargement...</option>
-                  ) : (
-                    Array.isArray(quartiers) && quartiers.map((quartier: any) => (
-                      <option key={quartier.id} value={quartier.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {quartier.libelle}
-                      </option>
-                    ))
-                  )}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getQuartierLibelle(field.value)} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.quartier)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.quartier)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    {loadingQuartiers ? (
+                      <option value="">Chargement...</option>
+                    ) : (
+                      Array.isArray(quartiers) && quartiers.map((quartier: any) => (
+                        <option key={quartier.id} value={quartier.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                          {quartier.libelle}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                )
               )}
             />
             {errors.quartier && (
@@ -453,24 +573,34 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="nationalite"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.nationalite)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  {loadingNationalites ? (
-                    <option value="">Chargement...</option>
-                  ) : (
-                    Array.isArray(nationalites) && nationalites.map((nationalite: any) => (
-                      <option key={nationalite.id} value={nationalite.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {nationalite.libelle}
-                      </option>
-                    ))
-                  )}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getNationaliteLibelle(field.value)} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.nationalite)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.nationalite)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    {loadingNationalites ? (
+                      <option value="">Chargement...</option>
+                    ) : (
+                      Array.isArray(nationalites) && nationalites.map((nationalite: any) => (
+                        <option key={nationalite.id} value={nationalite.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                          {nationalite.libelle}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                )
               )}
             />
             {errors.nationalite && (
@@ -488,24 +618,34 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="fonction"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.fonction)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  {loadingFonctions ? (
-                    <option value="">Chargement...</option>
-                  ) : (
-                    Array.isArray(fonctions) && fonctions.map((fonction: any) => (
-                      <option key={fonction.id} value={fonction.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {fonction.libelle}
-                      </option>
-                    ))
-                  )}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getFonctionLibelle(field.value)} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.fonction)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.fonction)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    {loadingFonctions ? (
+                      <option value="">Chargement...</option>
+                    ) : (
+                      Array.isArray(fonctions) && fonctions.map((fonction: any) => (
+                        <option key={fonction.id} value={fonction.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                          {fonction.libelle}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                )
               )}
             />
             {errors.fonction && (
@@ -521,24 +661,34 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="profession"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.profession)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  {loadingProfessions ? (
-                    <option value="">Chargement...</option>
-                  ) : (
-                    Array.isArray(professions) && professions.map((profession: any) => (
-                      <option key={profession.id} value={profession.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {profession.libelle}
-                      </option>
-                    ))
-                  )}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getProfessionLibelle(field.value)} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.profession)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.profession)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    {loadingProfessions ? (
+                      <option value="">Chargement...</option>
+                    ) : (
+                      Array.isArray(professions) && professions.map((profession: any) => (
+                        <option key={profession.id} value={profession.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                          {profession.libelle}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                )
               )}
             />
             {errors.profession && (
@@ -556,24 +706,34 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="employeur"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.employeur)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  {loadingEntites ? (
-                    <option value="">Chargement...</option>
-                  ) : (
-                    Array.isArray(entites) && entites.map((entite: any) => (
-                      <option key={entite.id} value={entite.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {entite.libelle}
-                      </option>
-                    ))
-                  )}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getEntiteLibelle(field.value)} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.employeur)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.employeur)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    {loadingEntites ? (
+                      <option value="">Chargement...</option>
+                    ) : (
+                      Array.isArray(entites) && entites.map((entite: any) => (
+                        <option key={entite.id} value={entite.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                          {entite.libelle}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                )
               )}
             />
             {errors.employeur && (
@@ -589,24 +749,34 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="statutSalarie"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.statutSalarie)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  {loadingStatutsSalarie ? (
-                    <option value="">Chargement...</option>
-                  ) : (
-                    Array.isArray(statutsSalarie) && statutsSalarie.map((statut: any) => (
-                      <option key={statut.id} value={statut.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {statut.libelle}
-                      </option>
-                    ))
-                  )}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getStatutSalarieLibelle(field.value)} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.statutSalarie)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.statutSalarie)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    {loadingStatutsSalarie ? (
+                      <option value="">Chargement...</option>
+                    ) : (
+                      Array.isArray(statutsSalarie) && statutsSalarie.map((statut: any) => (
+                        <option key={statut.id} value={statut.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                          {statut.libelle}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                )
               )}
             />
             {errors.statutSalarie && (
@@ -637,17 +807,27 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="sexe"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.sexe)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="M" style={{ backgroundColor: 'white', color: 'black' }}>Masculin</option>
-                  <option value="F" style={{ backgroundColor: 'white', color: 'black' }}>Féminin</option>
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={field.value === 'M' ? 'Masculin' : field.value === 'F' ? 'Féminin' : field.value} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.sexe)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.sexe)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    <option value="M" style={{ backgroundColor: 'white', color: 'black' }}>Masculin</option>
+                    <option value="F" style={{ backgroundColor: 'white', color: 'black' }}>Féminin</option>
+                  </Select>
+                )
               )}
             />
             {errors.sexe && (
@@ -678,19 +858,29 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="naturePieceIdentite"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.naturePieceIdentite)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="CNI" style={{ backgroundColor: 'white', color: 'black' }}>CNI</option>
-                  <option value="Passeport" style={{ backgroundColor: 'white', color: 'black' }}>Passeport</option>
-                  <option value="Permis" style={{ backgroundColor: 'white', color: 'black' }}>Permis de conduire</option>
-                  <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={field.value === 'CNI' ? 'CNI' : field.value === 'Passeport' ? 'Passeport' : field.value === 'Permis' ? 'Permis de conduire' : field.value === 'autre' ? 'Autre' : field.value} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.naturePieceIdentite)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.naturePieceIdentite)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    <option value="CNI" style={{ backgroundColor: 'white', color: 'black' }}>CNI</option>
+                    <option value="Passeport" style={{ backgroundColor: 'white', color: 'black' }}>Passeport</option>
+                    <option value="Permis" style={{ backgroundColor: 'white', color: 'black' }}>Permis de conduire</option>
+                    <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
+                  </Select>
+                )
               )}
             />
           </FormControl>
@@ -746,19 +936,29 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="statutMatrimonial"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.statutMatrimonial)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="celibataire" style={{ backgroundColor: 'white', color: 'black' }}>Célibataire</option>
-                  <option value="marie" style={{ backgroundColor: 'white', color: 'black' }}>Marié(e)</option>
-                  <option value="divorce" style={{ backgroundColor: 'white', color: 'black' }}>Divorcé(e)</option>
-                  <option value="veuf" style={{ backgroundColor: 'white', color: 'black' }}>Veuf/Veuve</option>
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={field.value === 'celibataire' ? 'Célibataire' : field.value === 'marie' ? 'Marié(e)' : field.value === 'divorce' ? 'Divorcé(e)' : field.value === 'veuf' ? 'Veuf/Veuve' : field.value} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.statutMatrimonial)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.statutMatrimonial)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    <option value="celibataire" style={{ backgroundColor: 'white', color: 'black' }}>Célibataire</option>
+                    <option value="marie" style={{ backgroundColor: 'white', color: 'black' }}>Marié(e)</option>
+                    <option value="divorce" style={{ backgroundColor: 'white', color: 'black' }}>Divorcé(e)</option>
+                    <option value="veuf" style={{ backgroundColor: 'white', color: 'black' }}>Veuf/Veuve</option>
+                  </Select>
+                )
               )}
             />
           </FormControl>
@@ -773,18 +973,28 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="regimeMariage"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.regimeMariage)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="communaute" style={{ backgroundColor: 'white', color: 'black' }}>Communauté</option>
-                  <option value="separation" style={{ backgroundColor: 'white', color: 'black' }}>Séparation de biens</option>
-                  <option value="participation" style={{ backgroundColor: 'white', color: 'black' }}>Participation aux acquêts</option>
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={field.value === 'communaute' ? 'Communauté' : field.value === 'separation' ? 'Séparation de biens' : field.value === 'participation' ? 'Participation aux acquêts' : field.value} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.regimeMariage)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.regimeMariage)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    <option value="communaute" style={{ backgroundColor: 'white', color: 'black' }}>Communauté</option>
+                    <option value="separation" style={{ backgroundColor: 'white', color: 'black' }}>Séparation de biens</option>
+                    <option value="participation" style={{ backgroundColor: 'white', color: 'black' }}>Participation aux acquêts</option>
+                  </Select>
+                )
               )}
             />
           </FormControl>
@@ -1025,21 +1235,31 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="formeJuridique"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.formeJuridique)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  <option value="SARL" style={{ backgroundColor: 'white', color: 'black' }}>SARL</option>
-                  <option value="SA" style={{ backgroundColor: 'white', color: 'black' }}>SA</option>
-                  <option value="SNC" style={{ backgroundColor: 'white', color: 'black' }}>SNC</option>
-                  <option value="EURL" style={{ backgroundColor: 'white', color: 'black' }}>EURL</option>
-                  <option value="SAS" style={{ backgroundColor: 'white', color: 'black' }}>SAS</option>
-                  <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={field.value === 'SARL' ? 'SARL' : field.value === 'SA' ? 'SA' : field.value === 'SNC' ? 'SNC' : field.value === 'EURL' ? 'EURL' : field.value === 'SAS' ? 'SAS' : field.value === 'autre' ? 'Autre' : field.value} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.formeJuridique)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.formeJuridique)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    <option value="SARL" style={{ backgroundColor: 'white', color: 'black' }}>SARL</option>
+                    <option value="SA" style={{ backgroundColor: 'white', color: 'black' }}>SA</option>
+                    <option value="SNC" style={{ backgroundColor: 'white', color: 'black' }}>SNC</option>
+                    <option value="EURL" style={{ backgroundColor: 'white', color: 'black' }}>EURL</option>
+                    <option value="SAS" style={{ backgroundColor: 'white', color: 'black' }}>SAS</option>
+                    <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
+                  </Select>
+                )
               )}
             />
             {errors.formeJuridique && (
@@ -1055,22 +1275,32 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
           name="domaineActivite"
           control={control}
           render={({ field }) => (
-            <Select 
-              {...field} 
-              placeholder="Sélectionner" 
-              {...getFieldStyles(!!errors.domaineActivite)}
-              bg="gray.100"
-              color="gray.700"
-              _hover={{ bg: "gray.100" }}
-            >
-              <option value="commerce" style={{ backgroundColor: 'white', color: 'black' }}>Commerce</option>
-              <option value="industrie" style={{ backgroundColor: 'white', color: 'black' }}>Industrie</option>
-              <option value="services" style={{ backgroundColor: 'white', color: 'black' }}>Services</option>
-              <option value="agriculture" style={{ backgroundColor: 'white', color: 'black' }}>Agriculture</option>
-              <option value="batiment" style={{ backgroundColor: 'white', color: 'black' }}>Bâtiment</option>
-              <option value="transport" style={{ backgroundColor: 'white', color: 'black' }}>Transport</option>
-              <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
-            </Select>
+            readOnly ? (
+              <Input 
+                value={field.value === 'commerce' ? 'Commerce' : field.value === 'industrie' ? 'Industrie' : field.value === 'services' ? 'Services' : field.value === 'agriculture' ? 'Agriculture' : field.value === 'batiment' ? 'Bâtiment' : field.value === 'transport' ? 'Transport' : field.value === 'autre' ? 'Autre' : field.value} 
+                isReadOnly 
+                color="gray.700"
+                {...getFieldStyles(!!errors.domaineActivite)} 
+                bg="gray.100"
+              />
+            ) : (
+              <Select 
+                {...field} 
+                placeholder="Sélectionner" 
+                {...getFieldStyles(!!errors.domaineActivite)}
+                bg="gray.100"
+                color="gray.700"
+                _hover={{ bg: "gray.100" }}
+              >
+                <option value="commerce" style={{ backgroundColor: 'white', color: 'black' }}>Commerce</option>
+                <option value="industrie" style={{ backgroundColor: 'white', color: 'black' }}>Industrie</option>
+                <option value="services" style={{ backgroundColor: 'white', color: 'black' }}>Services</option>
+                <option value="agriculture" style={{ backgroundColor: 'white', color: 'black' }}>Agriculture</option>
+                <option value="batiment" style={{ backgroundColor: 'white', color: 'black' }}>Bâtiment</option>
+                <option value="transport" style={{ backgroundColor: 'white', color: 'black' }}>Transport</option>
+                <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
+              </Select>
+            )
           )}
         />
         {errors.domaineActivite && (
@@ -1121,25 +1351,35 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="type"
           control={control}
           render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.type)}
-                  bg="gray.100"
-                  color="gray.700"
-                  isDisabled={loadingTypesDomicil}
-                  _hover={{ bg: "gray.100" }}
-                >
-                  {loadingTypesDomicil ? (
-                    <option value="">Chargement...</option>
-                  ) : (
-                    Array.isArray(typesDomicil) && typesDomicil.map((type: any) => (
-                      <option key={type.id} value={type.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {type.libelle}
-                      </option>
-                    ))
-                  )}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getTypeDomicilLibelle(field.value)} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.type)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.type)}
+                    bg="gray.100"
+                    color="gray.700"
+                    isDisabled={loadingTypesDomicil}
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    {loadingTypesDomicil ? (
+                      <option value="">Chargement...</option>
+                    ) : (
+                      Array.isArray(typesDomicil) && typesDomicil.map((type: any) => (
+                        <option key={type.id} value={type.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                          {type.libelle}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                )
               )}
             />
             {errors.type && (
@@ -1187,24 +1427,34 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="banque"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.banque)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  {loadingBanques ? (
-                    <option value="">Chargement...</option>
-                  ) : (
-                    Array.isArray(banques) && banques.map((banque: any) => (
-                      <option key={banque.id} value={banque.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {banque.libelle}
-                      </option>
-                    ))
-                  )}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getBanqueLibelle(field.value)} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.banque)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.banque)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    {loadingBanques ? (
+                      <option value="">Chargement...</option>
+                    ) : (
+                      Array.isArray(banques) && banques.map((banque: any) => (
+                        <option key={banque.id} value={banque.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                          {banque.libelle}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                )
               )}
             />
             {errors.banque && (
@@ -1220,24 +1470,34 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="banqueAgence"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner" 
-                  {...getFieldStyles(!!errors.banqueAgence)}
-                  bg="gray.100"
-                  color="gray.700"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  {loadingAgencesBanque ? (
-                    <option value="">Chargement...</option>
-                  ) : (
-                    Array.isArray(agencesBanque) && agencesBanque.map((agence: any) => (
-                      <option key={agence.id} value={agence.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {agence.libelle}
-                      </option>
-                    ))
-                  )}
-                </Select>
+                readOnly ? (
+                  <Input 
+                    value={getAgenceBanqueLibelle(field.value)} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.banqueAgence)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field} 
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.banqueAgence)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    {loadingAgencesBanque ? (
+                      <option value="">Chargement...</option>
+                    ) : (
+                      Array.isArray(agencesBanque) && agencesBanque.map((agence: any) => (
+                        <option key={agence.id} value={agence.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                          {agence.libelle}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                )
               )}
             />
             {errors.banqueAgence && (
@@ -1259,7 +1519,43 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
   };
 
   return (
-    <Box>
+    <Box
+      sx={{
+        '.chakra-form-control': {
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        },
+        '.chakra-form__label': {
+          marginBottom: 0,
+          width: '180px',
+          fontWeight: 600,
+          color: '#111827',
+          fontSize: '0.875rem'
+        },
+        '.chakra-input, .chakra-textarea': {
+          flex: 1,
+          borderColor: '#d1d5db',
+          backgroundColor: '#ffffff'
+        },
+        '.chakra-select': {
+          flex: 1,
+          borderColor: '#28A325 !important',
+          backgroundColor: '#f3f4f6 !important'
+        },
+        '.chakra-input[readonly], .chakra-textarea[readonly]': {
+          borderColor: '#28A325',
+          backgroundColor: '#f3f4f6' // gray.100
+        },
+        // Bordure verte pour tous les champs désactivés/grisés
+        '.chakra-input[disabled], .chakra-select[disabled], .chakra-textarea[disabled],\
+         .chakra-input[aria-disabled="true"], .chakra-select[aria-disabled="true"], .chakra-textarea[aria-disabled="true"],\
+         .chakra-input[data-disabled="true"], .chakra-select[data-disabled="true"], .chakra-textarea[data-disabled="true"]': {
+          borderColor: '#28A325',
+          backgroundColor: '#f3f4f6'
+        }
+      }}
+    >
       {renderCurrentStep()}
     </Box>
   );

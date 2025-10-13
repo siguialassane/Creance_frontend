@@ -63,7 +63,7 @@ const NouvelleCreancePageInner = () => {
             
         {/* En-tête comme dans l'image */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">Ajouter une créance</h1>
+          <h1 className="text-2xl font-semibold mb-2" style={{ color: '#28A325' }}>Ajouter une créance</h1>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center justify-between w-full">
               <div className={`text-sm font-medium ${step >= 1 ? 'text-orange-600' : 'text-gray-500'}`}>

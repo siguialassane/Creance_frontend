@@ -162,17 +162,17 @@ export function DataTable<TData, TValue>({
       {/* Header avec titre et actions */}
       <div className=" py-6 border-b border-gray-200 to-white">
         <div className="flex items-center justify-between mb-4">
-          <div className="space-y-2 mb-5 bg-primary w-full py-4 px-8">
+          <div className="space-y-2 mb-5 w-full py-4 px-8">
             <h1 className="text-2xl!  tracking-tight"
             style={{
               fontWeight: 'bold',
-              color: '#fff',
+              color: '#28A325',
             }}
             >
               {title}
             </h1>
             {description && (
-              <p className="text-base text-white">{description}</p>
+              <p className="text-base text-gray-600">{description}</p>
             )}
           </div>
           
