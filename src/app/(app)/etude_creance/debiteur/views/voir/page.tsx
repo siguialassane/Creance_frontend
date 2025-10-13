@@ -305,10 +305,10 @@ const VoirDebiteurPageInner = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-semibold mb-2" style={{ color: '#28A325' }}>
-                {debiteur.nom} {debiteur.prenom}
+                Gestion des Débiteurs
               </h1>
               <p className="text-base text-gray-600">
-                Code: {debiteur.codeDebiteur}
+                Programme de gestion des débiteurs
               </p>
             </div>
             <HStack spacing={3}>

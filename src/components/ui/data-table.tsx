@@ -51,6 +51,8 @@ interface DataTableProps<TData, TValue> {
   onSearchValueChange?: (value: string) => void
   onSearchSubmit?: () => void
   onSearchReset?: () => void
+  sectionTitle?: string
+  listTitle?: string
 }
 
 export function DataTable<TData, TValue>({
@@ -75,6 +77,8 @@ export function DataTable<TData, TValue>({
   onSearchValueChange,
   onSearchSubmit,
   onSearchReset,
+  sectionTitle = "CRÉANCES",
+  listTitle = "LISTE DES CRÉANCES",
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -160,19 +164,21 @@ export function DataTable<TData, TValue>({
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Header avec titre et actions */}
-      <div className=" py-6 border-b border-gray-200 to-white">
+      <div className="py-6 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between mb-4">
-          <div className="space-y-2 mb-5 w-full py-4 px-8">
-            <h1 className="text-2xl!  tracking-tight"
-            style={{
-              fontWeight: 'bold',
-              color: '#28A325',
-            }}
+          <div className="space-y-2 mb-5 w-full px-8">
+            <h1 
+              className="text-3xl font-extrabold tracking-tight text-black"
+              style={{
+                fontSize: '2rem',
+                fontWeight: '900',
+                color: '#000000'
+              }}
             >
               {title}
             </h1>
             {description && (
-              <p className="text-base text-gray-600">{description}</p>
+              <p className="text-base text-black">Programme de gestion des créances</p>
             )}
           </div>
           
@@ -185,8 +191,35 @@ export function DataTable<TData, TValue>({
           </div>
         )}
 
+        {/* Barre verte avec titre de section */}
+        <div 
+          className="px-8 py-2"
+          style={{
+            backgroundColor: '#28A325',
+            color: 'white',
+          }}
+        >
+          <span className="font-semibold text-lg flex items-center">
+            <span style={{ 
+              fontSize: '2rem', 
+              marginRight: '6px', 
+              transform: 'translateY(-10px)',
+              fontWeight: 'normal',
+              display: 'inline-block',
+              lineHeight: '1'
+            }}>⌄</span>{sectionTitle}
+          </span>
+        </div>
+
+        {/* Section Liste */}
+        <div className="pt-4 pb-2" style={{ paddingLeft: '5rem' }}>
+          <div className="flex items-center gap-2 text-gray-700 font-bold text-sm">
+            <span>{listTitle}</span>
+          </div>
+        </div>
+
         {/* Barre de recherche */}
-        <div className="flex items-center justify-between gap-6 px-8">
+        <div className="flex items-center justify-between gap-6 pb-4" style={{ paddingLeft: '5rem', paddingRight: '2rem' }}>
           <div className="relative flex-1 max-w-lg flex items-center gap-2">
             <div className="relative">
               <Input

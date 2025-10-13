@@ -61,12 +61,43 @@ const CreancePage = () => {
       <VStack spacing={6} align="stretch">
         {/* En-tête */}
         <Box>
-          <Heading size="lg" mb={2} color="#28A325">Gestion des Créances</Heading>
-          <Text color="#718096">Créez et gérez vos créances en quelques étapes</Text>
+          <Heading 
+            size="xl" 
+            mb={2} 
+            color="black" 
+            fontWeight="900"
+            fontSize="2rem"
+          >
+            Gestion des Créances
+          </Heading>
+          <Text color="black">Programme de gestion des créances</Text>
+        </Box>
+
+        {/* Barre verte avec titre de section */}
+        <Box 
+          px={8} 
+          py={2} 
+          bg="#28A325" 
+          color="white"
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          <Text fontSize="lg" fontWeight="semibold" display="flex" alignItems="center">
+            <Text as="span" fontSize="1rem" mr={1.5} transform="translateY(-4px)" fontWeight="normal" display="inline-block" lineHeight="1">⌄</Text>CRÉANCES
+          </Text>
+        </Box>
+
+        {/* Section Liste des créances */}
+        <Box pt={4} pb={2} px={8}>
+          <Box display="flex" alignItems="center" gap={2} color="gray.700" fontWeight="semibold" fontSize="sm">
+            <Text>LISTE DES CRÉANCES</Text>
+          </Box>
         </Box>
 
         {/* Indicateur de progression */}
-        <Card>
+        <Box px={8} pb={4}>
+          <Card>
           <CardBody>
             <VStack spacing={4}>
               <HStack w="full" justify="space-between">
@@ -156,6 +187,7 @@ const CreancePage = () => {
             </HStack>
           </CardBody>
         </Card>
+        </Box>
       </VStack>
     </Box>
   );

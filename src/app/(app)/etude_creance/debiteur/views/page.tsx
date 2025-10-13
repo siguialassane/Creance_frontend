@@ -349,6 +349,8 @@ const DebiteurPage = () => {
         status={loading ? 'pending' : undefined}
         useServerPagination={false}
         isTableLoading={loading}
+        sectionTitle="DÉBITEURS"
+        listTitle="LISTE DES DÉBITEURS"
       />
     </div>
   );
