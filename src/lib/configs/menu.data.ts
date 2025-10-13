@@ -217,22 +217,22 @@ const menuItemsData = [
         name: "Creance",
         path: "",
       },
-      {
-        name:"Creation de  Frais",
-        path: "creation_de_frais",
-      },
-      {
-        name:"Visite de terrain",
-        path: "visite_de_terrain",
-      },
-      {
-        name:"Autre frais",
-        path: "autre_frais",
-      },
-      {
-        name:"Gestion amiable",
-        path: "gestion_amiable",
-      },
+      // {
+      //   name:"Creation de  Frais",
+      //   path: "creation_de_frais",
+      // },
+      // {
+      //   name:"Visite de terrain",
+      //   path: "visite_de_terrain",
+      // },
+      // {
+      //   name:"Autre frais",
+      //   path: "autre_frais",
+      // },
+      // {
+      //   name:"Gestion amiable",
+      //   path: "gestion_amiable",
+      // },
     ]
   },
   // {
