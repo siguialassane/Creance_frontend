@@ -5,6 +5,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button"
 import { useRouter, useSearchParams } from "next/navigation";
 import DebiteurForm from "@/components/debiteur-form/debiteur-form";
+import { useToast } from "@chakra-ui/react";
 
 const EditerDebiteurPageInner = () => {
   const [step, setStep] = React.useState(0)
@@ -13,6 +14,7 @@ const EditerDebiteurPageInner = () => {
   const searchParams = useSearchParams()
   const debiteurId = searchParams.get('id')
   const formRef = React.useRef<any>(null)
+  const toast = useToast()
 
   // Données de test (en réalité, vous récupéreriez ces données depuis l'API)
   const mockDebiteurData = {
@@ -74,16 +76,106 @@ const EditerDebiteurPageInner = () => {
   ]
 
   React.useEffect(() => {
-    // Simulation du chargement des données
-    setTimeout(() => {
-      setFormData(mockDebiteurData)
-      setLoading(false)
-    }, 1000)
+    // Charger le débiteur depuis le localStorage
+    const loadDebiteur = () => {
+      try {
+        const storedDebiteurs = localStorage.getItem('debiteurs');
+        
+        if (storedDebiteurs && debiteurId) {
+          const debiteurs = JSON.parse(storedDebiteurs);
+          const foundDebiteur = debiteurs.find((d: any) => d.id === debiteurId);
+          
+          if (foundDebiteur) {
+            console.log('📝 Débiteur chargé pour modification:', foundDebiteur);
+            setFormData(foundDebiteur);
+          } else {
+            // Si le débiteur n'est pas trouvé, utiliser les données de test
+            console.log('⚠️ Débiteur non trouvé, utilisation des données mock');
+            setFormData(mockDebiteurData);
+          }
+        } else {
+          // Si pas de localStorage, utiliser les données de test
+          console.log('⚠️ Pas de localStorage, utilisation des données mock');
+          setFormData(mockDebiteurData);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('❌ Erreur lors du chargement du débiteur:', error);
+        // En cas d'erreur, utiliser les données de test
+        setFormData(mockDebiteurData);
+        setLoading(false);
+      }
+    };
+    
+    if (debiteurId) {
+      loadDebiteur();
+    } else {
+      setLoading(false);
+    }
   }, [debiteurId])
 
   const handleSubmit = (data: any) => {
     console.log("Données du débiteur modifié:", data);
-    router.push("/etude_creance/debiteur/views");
+    
+    try {
+      // Récupérer les débiteurs existants du localStorage
+      const storedDebiteurs = localStorage.getItem('debiteurs');
+      
+      if (storedDebiteurs && debiteurId) {
+        const debiteurs = JSON.parse(storedDebiteurs);
+        
+        // Trouver l'index du débiteur à modifier
+        const index = debiteurs.findIndex((d: any) => d.id === debiteurId);
+        
+        if (index !== -1) {
+          // Mettre à jour le débiteur en conservant l'ID et les métadonnées
+          debiteurs[index] = {
+            ...debiteurs[index],
+            ...data,
+            id: debiteurId, // Garder l'ID original
+            dateModification: new Date().toISOString().split('T')[0]
+          };
+          
+          // Sauvegarder dans le localStorage
+          localStorage.setItem('debiteurs', JSON.stringify(debiteurs));
+          
+          // Afficher l'alerte de succès
+          toast({
+            title: "Débiteur modifié avec succès !",
+            description: `Le débiteur ${data.codeDebiteur || debiteurs[index].codeDebiteur} a été mis à jour.`,
+            status: "success",
+            duration: 5000,
+            isClosable: true,
+            position: "top",
+          });
+          
+          // Rediriger vers la liste après un court délai
+          setTimeout(() => {
+            window.location.href = "/etude_creance/debiteur/views";
+          }, 1500);
+        } else {
+          toast({
+            title: "Erreur",
+            description: "Débiteur non trouvé dans le localStorage",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+            position: "top",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors de la modification:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite lors de la modification",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top",
+      });
+    }
   };
 
   if (loading) {

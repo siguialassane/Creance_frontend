@@ -242,14 +242,40 @@ const VoirDebiteurPageInner = () => {
   const currentDebiteur = getDebiteurById(debiteurId);
 
   useEffect(() => {
-    // Simulation du chargement des données
-    setTimeout(() => {
+    // Charger le débiteur depuis le localStorage
+    const loadDebiteur = () => {
+      try {
+        const storedDebiteurs = localStorage.getItem('debiteurs');
+        
+        if (storedDebiteurs && debiteurId) {
+          const debiteurs = JSON.parse(storedDebiteurs);
+          const foundDebiteur = debiteurs.find((d: Debiteur) => d.id === debiteurId);
+          
+          if (foundDebiteur) {
+            setDebiteur(foundDebiteur);
+            setFormData(foundDebiteur);
+          } else {
+            // Si le débiteur n'est pas trouvé, utiliser les données de test
+            setDebiteur(currentDebiteur);
+            setFormData(currentDebiteur);
+          }
+        } else {
+          // Si pas de localStorage, utiliser les données de test
+          setDebiteur(currentDebiteur);
+          setFormData(currentDebiteur);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Erreur lors du chargement du débiteur:', error);
+        // En cas d'erreur, utiliser les données de test
       setDebiteur(currentDebiteur);
-      if (currentDebiteur) {
         setFormData(currentDebiteur);
-      }
       setLoading(false);
-    }, 1000);
+      }
+    };
+    
+    loadDebiteur();
   }, [debiteurId, currentDebiteur]);
 
   const handleNext = () => {
@@ -274,11 +300,11 @@ const VoirDebiteurPageInner = () => {
   };
 
   const handleBack = () => {
-    router.push("/etude_creance/debiteur/views");
+    window.location.href = "/etude_creance/debiteur/views";
   };
 
   const handleEdit = () => {
-    router.push(`/etude_creance/debiteur/edit?id=${debiteur?.id}`);
+    window.location.href = `/etude_creance/debiteur/edit?id=${debiteur?.id}`;
   };
 
   if (loading) {

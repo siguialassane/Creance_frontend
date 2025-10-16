@@ -316,19 +316,19 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     borderColor={primaryGreen}
                     bg="gray.100"
                     color="gray.700"
-                    isDisabled={loadingCategoriesDebiteur}
                     _focus={{ borderColor: primaryGreen }}
                     _hover={{ bg: "gray.100" }}
                   >
-                    {loadingCategoriesDebiteur ? (
-                      <option value="">Chargement...</option>
-                    ) : (
-                      Array.isArray(categoriesDebiteur) && categoriesDebiteur.map((categorie: any) => (
-                        <option key={categorie.id} value={categorie.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                          {categorie.libelle}
+                    {Array.isArray(categoriesDebiteur) && categoriesDebiteur.map((categorie: any) => {
+                      // Support pour les deux formats : API (CATEG_DEB_CODE/CATEG_DEB_LIB) et mock (id/libelle)
+                      const code = categorie.CATEG_DEB_CODE || categorie.id || categorie.code;
+                      const libelle = categorie.CATEG_DEB_LIB || categorie.libelle;
+                      return (
+                        <option key={code} value={code}>
+                          {libelle}
                         </option>
-                      ))
-                    )}
+                      );
+                    })}
                   </Select>
                 )
               )}
@@ -396,8 +396,8 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     _focus={{ borderColor: primaryGreen }}
                     _hover={{ bg: "gray.100" }}
                   >
-                    <option value="physique" style={{ backgroundColor: 'white', color: 'black' }}>Personne physique</option>
-                    <option value="moral" style={{ backgroundColor: 'white', color: 'black' }}>Personne morale</option>
+                    <option value="physique">Personne physique</option>
+                    <option value="moral">Personne morale</option>
                   </Select>
                 )
               )}
@@ -441,9 +441,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     color="gray.700"
                     _hover={{ bg: "gray.100" }}
                   >
-                    <option value="monsieur" style={{ backgroundColor: 'white', color: 'black' }}>Monsieur</option>
-                    <option value="madame" style={{ backgroundColor: 'white', color: 'black' }}>Madame</option>
-                    <option value="mademoiselle" style={{ backgroundColor: 'white', color: 'black' }}>Mademoiselle</option>
+                    <option value="monsieur">Monsieur</option>
+                    <option value="madame">Madame</option>
+                    <option value="mademoiselle">Mademoiselle</option>
                   </Select>
                 )
               )}
@@ -551,7 +551,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       <option value="">Chargement...</option>
                     ) : (
                       Array.isArray(quartiers) && quartiers.map((quartier: any) => (
-                        <option key={quartier.id} value={quartier.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        <option key={quartier.id} value={quartier.id}>
                           {quartier.libelle}
                         </option>
                       ))
@@ -594,7 +594,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       <option value="">Chargement...</option>
                     ) : (
                       Array.isArray(nationalites) && nationalites.map((nationalite: any) => (
-                        <option key={nationalite.id} value={nationalite.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        <option key={nationalite.id} value={nationalite.id}>
                           {nationalite.libelle}
                         </option>
                       ))
@@ -639,7 +639,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       <option value="">Chargement...</option>
                     ) : (
                       Array.isArray(fonctions) && fonctions.map((fonction: any) => (
-                        <option key={fonction.id} value={fonction.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        <option key={fonction.id} value={fonction.id}>
                           {fonction.libelle}
                         </option>
                       ))
@@ -682,7 +682,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       <option value="">Chargement...</option>
                     ) : (
                       Array.isArray(professions) && professions.map((profession: any) => (
-                        <option key={profession.id} value={profession.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        <option key={profession.id} value={profession.id}>
                           {profession.libelle}
                         </option>
                       ))
@@ -727,7 +727,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       <option value="">Chargement...</option>
                     ) : (
                       Array.isArray(entites) && entites.map((entite: any) => (
-                        <option key={entite.id} value={entite.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        <option key={entite.id} value={entite.id}>
                           {entite.libelle}
                         </option>
                       ))
@@ -770,7 +770,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       <option value="">Chargement...</option>
                     ) : (
                       Array.isArray(statutsSalarie) && statutsSalarie.map((statut: any) => (
-                        <option key={statut.id} value={statut.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        <option key={statut.id} value={statut.id}>
                           {statut.libelle}
                         </option>
                       ))
@@ -824,8 +824,8 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     color="gray.700"
                     _hover={{ bg: "gray.100" }}
                   >
-                    <option value="M" style={{ backgroundColor: 'white', color: 'black' }}>Masculin</option>
-                    <option value="F" style={{ backgroundColor: 'white', color: 'black' }}>Féminin</option>
+                    <option value="M">Masculin</option>
+                    <option value="F">Féminin</option>
                   </Select>
                 )
               )}
@@ -875,10 +875,10 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     color="gray.700"
                     _hover={{ bg: "gray.100" }}
                   >
-                    <option value="CNI" style={{ backgroundColor: 'white', color: 'black' }}>CNI</option>
-                    <option value="Passeport" style={{ backgroundColor: 'white', color: 'black' }}>Passeport</option>
-                    <option value="Permis" style={{ backgroundColor: 'white', color: 'black' }}>Permis de conduire</option>
-                    <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
+                    <option value="CNI">CNI</option>
+                    <option value="Passeport">Passeport</option>
+                    <option value="Permis">Permis de conduire</option>
+                    <option value="autre">Autre</option>
                   </Select>
                 )
               )}
@@ -953,10 +953,10 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     color="gray.700"
                     _hover={{ bg: "gray.100" }}
                   >
-                    <option value="celibataire" style={{ backgroundColor: 'white', color: 'black' }}>Célibataire</option>
-                    <option value="marie" style={{ backgroundColor: 'white', color: 'black' }}>Marié(e)</option>
-                    <option value="divorce" style={{ backgroundColor: 'white', color: 'black' }}>Divorcé(e)</option>
-                    <option value="veuf" style={{ backgroundColor: 'white', color: 'black' }}>Veuf/Veuve</option>
+                    <option value="celibataire">Célibataire</option>
+                    <option value="marie">Marié(e)</option>
+                    <option value="divorce">Divorcé(e)</option>
+                    <option value="veuf">Veuf/Veuve</option>
                   </Select>
                 )
               )}
@@ -990,9 +990,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     color="gray.700"
                     _hover={{ bg: "gray.100" }}
                   >
-                    <option value="communaute" style={{ backgroundColor: 'white', color: 'black' }}>Communauté</option>
-                    <option value="separation" style={{ backgroundColor: 'white', color: 'black' }}>Séparation de biens</option>
-                    <option value="participation" style={{ backgroundColor: 'white', color: 'black' }}>Participation aux acquêts</option>
+                    <option value="communaute">Communauté</option>
+                    <option value="separation">Séparation de biens</option>
+                    <option value="participation">Participation aux acquêts</option>
                   </Select>
                 )
               )}
@@ -1222,7 +1222,26 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="capitalSocial"
               control={control}
               render={({ field }) => (
-                <Input {...field} placeholder="Ex: 10 000 000 FCFA" {...getFieldStyles(!!errors.capitalSocial)} />
+                <Input 
+                  {...field}
+                  placeholder="Ex: 10 000 000"
+                  {...getFieldStyles(!!errors.capitalSocial)}
+                  onChange={(e) => {
+                    // Enlever tous les espaces
+                    let value = e.target.value.replace(/\s/g, '');
+                    
+                    // Ne garder que les chiffres
+                    const numbers = value.replace(/\D/g, '');
+                    
+                    // Formater avec des espaces tous les 3 chiffres
+                    if (numbers) {
+                      const formatted = numbers.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+                      field.onChange(formatted);
+                    } else {
+                      field.onChange('');
+                    }
+                  }}
+                />
               )}
             />
           </FormControl>
@@ -1252,12 +1271,12 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     color="gray.700"
                     _hover={{ bg: "gray.100" }}
                   >
-                    <option value="SARL" style={{ backgroundColor: 'white', color: 'black' }}>SARL</option>
-                    <option value="SA" style={{ backgroundColor: 'white', color: 'black' }}>SA</option>
-                    <option value="SNC" style={{ backgroundColor: 'white', color: 'black' }}>SNC</option>
-                    <option value="EURL" style={{ backgroundColor: 'white', color: 'black' }}>EURL</option>
-                    <option value="SAS" style={{ backgroundColor: 'white', color: 'black' }}>SAS</option>
-                    <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
+                    <option value="SARL">SARL</option>
+                    <option value="SA">SA</option>
+                    <option value="SNC">SNC</option>
+                    <option value="EURL">EURL</option>
+                    <option value="SAS">SAS</option>
+                    <option value="autre">Autre</option>
                   </Select>
                 )
               )}
@@ -1292,13 +1311,13 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                 color="gray.700"
                 _hover={{ bg: "gray.100" }}
               >
-                <option value="commerce" style={{ backgroundColor: 'white', color: 'black' }}>Commerce</option>
-                <option value="industrie" style={{ backgroundColor: 'white', color: 'black' }}>Industrie</option>
-                <option value="services" style={{ backgroundColor: 'white', color: 'black' }}>Services</option>
-                <option value="agriculture" style={{ backgroundColor: 'white', color: 'black' }}>Agriculture</option>
-                <option value="batiment" style={{ backgroundColor: 'white', color: 'black' }}>Bâtiment</option>
-                <option value="transport" style={{ backgroundColor: 'white', color: 'black' }}>Transport</option>
-                <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
+                <option value="commerce">Commerce</option>
+                <option value="industrie">Industrie</option>
+                <option value="services">Services</option>
+                <option value="agriculture">Agriculture</option>
+                <option value="batiment">Bâtiment</option>
+                <option value="transport">Transport</option>
+                <option value="autre">Autre</option>
               </Select>
             )
           )}
@@ -1373,7 +1392,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       <option value="">Chargement...</option>
                     ) : (
                       Array.isArray(typesDomicil) && typesDomicil.map((type: any) => (
-                        <option key={type.id} value={type.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        <option key={type.id} value={type.id}>
                           {type.libelle}
                         </option>
                       ))
@@ -1448,7 +1467,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       <option value="">Chargement...</option>
                     ) : (
                       Array.isArray(banques) && banques.map((banque: any) => (
-                        <option key={banque.id} value={banque.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        <option key={banque.id} value={banque.id}>
                           {banque.libelle}
                         </option>
                       ))
@@ -1491,7 +1510,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       <option value="">Chargement...</option>
                     ) : (
                       Array.isArray(agencesBanque) && agencesBanque.map((agence: any) => (
-                        <option key={agence.id} value={agence.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        <option key={agence.id} value={agence.id}>
                           {agence.libelle}
                         </option>
                       ))
@@ -1541,7 +1560,13 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
         '.chakra-select': {
           flex: 1,
           borderColor: '#28A325 !important',
-          backgroundColor: '#f3f4f6 !important'
+          backgroundColor: '#f3f4f6 !important',
+          color: '#374151 !important',
+          // Style pour les options du select
+          '& option': {
+            backgroundColor: 'white !important',
+            color: 'black !important'
+          }
         },
         '.chakra-input[readonly], .chakra-textarea[readonly]': {
           borderColor: '#28A325',

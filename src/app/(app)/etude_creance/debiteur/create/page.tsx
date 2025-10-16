@@ -4,9 +4,11 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import DebiteurForm from "@/components/debiteur-form/debiteur-form"
+import { useToast } from "@chakra-ui/react"
 
 export default function NouveauDebiteurPage() {
   const router = useRouter()
+  const toast = useToast()
   const [step, setStep] = React.useState(0)
   const [formData, setFormData] = React.useState({})
   const formRef = React.useRef<any>(null)
@@ -17,9 +19,52 @@ export default function NouveauDebiteurPage() {
     { id: 2, title: "Domiciliation", description: "Type, compte, banque et agence" }
   ]
 
+  // Fonction pour générer un code débiteur unique
+  const generateCodeDebiteur = () => {
+    const year = new Date().getFullYear();
+    const existingDebiteurs = JSON.parse(localStorage.getItem('debiteurs') || '[]');
+    const lastNumber = existingDebiteurs.length + 1;
+    return `DEB-${year}-${String(lastNumber).padStart(3, '0')}`;
+  };
+
   const handleSubmit = (data: any) => {
     console.log("Données du débiteur:", data);
-    router.push("/etude_creance/debiteur/views");
+    
+    // Générer un code débiteur
+    const codeDebiteur = generateCodeDebiteur();
+    
+    // Créer l'objet débiteur avec toutes les informations
+    const nouveauDebiteur = {
+      id: Date.now().toString(),
+      codeDebiteur: codeDebiteur,
+      ...data,
+      dateCreation: new Date().toISOString().split('T')[0],
+      statut: "Actif"
+    };
+    
+    // Récupérer les débiteurs existants du localStorage
+    const existingDebiteurs = JSON.parse(localStorage.getItem('debiteurs') || '[]');
+    
+    // Ajouter le nouveau débiteur
+    existingDebiteurs.push(nouveauDebiteur);
+    
+    // Sauvegarder dans le localStorage
+    localStorage.setItem('debiteurs', JSON.stringify(existingDebiteurs));
+    
+    // Afficher l'alerte de succès
+    toast({
+      title: "Débiteur enregistré avec succès !",
+      description: `Le débiteur ${codeDebiteur} a été créé avec succès.`,
+      status: "success",
+      duration: 5000,
+      isClosable: true,
+      position: "top",
+    });
+    
+    // Rediriger vers la liste après un court délai
+    setTimeout(() => {
+      router.push("/etude_creance/debiteur/views");
+    }, 1500);
   };
 
   return (

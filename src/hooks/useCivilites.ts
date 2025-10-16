@@ -20,14 +20,26 @@ export function useCivilites() {
 
   return useQuery({
     queryKey: civiliteKeys.lists(),
-    queryFn: () => CiviliteService.getAll(apiClient).then((res) => res.data),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
-    retry: (failureCount, error: any) => {
-      if (error?.response?.status === 401) {
-        return false;
+    queryFn: async () => {
+      try {
+        const res = await CiviliteService.getAll(apiClient);
+        // res.data est déjà un tableau Civilite[]
+        const data = res.data;
+        console.log('✅ Données civilités chargées depuis l\'API:', data);
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        // En cas d'erreur, retourner les données mock
+        console.log('API non disponible, utilisation des données mock pour civilités');
+        // Les civilités sont statiques
+        return [
+          { id: "civ001", libelle: "Monsieur", code: "M" },
+          { id: "civ002", libelle: "Madame", code: "MME" },
+          { id: "civ003", libelle: "Mademoiselle", code: "MLLE" }
+        ];
       }
-      return failureCount < 2;
     },
+    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    retry: false,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
