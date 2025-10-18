@@ -1,9 +1,9 @@
 export interface TypeDebiteur {
-  TD_CODE: string;
-  TD_LIB: string;
-  TD_LIBLONG?: string;
-  TD_ACTIF?: boolean;
-  TD_ORDRE?: number;
+  TYPDEB_CODE: string;
+  TYPDEB_LIB: string;
+  TYPDEB_LIBLONG?: string;
+  TYPDEB_ACTIF?: boolean;
+  TYPDEB_ORDRE?: number;
 }
 
 export interface TypeDebiteurApiResponse {
@@ -19,13 +19,13 @@ export interface TypeDebiteurApiResponse {
 }
 
 export interface TypeDebiteurCreateRequest {
-  TD_LIB: string;
-  TD_LIBLONG?: string;
-  TD_ACTIF?: boolean;
-  TD_ORDRE?: number;
+  TYPDEB_LIB: string;
+  TYPDEB_LIBLONG?: string;
+  TYPDEB_ACTIF?: boolean;
+  TYPDEB_ORDRE?: number;
 }
 
 export interface TypeDebiteurUpdateRequest extends Partial<TypeDebiteurCreateRequest> {
-  TD_CODE: string;
+  TYPDEB_CODE: string;
 }
 

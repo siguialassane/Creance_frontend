@@ -340,3 +340,15 @@ body {
 .animate-shimmer {
     animation: shimmer 2s infinite;
 }
+
+/* Force la couleur des options des selects pour les rendre visibles */
+select option {
+    background-color: white !important;
+    color: black !important;
+}
+
+/* Chakra UI selects */
+.chakra-select option {
+    background-color: white !important;
+    color: black !important;
+}

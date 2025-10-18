@@ -211,7 +211,8 @@ const menuItemsData = [
     subMenu: [
       {
         name: "Debiteur",
-        path: "debiteur",
+        path: "debiteur/create",
+        customPath: true, // Marqueur pour indiquer que le chemin est personnalisé
       },
       {
         name: "Creance",
@@ -392,7 +393,7 @@ export const menuItems: MenuItem[] = menuItemsData.map((menuItem, index) => ({
       subMenuType: subMenu as any,      
       viewName: menuItem.path === "/settings" ? "parameter" : undefined,
       columns: (subMenu as any).columns,
-      path: formatLabelToPath(subMenu), // Utiliser la fonction formatLabelToPath pour tous les sous-menus
+      path: (subMenu as any).customPath ? (subMenu as any).path : formatLabelToPath(subMenu), // Utiliser le chemin personnalisé s'il existe, sinon formater le nom
       subMenus: (subMenu as any).subMenu
     })
   ),

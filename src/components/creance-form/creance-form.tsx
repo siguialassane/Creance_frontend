@@ -222,7 +222,67 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
 
   const { control, handleSubmit, formState: { errors }, watch, setValue, reset, trigger } = useForm({
     resolver: zodResolver(getSchemaForStep(currentStep)),
-    defaultValues: formData
+    defaultValues: {
+      debiteur: '',
+      groupeCreance: '',
+      typeObjet: '',
+      capitalInitial: undefined,
+      montantDecaisse: undefined,
+      steCaution: '',
+      statutRecouvrement: '',
+      numeroPrecedent: '',
+      numeroAncien: '',
+      typeStructure: '',
+      classeCreance: '',
+      numeroCreance: '',
+      entite: '',
+      objetCreance: '',
+      periodicite: '',
+      nbEch: undefined,
+      dateReconnaissance: '',
+      datePremiereEcheance: '',
+      dateDerniereEcheance: '',
+      dateOctroi: '',
+      datePremierPrecept: '',
+      creanceSoldeAvantLid: '',
+      ordonnateur: '',
+      montantRembourse: undefined,
+      montantDu: undefined,
+      montantDejaRembourse: undefined,
+      montantImpaye: undefined,
+      diversFrais: undefined,
+      commission: undefined,
+      montantAss: undefined,
+      intConvPourcentage: undefined,
+      montantIntConvPaye: undefined,
+      intRetPourcentage: undefined,
+      encours: undefined,
+      totalDu: undefined,
+      penalite1Pourcent: undefined,
+      totalARecouvrer: undefined,
+      typePiece: '',
+      reference: '',
+      libelle: '',
+      dateEmission: '',
+      dateReception: '',
+      typeGarantie: '',
+      employeur: '',
+      statutSal: '',
+      quartier: '',
+      priorite: '',
+      nom: '',
+      prenoms: '',
+      dateInscription: '',
+      fonction: '',
+      profession: '',
+      adressePostale: '',
+      numeroGarantie: '',
+      objetMontant: '',
+      terrain: '',
+      logement: '',
+      code: '',
+      ...formData
+    }
   });
 
 
@@ -296,9 +356,132 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
     return () => subscription.unsubscribe();
   }, [watch, handleDataChange]);
 
+  // Mémoriser les données formData pour éviter les re-renders inutiles
+  const memoizedFormData = useMemo(() => formData, [
+    formData?.debiteur,
+    formData?.groupeCreance,
+    formData?.typeObjet,
+    formData?.capitalInitial,
+    formData?.montantDecaisse,
+    formData?.steCaution,
+    formData?.statutRecouvrement,
+    formData?.numeroPrecedent,
+    formData?.numeroAncien,
+    formData?.typeStructure,
+    formData?.classeCreance,
+    formData?.numeroCreance,
+    formData?.entite,
+    formData?.objetCreance,
+    formData?.periodicite,
+    formData?.nbEch,
+    formData?.dateReconnaissance,
+    formData?.datePremiereEcheance,
+    formData?.dateDerniereEcheance,
+    formData?.dateOctroi,
+    formData?.datePremierPrecept,
+    formData?.creanceSoldeAvantLid,
+    formData?.ordonnateur,
+    formData?.montantRembourse,
+    formData?.montantDu,
+    formData?.montantDejaRembourse,
+    formData?.montantImpaye,
+    formData?.diversFrais,
+    formData?.commission,
+    formData?.montantAss,
+    formData?.intConvPourcentage,
+    formData?.montantIntConvPaye,
+    formData?.intRetPourcentage,
+    formData?.encours,
+    formData?.totalDu,
+    formData?.penalite1Pourcent,
+    formData?.totalARecouvrer,
+    formData?.typePiece,
+    formData?.reference,
+    formData?.libelle,
+    formData?.dateEmission,
+    formData?.dateReception,
+    formData?.typeGarantie,
+    formData?.employeur,
+    formData?.statutSal,
+    formData?.quartier,
+    formData?.priorite,
+    formData?.nom,
+    formData?.prenoms,
+    formData?.dateInscription,
+    formData?.fonction,
+    formData?.profession,
+    formData?.adressePostale,
+    formData?.numeroGarantie,
+    formData?.objetMontant,
+    formData?.terrain,
+    formData?.logement,
+    formData?.code
+  ]);
+
   useEffect(() => {
-    reset(formData);
-  }, [currentStep, reset]);
+    // Merger les données avec les valeurs par défaut pour éviter les erreurs controlled/uncontrolled
+    const mergedData = {
+      debiteur: memoizedFormData?.debiteur || '',
+      groupeCreance: memoizedFormData?.groupeCreance || '',
+      typeObjet: memoizedFormData?.typeObjet || '',
+      capitalInitial: memoizedFormData?.capitalInitial || undefined,
+      montantDecaisse: memoizedFormData?.montantDecaisse || undefined,
+      steCaution: memoizedFormData?.steCaution || '',
+      statutRecouvrement: memoizedFormData?.statutRecouvrement || '',
+      numeroPrecedent: memoizedFormData?.numeroPrecedent || '',
+      numeroAncien: memoizedFormData?.numeroAncien || '',
+      typeStructure: memoizedFormData?.typeStructure || '',
+      classeCreance: memoizedFormData?.classeCreance || '',
+      numeroCreance: memoizedFormData?.numeroCreance || '',
+      entite: memoizedFormData?.entite || '',
+      objetCreance: memoizedFormData?.objetCreance || '',
+      periodicite: memoizedFormData?.periodicite || '',
+      nbEch: memoizedFormData?.nbEch || undefined,
+      dateReconnaissance: memoizedFormData?.dateReconnaissance || '',
+      datePremiereEcheance: memoizedFormData?.datePremiereEcheance || '',
+      dateDerniereEcheance: memoizedFormData?.dateDerniereEcheance || '',
+      dateOctroi: memoizedFormData?.dateOctroi || '',
+      datePremierPrecept: memoizedFormData?.datePremierPrecept || '',
+      creanceSoldeAvantLid: memoizedFormData?.creanceSoldeAvantLid || '',
+      ordonnateur: memoizedFormData?.ordonnateur || '',
+      montantRembourse: memoizedFormData?.montantRembourse || undefined,
+      montantDu: memoizedFormData?.montantDu || undefined,
+      montantDejaRembourse: memoizedFormData?.montantDejaRembourse || undefined,
+      montantImpaye: memoizedFormData?.montantImpaye || undefined,
+      diversFrais: memoizedFormData?.diversFrais || undefined,
+      commission: memoizedFormData?.commission || undefined,
+      montantAss: memoizedFormData?.montantAss || undefined,
+      intConvPourcentage: memoizedFormData?.intConvPourcentage || undefined,
+      montantIntConvPaye: memoizedFormData?.montantIntConvPaye || undefined,
+      intRetPourcentage: memoizedFormData?.intRetPourcentage || undefined,
+      encours: memoizedFormData?.encours || undefined,
+      totalDu: memoizedFormData?.totalDu || undefined,
+      penalite1Pourcent: memoizedFormData?.penalite1Pourcent || undefined,
+      totalARecouvrer: memoizedFormData?.totalARecouvrer || undefined,
+      typePiece: memoizedFormData?.typePiece || '',
+      reference: memoizedFormData?.reference || '',
+      libelle: memoizedFormData?.libelle || '',
+      dateEmission: memoizedFormData?.dateEmission || '',
+      dateReception: memoizedFormData?.dateReception || '',
+      typeGarantie: memoizedFormData?.typeGarantie || '',
+      employeur: memoizedFormData?.employeur || '',
+      statutSal: memoizedFormData?.statutSal || '',
+      quartier: memoizedFormData?.quartier || '',
+      priorite: memoizedFormData?.priorite || '',
+      nom: memoizedFormData?.nom || '',
+      prenoms: memoizedFormData?.prenoms || '',
+      dateInscription: memoizedFormData?.dateInscription || '',
+      fonction: memoizedFormData?.fonction || '',
+      profession: memoizedFormData?.profession || '',
+      adressePostale: memoizedFormData?.adressePostale || '',
+      numeroGarantie: memoizedFormData?.numeroGarantie || '',
+      objetMontant: memoizedFormData?.objetMontant || '',
+      terrain: memoizedFormData?.terrain || '',
+      logement: memoizedFormData?.logement || '',
+      code: memoizedFormData?.code || '',
+    };
+    reset(mergedData);
+  }, [currentStep, reset, memoizedFormData]);
 
   // Exposer la méthode de validation au composant parent
   useImperativeHandle(ref, () => ({
@@ -514,19 +697,21 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <GridItem>
           <FormControl isInvalid={!!errors.montantDecaisse}>
             <FormLabel color={labelColor}>Montant décaissé</FormLabel>
-            <Controller
-              name="montantDecaisse"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.montantDecaisse)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
+            <Box flex="1">
+              <Controller
+                name="montantDecaisse"
+                control={control}
+                render={({ field }) => (
+                  <NumberInputField
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="0"
+                    {...getFieldStyles(!!errors.montantDecaisse)} 
+                    isDisabled={readOnly}
+                  />
+                )}
+              />
+            </Box>
             {errors.montantDecaisse && (
               <Text color={errorRed} fontSize="sm">{String(errors.montantDecaisse.message)}</Text>
             )}
@@ -536,13 +721,15 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <GridItem>
           <FormControl isInvalid={!!errors.steCaution}>
             <FormLabel color={labelColor}>Sté caution</FormLabel>
-            <Controller
-              name="steCaution"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Société de caution" {...getFieldStyles(!!errors.steCaution)} isDisabled={readOnly} />
-              )}
-            />
+            <Box flex="1">
+              <Controller
+                name="steCaution"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} placeholder="Société de caution" {...getFieldStyles(!!errors.steCaution)} isDisabled={readOnly} />
+                )}
+              />
+            </Box>
             {errors.steCaution && (
               <Text color={errorRed} fontSize="sm">{String(errors.steCaution.message)}</Text>
             )}
@@ -589,13 +776,15 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <GridItem>
           <FormControl isInvalid={!!errors.numeroPrecedent}>
             <FormLabel color={labelColor}>Numéro précédent</FormLabel>
-            <Controller
-              name="numeroPrecedent"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Numéro précédent" {...getFieldStyles(!!errors.numeroPrecedent)} isDisabled={readOnly} />
-              )}
-            />
+            <Box flex="1">
+              <Controller
+                name="numeroPrecedent"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} placeholder="Numéro précédent" {...getFieldStyles(!!errors.numeroPrecedent)} isDisabled={readOnly} />
+                )}
+              />
+            </Box>
             {errors.numeroPrecedent && (
               <Text color={errorRed} fontSize="sm">{String(errors.numeroPrecedent.message)}</Text>
             )}
@@ -623,13 +812,15 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <GridItem>
           <FormControl isInvalid={!!errors.typeStructure}>
             <FormLabel color={labelColor}>Type structure</FormLabel>
-            <Controller
-              name="typeStructure"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Type de structure" {...getFieldStyles(!!errors.typeStructure)} isDisabled={readOnly} />
-              )}
-            />
+            <Box flex="1">
+              <Controller
+                name="typeStructure"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} placeholder="Type de structure" {...getFieldStyles(!!errors.typeStructure)} isDisabled={readOnly} />
+                )}
+              />
+            </Box>
             {errors.typeStructure && (
               <Text color={errorRed} fontSize="sm">{String(errors.typeStructure.message)}</Text>
             )}
@@ -725,9 +916,9 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                     _focus={{ borderColor: primaryGreen }}
                   >
                     <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
-                    {Array.isArray(entites) && entites.map((entite) => (
-                      <option key={entite.ENT_CODE} value={entite.ENT_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {entite.ENT_LIB}
+                    {Array.isArray(entites) && entites.map((entite: any) => (
+                      <option key={entite.ENT_CODE || entite.id} value={entite.ENT_CODE || entite.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                        {entite.ENT_LIB || entite.libelle}
                       </option>
                     ))}
                   </Select>
@@ -833,17 +1024,19 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <GridItem>
           <FormControl isInvalid={!!errors.dateReconnaissance}>
             <FormLabel color={labelColor}>Date de reconnaissance</FormLabel>
-        <Controller
-              name="dateReconnaissance"
-          control={control}
-          render={({ field }) => (
-                <Input {...field} type="date" {...getFieldStyles(!!errors.dateReconnaissance)} isDisabled={readOnly} />
-              )}
-            />
+            <Box flex="1">
+              <Controller
+                name="dateReconnaissance"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} type="date" {...getFieldStyles(!!errors.dateReconnaissance)} isDisabled={readOnly} />
+                )}
+              />
+            </Box>
             {errors.dateReconnaissance && (
               <Text color={errorRed} fontSize="sm">{String(errors.dateReconnaissance.message)}</Text>
-        )}
-      </FormControl>
+            )}
+          </FormControl>
         </GridItem>
       </Grid>
 
@@ -851,13 +1044,15 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <GridItem>
           <FormControl isInvalid={!!errors.datePremiereEcheance}>
             <FormLabel color={labelColor}>Date de 1ère échéance</FormLabel>
-            <Controller
-              name="datePremiereEcheance"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} type="date" {...getFieldStyles(!!errors.datePremiereEcheance)} isDisabled={readOnly} />
-              )}
-            />
+            <Box flex="1">
+              <Controller
+                name="datePremiereEcheance"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} type="date" {...getFieldStyles(!!errors.datePremiereEcheance)} isDisabled={readOnly} />
+                )}
+              />
+            </Box>
             {errors.datePremiereEcheance && (
               <Text color={errorRed} fontSize="sm">{String(errors.datePremiereEcheance.message)}</Text>
             )}
@@ -867,13 +1062,15 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <GridItem>
           <FormControl isInvalid={!!errors.dateDerniereEcheance}>
             <FormLabel color={labelColor}>Date de dernière échéance</FormLabel>
-            <Controller
-              name="dateDerniereEcheance"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} type="date" {...getFieldStyles(!!errors.dateDerniereEcheance)} isDisabled={readOnly} />
-              )}
-            />
+            <Box flex="1">
+              <Controller
+                name="dateDerniereEcheance"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} type="date" {...getFieldStyles(!!errors.dateDerniereEcheance)} isDisabled={readOnly} />
+                )}
+              />
+            </Box>
             {errors.dateDerniereEcheance && (
               <Text color={errorRed} fontSize="sm">{String(errors.dateDerniereEcheance.message)}</Text>
             )}
@@ -901,13 +1098,15 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <GridItem>
           <FormControl isInvalid={!!errors.datePremierPrecept}>
             <FormLabel color={labelColor}>Date de 1er précept</FormLabel>
-            <Controller
-              name="datePremierPrecept"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} type="date" {...getFieldStyles(!!errors.datePremierPrecept)} isDisabled={readOnly} />
-              )}
-            />
+            <Box flex="1">
+              <Controller
+                name="datePremierPrecept"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} type="date" {...getFieldStyles(!!errors.datePremierPrecept)} isDisabled={readOnly} />
+                )}
+              />
+            </Box>
             {errors.datePremierPrecept && (
               <Text color={errorRed} fontSize="sm">{String(errors.datePremierPrecept.message)}</Text>
             )}
@@ -1520,9 +1719,9 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                           color="gray.800"
                         >
                           <option value="">Chargement...</option>
-                          {Array.isArray(entites) && entites.map((entite) => (
-                            <option key={entite.ENT_CODE} value={entite.ENT_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                              {entite.ENT_LIB}
+                          {Array.isArray(entites) && entites.map((entite: any) => (
+                            <option key={entite.ENT_CODE || entite.id} value={entite.ENT_CODE || entite.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                              {entite.ENT_LIB || entite.libelle}
                             </option>
                           ))}
                         </Select>
@@ -1576,9 +1775,9 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                           color="gray.800"
                         >
                           <option value="">Chargement...</option>
-                          {Array.isArray(quartiers) && quartiers.map((quartier) => (
-                            <option key={quartier.Q_CODE} value={quartier.Q_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                              {quartier.Q_LIB}
+                          {Array.isArray(quartiers) && quartiers.map((quartier: any) => (
+                            <option key={quartier.Q_CODE || quartier.id} value={quartier.Q_CODE || quartier.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                              {quartier.Q_LIB || quartier.libelle}
                             </option>
                           ))}
                         </Select>
@@ -1879,28 +2078,56 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
       sx={{
         '.chakra-form-control': {
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           gap: '8px'
+        },
+        '.chakra-grid .chakra-form-control': {
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          gap: '4px'
+        },
+        '.chakra-grid .chakra-form-control .chakra-form__label': {
+          marginBottom: '4px',
+          width: '100%',
+          minHeight: '20px'
         },
         '.chakra-form__label': {
           marginBottom: 0,
           width: '180px',
           fontWeight: 600,
           color: '#111827',
-          fontSize: '0.875rem'
+          fontSize: '0.875rem',
+          minHeight: '20px'
         },
         '.chakra-input, .chakra-textarea': {
           flex: 1,
           borderColor: '#d1d5db',
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          minHeight: '40px',
+          height: '40px'
         },
         '.chakra-select': {
           flex: 1,
           borderColor: '#28A325 !important',
-          backgroundColor: '#f3f4f6 !important'
+          backgroundColor: '#f3f4f6 !important',
+          color: '#374151 !important',
+          minHeight: '40px',
+          height: '40px',
+          // Style pour les options du select
+          '& option': {
+            backgroundColor: 'white !important',
+            color: 'black !important'
+          }
         },
-        // Griser toutes les zones non saisissables (lecture seule / désactivées)
-        '.chakra-input[readonly], .chakra-textarea[readonly], .chakra-input[disabled], .chakra-textarea[disabled]': {
+        '.chakra-input[readonly], .chakra-textarea[readonly]': {
+          borderColor: '#28A325',
+          backgroundColor: '#f3f4f6' // gray.100
+        },
+        // Bordure verte pour tous les champs désactivés/grisés
+        '.chakra-input[disabled], .chakra-select[disabled], .chakra-textarea[disabled],\
+         .chakra-input[aria-disabled="true"], .chakra-select[aria-disabled="true"], .chakra-textarea[aria-disabled="true"],\
+         .chakra-input[data-disabled="true"], .chakra-select[data-disabled="true"], .chakra-textarea[data-disabled="true"]': {
           borderColor: '#28A325',
           backgroundColor: '#f3f4f6'
         }

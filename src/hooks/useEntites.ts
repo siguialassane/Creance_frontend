@@ -23,8 +23,11 @@ export function useEntites() {
     queryFn: async () => {
       try {
         const res = await EntiteService.getAll(apiClient);
-        return res.data;
+        // L'API /all retourne : { data: [...], message, status }
+        const data = res.data?.data || res.data || res;
+        return Array.isArray(data) ? data : [];
       } catch (error) {
+
         // En cas d'erreur, retourner les données mock
         console.log('API non disponible, utilisation des données mock pour entités');
         const { mockEntites } = await import("@/lib/mock-data");

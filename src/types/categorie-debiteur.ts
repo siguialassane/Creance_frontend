@@ -1,9 +1,9 @@
 export interface CategorieDebiteur {
-  CD_CODE: string;
-  CD_LIB: string;
-  CD_DESC: string | null;
-  CD_ACTIF: boolean;
-  CD_ORDRE: number | null;
+  CATEG_DEB_CODE: string;
+  CATEG_DEB_LIB: string;
+  CATEG_DEB_DESC: string | null;
+  CATEG_DEB_ACTIF: boolean;
+  CATEG_DEB_ORDRE: number | null;
 }
 
 export interface CategorieDebiteurApiResponse {
@@ -19,12 +19,12 @@ export interface CategorieDebiteurApiResponse {
 }
 
 export interface CategorieDebiteurCreateRequest {
-  CD_LIB: string;
-  CD_DESC?: string;
-  CD_ACTIF?: boolean;
-  CD_ORDRE?: number;
+  CATEG_DEB_LIB: string;
+  CATEG_DEB_DESC?: string;
+  CATEG_DEB_ACTIF?: boolean;
+  CATEG_DEB_ORDRE?: number;
 }
 
 export interface CategorieDebiteurUpdateRequest extends Partial<CategorieDebiteurCreateRequest> {
-  CD_CODE: string;
+  CATEG_DEB_CODE: string;
 }

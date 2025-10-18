@@ -72,7 +72,19 @@ export default function NouveauDebiteurPage() {
       <div className="mx-auto max-w-6xl px-6 py-6">
         {/* En-tête comme dans l'image */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold mb-2" style={{ color: '#28A325' }}>Ajouter un débiteur</h1>
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-2xl font-semibold" style={{ color: '#28A325' }}>Ajouter un débiteur</h1>
+            <Button 
+              onClick={() => {
+                console.log("Bouton Consulter cliqué");
+                router.push("/etude_creance/debiteur/views");
+              }}
+              className="text-white px-24 py-4 text-base min-w-[120px]"
+              style={{ backgroundColor: '#28A325', color: 'white' }}
+            >
+              Consulter
+            </Button>
+          </div>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center justify-between w-full">
               <div className={`text-sm font-medium ${step >= 0 ? 'text-orange-600' : 'text-gray-500'}`}>

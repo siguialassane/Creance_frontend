@@ -1,9 +1,9 @@
 export interface Fonction {
-  FON_CODE: string;
-  FON_LIB: string;
-  FON_LIBLONG?: string;
-  FON_ACTIF?: boolean;
-  FON_ORDRE?: number;
+  FONCT_CODE: string;
+  FONCT_LIB: string;
+  FONCT_LIBLONG?: string;
+  FONCT_ACTIF?: boolean;
+  FONCT_ORDRE?: number;
 }
 
 export interface FonctionApiResponse {
@@ -19,14 +19,14 @@ export interface FonctionApiResponse {
 }
 
 export interface FonctionCreateRequest {
-  FON_LIB: string;
-  FON_LIBLONG?: string;
-  FON_ACTIF?: boolean;
-  FON_ORDRE?: number;
+  FONCT_LIB: string;
+  FONCT_LIBLONG?: string;
+  FONCT_ACTIF?: boolean;
+  FONCT_ORDRE?: number;
 }
 
 export interface FonctionUpdateRequest extends Partial<FonctionCreateRequest> {
-  FON_CODE: string;
+  FONCT_CODE: string;
 }
 
 

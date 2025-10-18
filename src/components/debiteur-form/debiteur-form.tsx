@@ -95,6 +95,10 @@ interface DebiteurFormProps {
 const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData, onDataChange, onSubmit, isEditMode = false, readOnly = false }, ref) => {
   const [stepData, setStepData] = useState({});
   const [typeDebiteur, setTypeDebiteur] = useState<string>(formData?.typeDebiteur || '');
+  const typeDebiteurRef = useRef<string>(formData?.typeDebiteur || '');
+  const prevStepRef = useRef<number>(currentStep);
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
 
   // Hooks pour les données de sélection
   const { data: civilites, isLoading: loadingCivilites } = useCivilites();
@@ -113,14 +117,14 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
   const { data: typesDomicil, isLoading: loadingTypesDomicil } = useTypesDomicil();
   const { data: utilisateurs, isLoading: loadingUtilisateurs } = useUtilisateurs();
 
-  const getSchemaForStep = (step: number) => {
+  const getSchemaForStep = useCallback((step: number) => {
     switch (step) {
       case 1: return step1Schema;
-      case 2: return typeDebiteur === 'physique' ? step2PhysiqueSchema : step2MoralSchema;
+      case 2: return (typeDebiteurRef.current === 'P' || typeDebiteurRef.current === 'physique') ? step2PhysiqueSchema : step2MoralSchema;
       case 3: return step3Schema;
       default: return z.object({});
     }
-  };
+  }, []);
 
   const { control, handleSubmit, formState: { errors }, watch, setValue, reset, trigger } = useForm({
     resolver: zodResolver(getSchemaForStep(currentStep)),
@@ -130,32 +134,48 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
   // Utiliser useRef pour éviter la boucle infinie
   const onDataChangeRef = useRef(onDataChange);
   onDataChangeRef.current = onDataChange;
-
-  const handleDataChange = useCallback((newData: any) => {
-    onDataChangeRef.current(newData);
-  }, []);
+  
+  const resetRef = useRef(reset);
+  resetRef.current = reset;
 
   // Souscription aux changements du formulaire
   useEffect(() => {
     const subscription = watch((value) => {
       setStepData(value as any);
-      handleDataChange(value);
+      onDataChangeRef.current(value);
       
       // Mettre à jour le type débiteur pour l'affichage conditionnel
-      if (value.typeDebiteur && value.typeDebiteur !== typeDebiteur) {
+      if (value.typeDebiteur && value.typeDebiteur !== typeDebiteurRef.current) {
+        typeDebiteurRef.current = value.typeDebiteur;
         setTypeDebiteur(value.typeDebiteur);
       }
     });
     return () => subscription.unsubscribe();
-  }, [watch, handleDataChange, typeDebiteur]);
+  }, [watch]);
 
   // Reset seulement quand l'étape change
   useEffect(() => {
-    reset(formData);
-    if (formData?.typeDebiteur) {
-      setTypeDebiteur(formData.typeDebiteur);
+    // Seulement si l'étape change réellement
+    if (prevStepRef.current !== currentStep) {
+      prevStepRef.current = currentStep;
+      
+      const currentFormData = formDataRef.current;
+      if (currentFormData) {
+        // S'assurer que toutes les valeurs sont définies pour éviter les erreurs de champs contrôlés/non-contrôlés
+        const sanitizedFormData = Object.keys(currentFormData).reduce((acc, key) => {
+          acc[key] = currentFormData[key] ?? '';
+          return acc;
+        }, {} as any);
+        
+        resetRef.current(sanitizedFormData);
+        
+        if (currentFormData.typeDebiteur) {
+          typeDebiteurRef.current = currentFormData.typeDebiteur;
+          setTypeDebiteur(currentFormData.typeDebiteur);
+        }
+      }
     }
-  }, [currentStep, reset]);
+  }, [currentStep]);
 
   // Exposer la méthode de validation au composant parent
   useImperativeHandle(ref, () => ({
@@ -164,6 +184,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
       return isValid;
     }
   }));
+
 
   // Styles unifiés
   const primaryGreen = '#28A325'
@@ -186,29 +207,29 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
   const getCategorieLibelle = (id: string) => {
     if (!id) return '';
     if (!categoriesDebiteur || !Array.isArray(categoriesDebiteur)) return id;
-    const categorie: any = categoriesDebiteur.find((c: any) => c.id === id);
-    return categorie?.libelle || id;
+    const categorie: any = categoriesDebiteur.find((c: any) => c.CATEG_DEB_CODE === id || c.id === id || c.code === id);
+    return categorie?.CATEG_DEB_LIB || categorie?.libelle || id;
   }
 
-  const getNationaliteLibelle = (id: string) => {
-    if (!id) return '';
-    if (!nationalites || !Array.isArray(nationalites)) return id;
-    const nat: any = nationalites.find((n: any) => n.id === id);
-    return nat?.libelle || id;
+  const getNationaliteLibelle = (code: string) => {
+    if (!code) return '';
+    if (!nationalites || !Array.isArray(nationalites)) return code;
+    const nat: any = nationalites.find((n: any) => n.NAT_CODE === code || n.code === code || n.id === code);
+    return nat?.NAT_LIB || nat?.libelle || code;
   }
 
-  const getQuartierLibelle = (id: string) => {
-    if (!id) return '';
-    if (!quartiers || !Array.isArray(quartiers)) return id;
-    const quartier: any = quartiers.find((q: any) => q.id === id);
-    return quartier?.libelle || id;
+  const getQuartierLibelle = (code: string) => {
+    if (!code) return '';
+    if (!quartiers || !Array.isArray(quartiers)) return code;
+    const quartier: any = quartiers.find((q: any) => q.Q_CODE === code || q.code === code || q.id === code);
+    return quartier?.Q_LIB || quartier?.libelle || code;
   }
 
   const getFonctionLibelle = (id: string) => {
     if (!id) return '';
     if (!fonctions || !Array.isArray(fonctions)) return id;
-    const fonction: any = fonctions.find((f: any) => f.id === id);
-    return fonction?.libelle || id;
+    const fonction: any = fonctions.find((f: any) => f.FONCT_CODE === id || f.id === id || f.code === id);
+    return fonction?.FONCT_LIB || fonction?.libelle || id;
   }
 
   const getProfessionLibelle = (id: string) => {
@@ -218,11 +239,11 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
     return profession?.libelle || id;
   }
 
-  const getEntiteLibelle = (id: string) => {
-    if (!id) return '';
-    if (!entites || !Array.isArray(entites)) return id;
-    const entite: any = entites.find((e: any) => e.id === id);
-    return entite?.libelle || id;
+  const getEntiteLibelle = (code: string) => {
+    if (!code) return '';
+    if (!entites || !Array.isArray(entites)) return code;
+    const entite: any = entites.find((e: any) => e.ENT_CODE === code || e.code === code || e.id === code);
+    return entite?.ENT_LIB || entite?.libelle || code;
   }
 
   const getStatutSalarieLibelle = (id: string) => {
@@ -253,17 +274,31 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
     return type?.libelle || id;
   }
 
+  const getCiviliteLibelle = (code: string) => {
+    if (!code) return '';
+    if (!civilites || !Array.isArray(civilites)) return code;
+    const civilite: any = civilites.find((c: any) => c.CIV_CODE === code || c.code === code || c.id === code);
+    return civilite?.CIV_LIB || civilite?.libelle || code;
+  }
+
+  const getTypeDebiteurLibelle = (code: string) => {
+    if (!code) return '';
+    if (!typesDebiteur || !Array.isArray(typesDebiteur)) return code;
+    const type: any = typesDebiteur.find((t: any) => t.TYPDEB_CODE === code || t.code === code || t.id === code);
+    return type?.TYPDEB_LIB || type?.libelle || code;
+  }
+
   // Étape 1: Informations générales
   const renderStep1 = () => (
-    <VStack spacing={4} align="stretch">
+    <VStack spacing={2} align="stretch">
       <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Informations générales</Text>
       
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-        <GridItem colSpan={isEditMode || readOnly ? 1 : 2}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
+        <GridItem>
           <FormControl isInvalid={!!errors.codeDebiteur}>
             <FormLabel color={labelColor}>Code débiteur</FormLabel>
-            {isEditMode || readOnly ? (
-              <>
+            <Box flex="1">
+              {isEditMode || readOnly ? (
                 <Input 
                   value={formData.codeDebiteur || "Code non disponible"} 
                   isReadOnly 
@@ -271,14 +306,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...getFieldStyles(!!errors.codeDebiteur)} 
                   bg="gray.100"
                 />
-                {!readOnly && (
-                  <Text fontSize="xs" color="gray.500" mt={1}>
-                    Code existant du débiteur
-                  </Text>
-                )}
-              </>
-            ) : (
-              <>
+              ) : (
                 <Input 
                   value="Sera généré automatiquement" 
                   isReadOnly 
@@ -286,11 +314,18 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   {...getFieldStyles(!!errors.codeDebiteur)} 
                   bg="gray.100"
                 />
+              )}
+              {!isEditMode && !readOnly && (
                 <Text fontSize="xs" color="gray.500" mt={1}>
                   Le code sera généré automatiquement après validation
                 </Text>
-              </>
-            )}
+              )}
+              {isEditMode && !readOnly && (
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  Code existant du débiteur
+                </Text>
+              )}
+            </Box>
           </FormControl>
         </GridItem>
 
@@ -319,16 +354,20 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     _focus={{ borderColor: primaryGreen }}
                     _hover={{ bg: "gray.100" }}
                   >
-                    {Array.isArray(categoriesDebiteur) && categoriesDebiteur.map((categorie: any) => {
-                      // Support pour les deux formats : API (CATEG_DEB_CODE/CATEG_DEB_LIB) et mock (id/libelle)
-                      const code = categorie.CATEG_DEB_CODE || categorie.id || categorie.code;
-                      const libelle = categorie.CATEG_DEB_LIB || categorie.libelle;
-                      return (
-                        <option key={code} value={code}>
-                          {libelle}
-                        </option>
-                      );
-                    })}
+                    {loadingCategoriesDebiteur ? (
+                      <option key="loading" value="">Chargement...</option>
+                    ) : (
+                      Array.isArray(categoriesDebiteur) && categoriesDebiteur.map((categorie: any) => {
+                        // Support pour les deux formats : API (CATEG_DEB_CODE/CATEG_DEB_LIB) et mock (id/libelle)
+                        const code = categorie.CATEG_DEB_CODE || categorie.id || categorie.code;
+                        const libelle = categorie.CATEG_DEB_LIB || categorie.libelle;
+                        return (
+                          <option key={code} value={code}>
+                            {libelle}
+                          </option>
+                        );
+                      })
+                    )}
                   </Select>
                 )
               )}
@@ -338,23 +377,25 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             )}
           </FormControl>
         </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.adressePostale}>
+            <FormLabel color={labelColor}>Adresse postale</FormLabel>
+            <Controller
+              name="adressePostale"
+              control={control}
+              render={({ field }) => (
+                <Textarea {...field} placeholder="Ex: Cocody" rows={2} {...getFieldStyles(!!errors.adressePostale)} />
+              )}
+            />
+            {errors.adressePostale && (
+              <Text color={errorRed} fontSize="sm">{String(errors.adressePostale.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
       </Grid>
 
-      <FormControl isInvalid={!!errors.adressePostale}>
-        <FormLabel color={labelColor}>Adresse postale</FormLabel>
-        <Controller
-          name="adressePostale"
-          control={control}
-          render={({ field }) => (
-            <Textarea {...field} placeholder="Ex: Cocody, Angré 8ème Tranche, Abidjan" rows={3} {...getFieldStyles(!!errors.adressePostale)} />
-          )}
-        />
-        {errors.adressePostale && (
-          <Text color={errorRed} fontSize="sm">{String(errors.adressePostale.message)}</Text>
-        )}
-      </FormControl>
-
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.email}>
             <FormLabel color={labelColor}>Email</FormLabel>
@@ -380,7 +421,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               render={({ field }) => (
                 readOnly ? (
                   <Input 
-                    value={field.value === 'physique' ? 'Personne physique' : field.value === 'moral' ? 'Personne morale' : field.value} 
+                    value={getTypeDebiteurLibelle(field.value)} 
                     isReadOnly 
                     color="gray.700"
                     {...getFieldStyles(!!errors.typeDebiteur)} 
@@ -396,8 +437,26 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     _focus={{ borderColor: primaryGreen }}
                     _hover={{ bg: "gray.100" }}
                   >
-                    <option value="physique">Personne physique</option>
-                    <option value="moral">Personne morale</option>
+                    {loadingTypesDebiteur ? (
+                      <option key="loading" value="">Chargement...</option>
+                    ) : (
+                      <>
+                        {Array.isArray(typesDebiteur) && typesDebiteur.length > 0 ? (
+                          typesDebiteur.filter((t: any) => t).map((type: any, index: number) => {
+                            // Support pour les deux formats : API (TYPDEB_CODE/TYPDEB_LIB) et mock (id/libelle/code)
+                            const code = type.TYPDEB_CODE || type.code || type.id;
+                            const libelle = type.TYPDEB_LIB || type.libelle;
+                            return (
+                              <option key={code || `type-${index}`} value={code}>
+                                {libelle}
+                              </option>
+                            );
+                          })
+                        ) : (
+                          <option key="empty" value="">Aucun type disponible</option>
+                        )}
+                      </>
+                    )}
                   </Select>
                 )
               )}
@@ -413,10 +472,10 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
 
   // Étape 2: Personne physique
   const renderStep2Physique = () => (
-    <VStack spacing={4} align="stretch">
+    <VStack spacing={2} align="stretch">
       <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Personne physique</Text>
       
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.civilite}>
             <FormLabel color={labelColor}>Civilité</FormLabel>
@@ -426,7 +485,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               render={({ field }) => (
                 readOnly ? (
                   <Input 
-                    value={field.value === 'monsieur' ? 'Monsieur' : field.value === 'madame' ? 'Madame' : field.value === 'mademoiselle' ? 'Mademoiselle' : field.value} 
+                    value={getCiviliteLibelle(field.value)} 
                     isReadOnly 
                     color="gray.700"
                     {...getFieldStyles(!!errors.civilite)} 
@@ -434,16 +493,34 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   />
                 ) : (
                   <Select 
-                    {...field} 
+                    {...field}
                     placeholder="Sélectionner" 
-                    {...getFieldStyles(!!errors.civilite)}
+                    borderColor={primaryGreen}
                     bg="gray.100"
                     color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
                     _hover={{ bg: "gray.100" }}
                   >
-                    <option value="monsieur">Monsieur</option>
-                    <option value="madame">Madame</option>
-                    <option value="mademoiselle">Mademoiselle</option>
+                    {loadingCivilites ? (
+                      <option key="loading" value="">Chargement...</option>
+                    ) : (
+                      <>
+                        {Array.isArray(civilites) && civilites.length > 0 ? (
+                          civilites.filter((c: any) => c).map((civilite: any, index: number) => {
+                            // Support pour les deux formats : API (CIV_CODE/CIV_LIB) et mock (id/libelle/code)
+                            const code = civilite.CIV_CODE || civilite.code || civilite.id;
+                            const libelle = civilite.CIV_LIB || civilite.libelle;
+                            return (
+                              <option key={code || `civilite-${index}`} value={code}>
+                                {libelle}
+                              </option>
+                            );
+                          })
+                        ) : (
+                          <option key="empty" value="">Aucune civilité disponible</option>
+                        )}
+                      </>
+                    )}
                   </Select>
                 )
               )}
@@ -471,7 +548,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
           </FormControl>
         </GridItem>
 
-        <GridItem colSpan={2}>
+        <GridItem>
           <FormControl isInvalid={!!errors.prenom}>
             <FormLabel color={labelColor}>Prénom</FormLabel>
             <Controller
@@ -488,41 +565,39 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
         </GridItem>
       </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.dateNaissance}>
             <FormLabel color={labelColor}>Date de naissance</FormLabel>
-        <Controller
+            <Controller
               name="dateNaissance"
-          control={control}
-          render={({ field }) => (
+              control={control}
+              render={({ field }) => (
                 <Input {...field} type="date" {...getFieldStyles(!!errors.dateNaissance)} />
-          )}
-        />
+              )}
+            />
             {errors.dateNaissance && (
               <Text color={errorRed} fontSize="sm">{String(errors.dateNaissance.message)}</Text>
-        )}
-      </FormControl>
+            )}
+          </FormControl>
         </GridItem>
 
         <GridItem>
           <FormControl isInvalid={!!errors.lieuNaissance}>
             <FormLabel color={labelColor}>Lieu de naissance</FormLabel>
-        <Controller
+            <Controller
               name="lieuNaissance"
-          control={control}
-          render={({ field }) => (
+              control={control}
+              render={({ field }) => (
                 <Input {...field} placeholder="Ex: Abidjan" {...getFieldStyles(!!errors.lieuNaissance)} />
-          )}
-        />
+              )}
+            />
             {errors.lieuNaissance && (
               <Text color={errorRed} fontSize="sm">{String(errors.lieuNaissance.message)}</Text>
-        )}
-      </FormControl>
+            )}
+          </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.quartier}>
             <FormLabel color={labelColor}>Quartier</FormLabel>
@@ -540,7 +615,8 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   />
                 ) : (
                   <Select 
-                    {...field} 
+                    {...field}
+                    value={field.value || ''}
                     placeholder="Sélectionner" 
                     {...getFieldStyles(!!errors.quartier)}
                     bg="gray.100"
@@ -548,13 +624,79 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     _hover={{ bg: "gray.100" }}
                   >
                     {loadingQuartiers ? (
-                      <option value="">Chargement...</option>
+                      <option key="loading" value="">Chargement...</option>
                     ) : (
-                      Array.isArray(quartiers) && quartiers.map((quartier: any) => (
-                        <option key={quartier.id} value={quartier.id}>
-                          {quartier.libelle}
-                        </option>
-                      ))
+                      <>
+                        {Array.isArray(quartiers) && quartiers.length > 0 ? (
+                          quartiers.filter((q: any) => q).map((quartier: any, index: number) => {
+                            const code = quartier.Q_CODE || quartier.code || quartier.id;
+                            const libelle = quartier.Q_LIB || quartier.libelle;
+                            return (
+                              <option key={code || `quartier-${index}`} value={code}>
+                                {libelle}
+                              </option>
+                            );
+                          })
+                        ) : (
+                          <option key="empty" value="">Aucun quartier disponible</option>
+                        )}
+                      </>
+                    )}
+                  </Select>
+                )
+              )}
+            />
+            {errors.quartier && (
+              <Text color={errorRed} fontSize="sm">{String(errors.quartier.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.quartier}>
+            <FormLabel color={labelColor}>Quartier</FormLabel>
+            <Controller
+              name="quartier"
+              control={control}
+              render={({ field }) => (
+                readOnly ? (
+                  <Input 
+                    value={getQuartierLibelle(field.value)} 
+                    isReadOnly 
+                    color="gray.700"
+                    {...getFieldStyles(!!errors.quartier)} 
+                    bg="gray.100"
+                  />
+                ) : (
+                  <Select 
+                    {...field}
+                    value={field.value || ''}
+                    placeholder="Sélectionner" 
+                    {...getFieldStyles(!!errors.quartier)}
+                    bg="gray.100"
+                    color="gray.700"
+                    _hover={{ bg: "gray.100" }}
+                  >
+                    {loadingQuartiers ? (
+                      <option key="loading" value="">Chargement...</option>
+                    ) : (
+                      <>
+                        {Array.isArray(quartiers) && quartiers.length > 0 ? (
+                          quartiers.filter((q: any) => q).map((quartier: any, index: number) => {
+                            const code = quartier.Q_CODE || quartier.code || quartier.id;
+                            const libelle = quartier.Q_LIB || quartier.libelle;
+                            return (
+                              <option key={code || `quartier-${index}`} value={code}>
+                                {libelle}
+                              </option>
+                            );
+                          })
+                        ) : (
+                          <option key="empty" value="">Aucun quartier disponible</option>
+                        )}
+                      </>
                     )}
                   </Select>
                 )
@@ -583,7 +725,8 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   />
                 ) : (
                   <Select 
-                    {...field} 
+                    {...field}
+                    value={field.value || ''}
                     placeholder="Sélectionner" 
                     {...getFieldStyles(!!errors.nationalite)}
                     bg="gray.100"
@@ -591,13 +734,23 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     _hover={{ bg: "gray.100" }}
                   >
                     {loadingNationalites ? (
-                      <option value="">Chargement...</option>
+                      <option key="loading" value="">Chargement...</option>
                     ) : (
-                      Array.isArray(nationalites) && nationalites.map((nationalite: any) => (
-                        <option key={nationalite.id} value={nationalite.id}>
-                          {nationalite.libelle}
-                        </option>
-                      ))
+                      <>
+                        {Array.isArray(nationalites) && nationalites.length > 0 ? (
+                          nationalites.filter((n: any) => n).map((nationalite: any, index: number) => {
+                            const code = nationalite.NAT_CODE || nationalite.code || nationalite.id;
+                            const libelle = nationalite.NAT_LIB || nationalite.libelle;
+                            return (
+                              <option key={code || `nationalite-${index}`} value={code}>
+                                {libelle}
+                              </option>
+                            );
+                          })
+                        ) : (
+                          <option key="empty" value="">Aucune nationalité disponible</option>
+                        )}
+                      </>
                     )}
                   </Select>
                 )
@@ -608,9 +761,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.fonction}>
             <FormLabel color={labelColor}>Fonction</FormLabel>
@@ -630,19 +781,30 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   <Select 
                     {...field} 
                     placeholder="Sélectionner" 
-                    {...getFieldStyles(!!errors.fonction)}
+                    borderColor={primaryGreen}
                     bg="gray.100"
                     color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
                     _hover={{ bg: "gray.100" }}
                   >
                     {loadingFonctions ? (
-                      <option value="">Chargement...</option>
+                      <option key="loading" value="">Chargement...</option>
                     ) : (
-                      Array.isArray(fonctions) && fonctions.map((fonction: any) => (
-                        <option key={fonction.id} value={fonction.id}>
-                          {fonction.libelle}
-                        </option>
-                      ))
+                      <>
+                        {Array.isArray(fonctions) && fonctions.length > 0 ? (
+                          fonctions.filter((f: any) => f).map((fonction: any, index: number) => {
+                            const code = fonction.FONCT_CODE || fonction.code || fonction.id;
+                            const libelle = fonction.FONCT_LIB || fonction.libelle;
+                            return (
+                              <option key={code || `fonction-${index}`} value={code}>
+                                {libelle}
+                              </option>
+                            );
+                          })
+                        ) : (
+                          <option key="empty" value="">Aucune fonction disponible</option>
+                        )}
+                      </>
                     )}
                   </Select>
                 )
@@ -653,7 +815,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             )}
           </FormControl>
         </GridItem>
+      </Grid>
 
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.profession}>
             <FormLabel color={labelColor}>Profession</FormLabel>
@@ -696,9 +860,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.employeur}>
             <FormLabel color={labelColor}>Employeur</FormLabel>
@@ -716,7 +878,8 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                   />
                 ) : (
                   <Select 
-                    {...field} 
+                    {...field}
+                    value={field.value || ''}
                     placeholder="Sélectionner" 
                     {...getFieldStyles(!!errors.employeur)}
                     bg="gray.100"
@@ -724,13 +887,23 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     _hover={{ bg: "gray.100" }}
                   >
                     {loadingEntites ? (
-                      <option value="">Chargement...</option>
+                      <option key="loading" value="">Chargement...</option>
                     ) : (
-                      Array.isArray(entites) && entites.map((entite: any) => (
-                        <option key={entite.id} value={entite.id}>
-                          {entite.libelle}
-                        </option>
-                      ))
+                      <>
+                        {Array.isArray(entites) && entites.length > 0 ? (
+                          entites.filter((e: any) => e).map((entite: any, index: number) => {
+                            const code = entite.ENT_CODE || entite.code || entite.id;
+                            const libelle = entite.ENT_LIB || entite.libelle;
+                            return (
+                              <option key={code || `entite-${index}`} value={code}>
+                                {libelle}
+                              </option>
+                            );
+                          })
+                        ) : (
+                          <option key="empty" value="">Aucun employeur disponible</option>
+                        )}
+                      </>
                     )}
                   </Select>
                 )
@@ -786,7 +959,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
         </GridItem>
       </Grid>
       
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.matricule}>
             <FormLabel color={labelColor}>Matricule</FormLabel>
@@ -835,9 +1008,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.dateDeces}>
             <FormLabel color={labelColor}>Date de décès</FormLabel>
@@ -850,7 +1021,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             />
           </FormControl>
         </GridItem>
+      </Grid>
 
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.naturePieceIdentite}>
             <FormLabel color={labelColor}>Nature de pièce d'identité</FormLabel>
@@ -885,9 +1058,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             />
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.numeroPieceIdentite}>
             <FormLabel color={labelColor}>Numéro de pièce d'identité</FormLabel>
@@ -915,7 +1086,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
         </GridItem>
       </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.lieuEtablie}>
             <FormLabel color={labelColor}>Lieu établi</FormLabel>
@@ -963,9 +1134,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             />
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.regimeMariage}>
             <FormLabel color={labelColor}>Régime de mariage</FormLabel>
@@ -999,7 +1168,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             />
           </FormControl>
         </GridItem>
+      </Grid>
 
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.nombreEnfant}>
             <FormLabel color={labelColor}>Nombre d'enfant</FormLabel>
@@ -1018,7 +1189,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
 
       <Text fontSize="md" fontWeight="semibold" color={titleColor}>Informations du conjoint</Text>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.nomConjoint}>
             <FormLabel color={labelColor}>Nom du conjoint</FormLabel>
@@ -1044,9 +1215,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             />
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.dateNaissanceConjoint}>
             <FormLabel color={labelColor}>Date de naissance du conjoint</FormLabel>
@@ -1059,7 +1228,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             />
           </FormControl>
         </GridItem>
+      </Grid>
 
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.telConjoint}>
             <FormLabel color={labelColor}>Téléphone du conjoint</FormLabel>
@@ -1068,21 +1239,6 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               control={control}
               render={({ field }) => (
                 <Input {...field} placeholder="Ex: +225 07 12 34 56 78" {...getFieldStyles(!!errors.telConjoint)} />
-              )}
-            />
-          </FormControl>
-        </GridItem>
-      </Grid>
-
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.adresseConjoint}>
-            <FormLabel color={labelColor}>Adresse du conjoint</FormLabel>
-            <Controller
-              name="adresseConjoint"
-              control={control}
-              render={({ field }) => (
-                <Textarea {...field} placeholder="Adresse complète" rows={2} {...getFieldStyles(!!errors.adresseConjoint)} />
               )}
             />
           </FormControl>
@@ -1100,13 +1256,26 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             />
           </FormControl>
         </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.adresseConjoint}>
+            <FormLabel color={labelColor}>Adresse du conjoint</FormLabel>
+            <Controller
+              name="adresseConjoint"
+              control={control}
+              render={({ field }) => (
+                <Textarea {...field} placeholder="Adresse complète" rows={2} {...getFieldStyles(!!errors.adresseConjoint)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
       </Grid>
 
       <Divider />
 
       <Text fontSize="md" fontWeight="semibold" color={titleColor}>Informations des parents</Text>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.nomPere}>
             <FormLabel color={labelColor}>Nom du père</FormLabel>
@@ -1132,9 +1301,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             />
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.nomMere}>
             <FormLabel color={labelColor}>Nom de la mère</FormLabel>
@@ -1147,7 +1314,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             />
           </FormControl>
         </GridItem>
+      </Grid>
 
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.prenomsMere}>
             <FormLabel color={labelColor}>Prénoms de la mère</FormLabel>
@@ -1160,27 +1329,29 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             />
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <FormControl isInvalid={!!errors.rue}>
-        <FormLabel color={labelColor}>Rue</FormLabel>
-        <Controller
-          name="rue"
-          control={control}
-          render={({ field }) => (
-            <Input {...field} placeholder="Ex: Rue des Écoles, N°123" {...getFieldStyles(!!errors.rue)} />
-          )}
-        />
-      </FormControl>
+        <GridItem>
+          <FormControl isInvalid={!!errors.rue}>
+            <FormLabel color={labelColor}>Rue</FormLabel>
+            <Controller
+              name="rue"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: Rue des Écoles, N°123" {...getFieldStyles(!!errors.rue)} />
+              )}
+            />
+          </FormControl>
+        </GridItem>
+      </Grid>
     </VStack>
   );
 
   // Étape 2: Personne morale
   const renderStep2Moral = () => (
-    <VStack spacing={4} align="stretch">
+    <VStack spacing={2} align="stretch">
       <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Personne morale</Text>
       
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.registreCommerce}>
             <FormLabel color={labelColor}>Registre de commerce</FormLabel>
@@ -1212,9 +1383,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.capitalSocial}>
             <FormLabel color={labelColor}>Capital social</FormLabel>
@@ -1246,7 +1415,9 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             />
           </FormControl>
         </GridItem>
+      </Grid>
 
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.formeJuridique}>
             <FormLabel color={labelColor}>Forme juridique</FormLabel>
@@ -1286,196 +1457,220 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
             )}
           </FormControl>
         </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.domaineActivite}>
+            <FormLabel color={labelColor}>Domaine d'activité</FormLabel>
+            <Box flex="1">
+              <Controller
+                name="domaineActivite"
+                control={control}
+                render={({ field }) => (
+                  readOnly ? (
+                    <Input 
+                      value={field.value === 'commerce' ? 'Commerce' : field.value === 'industrie' ? 'Industrie' : field.value === 'services' ? 'Services' : field.value === 'agriculture' ? 'Agriculture' : field.value === 'batiment' ? 'Bâtiment' : field.value === 'transport' ? 'Transport' : field.value === 'autre' ? 'Autre' : field.value} 
+                      isReadOnly 
+                      color="gray.700"
+                      {...getFieldStyles(!!errors.domaineActivite)} 
+                      bg="gray.100"
+                    />
+                  ) : (
+                    <Select 
+                      {...field} 
+                      placeholder="Sélectionner" 
+                      {...getFieldStyles(!!errors.domaineActivite)}
+                      bg="gray.100"
+                      color="gray.700"
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      <option value="commerce">Commerce</option>
+                      <option value="industrie">Industrie</option>
+                      <option value="services">Services</option>
+                      <option value="agriculture">Agriculture</option>
+                      <option value="batiment">Bâtiment</option>
+                      <option value="transport">Transport</option>
+                      <option value="autre">Autre</option>
+                    </Select>
+                  )
+                )}
+              />
+            </Box>
+            {errors.domaineActivite && (
+              <Text color={errorRed} fontSize="sm">{String(errors.domaineActivite.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.nomGerant}>
+            <FormLabel color={labelColor}>Nom du gérant</FormLabel>
+            <Box flex="1">
+              <Controller
+                name="nomGerant"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} placeholder="Ex: Koné Amadou" {...getFieldStyles(!!errors.nomGerant)} />
+                )}
+              />
+            </Box>
+            {errors.nomGerant && (
+              <Text color={errorRed} fontSize="sm">{String(errors.nomGerant.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
       </Grid>
 
-      <FormControl isInvalid={!!errors.domaineActivite}>
-        <FormLabel color={labelColor}>Domaine d'activité</FormLabel>
-        <Controller
-          name="domaineActivite"
-          control={control}
-          render={({ field }) => (
-            readOnly ? (
-              <Input 
-                value={field.value === 'commerce' ? 'Commerce' : field.value === 'industrie' ? 'Industrie' : field.value === 'services' ? 'Services' : field.value === 'agriculture' ? 'Agriculture' : field.value === 'batiment' ? 'Bâtiment' : field.value === 'transport' ? 'Transport' : field.value === 'autre' ? 'Autre' : field.value} 
-                isReadOnly 
-                color="gray.700"
-                {...getFieldStyles(!!errors.domaineActivite)} 
-                bg="gray.100"
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
+        <GridItem colSpan={3}>
+          <FormControl isInvalid={!!errors.siegeSocial}>
+            <FormLabel color={labelColor}>Siège social</FormLabel>
+            <Box flex="1">
+              <Controller
+                name="siegeSocial"
+                control={control}
+                render={({ field }) => (
+                  <Textarea {...field} placeholder="Ex: Cocody, Angré 8ème Tranche, Abidjan" rows={2} {...getFieldStyles(!!errors.siegeSocial)} />
+                )}
               />
-            ) : (
-              <Select 
-                {...field} 
-                placeholder="Sélectionner" 
-                {...getFieldStyles(!!errors.domaineActivite)}
-                bg="gray.100"
-                color="gray.700"
-                _hover={{ bg: "gray.100" }}
-              >
-                <option value="commerce">Commerce</option>
-                <option value="industrie">Industrie</option>
-                <option value="services">Services</option>
-                <option value="agriculture">Agriculture</option>
-                <option value="batiment">Bâtiment</option>
-                <option value="transport">Transport</option>
-                <option value="autre">Autre</option>
-              </Select>
-            )
-          )}
-        />
-        {errors.domaineActivite && (
-          <Text color={errorRed} fontSize="sm">{String(errors.domaineActivite.message)}</Text>
-        )}
-      </FormControl>
-
-      <FormControl isInvalid={!!errors.siegeSocial}>
-        <FormLabel color={labelColor}>Siège social</FormLabel>
-        <Controller
-          name="siegeSocial"
-          control={control}
-          render={({ field }) => (
-            <Textarea {...field} placeholder="Ex: Cocody, Angré 8ème Tranche, Abidjan" rows={3} {...getFieldStyles(!!errors.siegeSocial)} />
-          )}
-        />
-        {errors.siegeSocial && (
-          <Text color={errorRed} fontSize="sm">{String(errors.siegeSocial.message)}</Text>
-        )}
-      </FormControl>
-
-      <FormControl isInvalid={!!errors.nomGerant}>
-        <FormLabel color={labelColor}>Nom du gérant</FormLabel>
-        <Controller
-          name="nomGerant"
-          control={control}
-          render={({ field }) => (
-            <Input {...field} placeholder="Ex: Koné Amadou" {...getFieldStyles(!!errors.nomGerant)} />
-          )}
-        />
-        {errors.nomGerant && (
-          <Text color={errorRed} fontSize="sm">{String(errors.nomGerant.message)}</Text>
-        )}
-      </FormControl>
+            </Box>
+            {errors.siegeSocial && (
+              <Text color={errorRed} fontSize="sm">{String(errors.siegeSocial.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+      </Grid>
         </VStack>
   );
 
   // Étape 3: Domiciliation
   const renderStep3 = () => (
-    <VStack spacing={4} align="stretch">
+    <VStack spacing={2} align="stretch">
       <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Domiciliation</Text>
       
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.type}>
             <FormLabel color={labelColor}>Type</FormLabel>
-        <Controller
-              name="type"
-          control={control}
-          render={({ field }) => (
-                readOnly ? (
-                  <Input 
-                    value={getTypeDomicilLibelle(field.value)} 
-                    isReadOnly 
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.type)} 
-                    bg="gray.100"
-                  />
-                ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner" 
-                    {...getFieldStyles(!!errors.type)}
-                    bg="gray.100"
-                    color="gray.700"
-                    isDisabled={loadingTypesDomicil}
-                    _hover={{ bg: "gray.100" }}
-                  >
-                    {loadingTypesDomicil ? (
-                      <option value="">Chargement...</option>
-                    ) : (
-                      Array.isArray(typesDomicil) && typesDomicil.map((type: any) => (
-                        <option key={type.id} value={type.id}>
-                          {type.libelle}
-                        </option>
-                      ))
-                    )}
-                  </Select>
-                )
-              )}
-            />
+            <Box flex="1">
+              <Controller
+                name="type"
+                control={control}
+                render={({ field }) => (
+                  readOnly ? (
+                    <Input 
+                      value={getTypeDomicilLibelle(field.value)} 
+                      isReadOnly 
+                      color="gray.700"
+                      {...getFieldStyles(!!errors.type)} 
+                      bg="gray.100"
+                    />
+                  ) : (
+                    <Select 
+                      {...field} 
+                      placeholder="Sélectionner" 
+                      {...getFieldStyles(!!errors.type)}
+                      bg="gray.100"
+                      color="gray.700"
+                      isDisabled={loadingTypesDomicil}
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      {loadingTypesDomicil ? (
+                        <option value="">Chargement...</option>
+                      ) : (
+                        Array.isArray(typesDomicil) && typesDomicil.map((type: any) => (
+                          <option key={type.id} value={type.id}>
+                            {type.libelle}
+                          </option>
+                        ))
+                      )}
+                    </Select>
+                  )
+                )}
+              />
+            </Box>
             {errors.type && (
               <Text color={errorRed} fontSize="sm">{String(errors.type.message)}</Text>
-        )}
-      </FormControl>
+            )}
+          </FormControl>
         </GridItem>
 
         <GridItem>
           <FormControl isInvalid={!!errors.numeroCompte}>
             <FormLabel color={labelColor}>Numéro du compte</FormLabel>
-        <Controller
-              name="numeroCompte"
-          control={control}
-          render={({ field }) => (
-                <Input {...field} placeholder="Ex: 1234567890123456" {...getFieldStyles(!!errors.numeroCompte)} />
-          )}
-        />
+            <Box flex="1">
+              <Controller
+                name="numeroCompte"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} placeholder="Ex: 1234567890123456" {...getFieldStyles(!!errors.numeroCompte)} />
+                )}
+              />
+            </Box>
             {errors.numeroCompte && (
               <Text color={errorRed} fontSize="sm">{String(errors.numeroCompte.message)}</Text>
             )}
-      </FormControl>
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.libelle}>
+            <FormLabel color={labelColor}>Libellé</FormLabel>
+            <Box flex="1">
+              <Controller
+                name="libelle"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} placeholder="Ex: Compte principal" {...getFieldStyles(!!errors.libelle)} />
+                )}
+              />
+            </Box>
+            {errors.libelle && (
+              <Text color={errorRed} fontSize="sm">{String(errors.libelle.message)}</Text>
+            )}
+          </FormControl>
         </GridItem>
       </Grid>
 
-      <FormControl isInvalid={!!errors.libelle}>
-        <FormLabel color={labelColor}>Libellé</FormLabel>
-        <Controller
-          name="libelle"
-          control={control}
-          render={({ field }) => (
-            <Input {...field} placeholder="Ex: Compte principal" {...getFieldStyles(!!errors.libelle)} />
-          )}
-        />
-        {errors.libelle && (
-          <Text color={errorRed} fontSize="sm">{String(errors.libelle.message)}</Text>
-        )}
-      </FormControl>
-
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.banque}>
             <FormLabel color={labelColor}>Banque</FormLabel>
-            <Controller
-              name="banque"
-              control={control}
-              render={({ field }) => (
-                readOnly ? (
-                  <Input 
-                    value={getBanqueLibelle(field.value)} 
-                    isReadOnly 
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.banque)} 
-                    bg="gray.100"
-                  />
-                ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner" 
-                    {...getFieldStyles(!!errors.banque)}
-                    bg="gray.100"
-                    color="gray.700"
-                    _hover={{ bg: "gray.100" }}
-                  >
-                    {loadingBanques ? (
-                      <option value="">Chargement...</option>
-                    ) : (
-                      Array.isArray(banques) && banques.map((banque: any) => (
-                        <option key={banque.id} value={banque.id}>
-                          {banque.libelle}
-                        </option>
-                      ))
-                    )}
-                  </Select>
-                )
-              )}
-            />
+            <Box flex="1">
+              <Controller
+                name="banque"
+                control={control}
+                render={({ field }) => (
+                  readOnly ? (
+                    <Input 
+                      value={getBanqueLibelle(field.value)} 
+                      isReadOnly 
+                      color="gray.700"
+                      {...getFieldStyles(!!errors.banque)} 
+                      bg="gray.100"
+                    />
+                  ) : (
+                    <Select 
+                      {...field} 
+                      placeholder="Sélectionner" 
+                      {...getFieldStyles(!!errors.banque)}
+                      bg="gray.100"
+                      color="gray.700"
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      {loadingBanques ? (
+                        <option value="">Chargement...</option>
+                      ) : (
+                        Array.isArray(banques) && banques.map((banque: any) => (
+                          <option key={banque.id} value={banque.id}>
+                            {banque.libelle}
+                          </option>
+                        ))
+                      )}
+                    </Select>
+                  )
+                )}
+              />
+            </Box>
             {errors.banque && (
               <Text color={errorRed} fontSize="sm">{String(errors.banque.message)}</Text>
             )}
@@ -1485,40 +1680,42 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
         <GridItem>
           <FormControl isInvalid={!!errors.banqueAgence}>
             <FormLabel color={labelColor}>Banque agence</FormLabel>
-            <Controller
-              name="banqueAgence"
-              control={control}
-              render={({ field }) => (
-                readOnly ? (
-                  <Input 
-                    value={getAgenceBanqueLibelle(field.value)} 
-                    isReadOnly 
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.banqueAgence)} 
-                    bg="gray.100"
-                  />
-                ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner" 
-                    {...getFieldStyles(!!errors.banqueAgence)}
-                    bg="gray.100"
-                    color="gray.700"
-                    _hover={{ bg: "gray.100" }}
-                  >
-                    {loadingAgencesBanque ? (
-                      <option value="">Chargement...</option>
-                    ) : (
-                      Array.isArray(agencesBanque) && agencesBanque.map((agence: any) => (
-                        <option key={agence.id} value={agence.id}>
-                          {agence.libelle}
-                        </option>
-                      ))
-                    )}
-                  </Select>
-                )
-              )}
-            />
+            <Box flex="1">
+              <Controller
+                name="banqueAgence"
+                control={control}
+                render={({ field }) => (
+                  readOnly ? (
+                    <Input 
+                      value={getAgenceBanqueLibelle(field.value)} 
+                      isReadOnly 
+                      color="gray.700"
+                      {...getFieldStyles(!!errors.banqueAgence)} 
+                      bg="gray.100"
+                    />
+                  ) : (
+                    <Select 
+                      {...field} 
+                      placeholder="Sélectionner" 
+                      {...getFieldStyles(!!errors.banqueAgence)}
+                      bg="gray.100"
+                      color="gray.700"
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      {loadingAgencesBanque ? (
+                        <option value="">Chargement...</option>
+                      ) : (
+                        Array.isArray(agencesBanque) && agencesBanque.map((agence: any) => (
+                          <option key={agence.id} value={agence.id}>
+                            {agence.libelle}
+                          </option>
+                        ))
+                      )}
+                    </Select>
+                  )
+                )}
+              />
+            </Box>
             {errors.banqueAgence && (
               <Text color={errorRed} fontSize="sm">{String(errors.banqueAgence.message)}</Text>
             )}
@@ -1531,7 +1728,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1: return renderStep1();
-      case 2: return typeDebiteur === 'physique' ? renderStep2Physique() : renderStep2Moral();
+      case 2: return (typeDebiteur === 'P' || typeDebiteur === 'physique') ? renderStep2Physique() : renderStep2Moral();
       case 3: return renderStep3();
       default: return null;
     }
@@ -1543,14 +1740,15 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
         '.chakra-form-control': {
           display: 'flex',
           alignItems: 'center',
-          gap: '8px'
+          gap: '4px'
         },
         '.chakra-form__label': {
           marginBottom: 0,
-          width: '180px',
+          width: '120px',
           fontWeight: 600,
           color: '#111827',
-          fontSize: '0.875rem'
+          fontSize: '0.875rem',
+          marginRight: '6px'
         },
         '.chakra-input, .chakra-textarea': {
           flex: 1,

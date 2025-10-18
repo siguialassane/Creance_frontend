@@ -1,7 +1,7 @@
 import { TypeDebiteur, TypeDebiteurApiResponse, TypeDebiteurCreateRequest, TypeDebiteurUpdateRequest } from "@/types/type-debiteur";
 
 export class TypeDebiteurService {
-  private static readonly BASE_URL = "/types-debiteur";
+  private static readonly BASE_URL = "/types/AC_TYPE_DEBITEUR";
 
   static async getAll(apiClient: any): Promise<TypeDebiteurApiResponse> {
     const response = await apiClient.get<TypeDebiteurApiResponse>(this.BASE_URL);

@@ -6,7 +6,7 @@ export type ApiClient = AxiosInstance;
 
 // Configuration de base pour Axios
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://192.168.1.105:8081/api",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

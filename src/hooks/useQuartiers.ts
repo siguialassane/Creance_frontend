@@ -23,8 +23,11 @@ export function useQuartiers() {
     queryFn: async () => {
       try {
         const res = await QuartierService.getAll(apiClient);
-        return res.data;
+        // L'API /all retourne : { data: [...], message, status }
+        const data = res.data?.data || res.data || res;
+        return Array.isArray(data) ? data : [];
       } catch (error) {
+
         // En cas d'erreur, retourner les données mock
         console.log('API non disponible, utilisation des données mock pour quartiers');
         const { mockQuartiers } = await import("@/lib/mock-data");
