@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle, FC } from "react";
-import { Box, VStack, HStack, FormControl, FormLabel, Input, Select, Textarea, Text, Divider, Grid, GridItem, Checkbox, Stack, InputProps } from "@chakra-ui/react";
+import { Box, VStack, HStack, FormControl, FormLabel, Input, Select, Textarea, Text, Divider, Grid, GridItem, Checkbox, Stack, InputProps, Button, IconButton } from "@chakra-ui/react";
 import { useForm, Controller, ControllerRenderProps } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -201,6 +201,13 @@ interface CreanceFormProps {
 const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, onDataChange, onSubmit, readOnly = false }, ref) => {
   const [stepData, setStepData] = useState({});
   const [typeGarantie, setTypeGarantie] = useState<string>("");
+  const [garanties, setGaranties] = useState<any[]>(() => {
+    // Initialiser avec les garanties existantes ou une garantie vide
+    if (formData?.garanties && Array.isArray(formData.garanties) && formData.garanties.length > 0) {
+      return formData.garanties.map((g: any, idx: number) => ({ ...g, id: idx + 1 }));
+    }
+    return [{ id: 1 }];
+  });
 
   // Hooks pour les données dynamiques
   const { data: groupesCreance, isLoading: loadingGroupesCreance } = useGroupesCreance();
@@ -288,8 +295,8 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
 
   // Utiliser useCallback pour éviter la boucle infinie
   const handleDataChange = useCallback((newData: any) => {
-    onDataChange(newData);
-  }, [onDataChange]);
+    onDataChange({ ...newData, garanties });
+  }, [onDataChange, garanties]);
 
   // Souscription aux changements du formulaire pour éviter les boucles infinies
   useEffect(() => {
@@ -546,10 +553,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
   }
 
   const renderStep1 = () => (
-    <VStack spacing={4} align="stretch">
+    <VStack spacing={2} align="stretch">
       <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Informations générales</Text>
       
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.debiteur}>
             <FormLabel color={labelColor}>Débiteur</FormLabel>
@@ -628,9 +635,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.typeObjet}>
             <FormLabel color={labelColor}>Type d'objet</FormLabel>
@@ -669,7 +674,9 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
+      </Grid>
 
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.capitalInitial}>
             <FormLabel color={labelColor}>Capital initial</FormLabel>
@@ -691,27 +698,23 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.montantDecaisse}>
             <FormLabel color={labelColor}>Montant décaissé</FormLabel>
-            <Box flex="1">
-              <Controller
-                name="montantDecaisse"
-                control={control}
-                render={({ field }) => (
-                  <NumberInputField
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="0"
-                    {...getFieldStyles(!!errors.montantDecaisse)} 
-                    isDisabled={readOnly}
-                  />
-                )}
-              />
-            </Box>
+            <Controller
+              name="montantDecaisse"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
+                  {...getFieldStyles(!!errors.montantDecaisse)} 
+                  isDisabled={readOnly}
+                />
+              )}
+            />
             {errors.montantDecaisse && (
               <Text color={errorRed} fontSize="sm">{String(errors.montantDecaisse.message)}</Text>
             )}
@@ -721,15 +724,13 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <GridItem>
           <FormControl isInvalid={!!errors.steCaution}>
             <FormLabel color={labelColor}>Sté caution</FormLabel>
-            <Box flex="1">
-              <Controller
-                name="steCaution"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} placeholder="Société de caution" {...getFieldStyles(!!errors.steCaution)} isDisabled={readOnly} />
-                )}
-              />
-            </Box>
+            <Controller
+              name="steCaution"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Société de caution" {...getFieldStyles(!!errors.steCaution)} isDisabled={readOnly} />
+              )}
+            />
             {errors.steCaution && (
               <Text color={errorRed} fontSize="sm">{String(errors.steCaution.message)}</Text>
             )}
@@ -737,7 +738,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         </GridItem>
       </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.statutRecouvrement}>
             <FormLabel color={labelColor}>Statut recouvrement</FormLabel>
@@ -776,23 +777,19 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <GridItem>
           <FormControl isInvalid={!!errors.numeroPrecedent}>
             <FormLabel color={labelColor}>Numéro précédent</FormLabel>
-            <Box flex="1">
-              <Controller
-                name="numeroPrecedent"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} placeholder="Numéro précédent" {...getFieldStyles(!!errors.numeroPrecedent)} isDisabled={readOnly} />
-                )}
-              />
-            </Box>
+            <Controller
+              name="numeroPrecedent"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Numéro précédent" {...getFieldStyles(!!errors.numeroPrecedent)} isDisabled={readOnly} />
+              )}
+            />
             {errors.numeroPrecedent && (
               <Text color={errorRed} fontSize="sm">{String(errors.numeroPrecedent.message)}</Text>
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.numeroAncien}>
             <FormLabel color={labelColor}>Numéro ancien</FormLabel>
@@ -808,27 +805,25 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
+      </Grid>
 
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.typeStructure}>
             <FormLabel color={labelColor}>Type structure</FormLabel>
-            <Box flex="1">
-              <Controller
-                name="typeStructure"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} placeholder="Type de structure" {...getFieldStyles(!!errors.typeStructure)} isDisabled={readOnly} />
-                )}
-              />
-            </Box>
+            <Controller
+              name="typeStructure"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Type de structure" {...getFieldStyles(!!errors.typeStructure)} isDisabled={readOnly} />
+              )}
+            />
             {errors.typeStructure && (
               <Text color={errorRed} fontSize="sm">{String(errors.typeStructure.message)}</Text>
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.classeCreance}>
             <FormLabel color={labelColor}>Classe créance</FormLabel>
@@ -872,10 +867,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
   );
 
   const renderStep2 = () => (
-    <VStack spacing={4} align="stretch">
+    <VStack spacing={2} align="stretch">
       <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Informations générales 2</Text>
       
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.numeroCreance}>
             <FormLabel color={labelColor}>Numéro de créance</FormLabel>
@@ -930,9 +925,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.objetCreance}>
             <FormLabel color={labelColor}>Objet créance</FormLabel>
@@ -953,7 +946,9 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
+      </Grid>
 
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.periodicite}>
             <FormLabel color={labelColor}>Périodicité</FormLabel>
@@ -990,9 +985,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.nbEch}>
             <FormLabel color={labelColor}>Nb. Échéances</FormLabel>
@@ -1024,15 +1017,13 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <GridItem>
           <FormControl isInvalid={!!errors.dateReconnaissance}>
             <FormLabel color={labelColor}>Date de reconnaissance</FormLabel>
-            <Box flex="1">
-              <Controller
-                name="dateReconnaissance"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} type="date" {...getFieldStyles(!!errors.dateReconnaissance)} isDisabled={readOnly} />
-                )}
-              />
-            </Box>
+            <Controller
+              name="dateReconnaissance"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} type="date" {...getFieldStyles(!!errors.dateReconnaissance)} isDisabled={readOnly} />
+              )}
+            />
             {errors.dateReconnaissance && (
               <Text color={errorRed} fontSize="sm">{String(errors.dateReconnaissance.message)}</Text>
             )}
@@ -1040,19 +1031,17 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         </GridItem>
       </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.datePremiereEcheance}>
             <FormLabel color={labelColor}>Date de 1ère échéance</FormLabel>
-            <Box flex="1">
-              <Controller
-                name="datePremiereEcheance"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} type="date" {...getFieldStyles(!!errors.datePremiereEcheance)} isDisabled={readOnly} />
-                )}
-              />
-            </Box>
+            <Controller
+              name="datePremiereEcheance"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} type="date" {...getFieldStyles(!!errors.datePremiereEcheance)} isDisabled={readOnly} />
+              )}
+            />
             {errors.datePremiereEcheance && (
               <Text color={errorRed} fontSize="sm">{String(errors.datePremiereEcheance.message)}</Text>
             )}
@@ -1062,23 +1051,19 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <GridItem>
           <FormControl isInvalid={!!errors.dateDerniereEcheance}>
             <FormLabel color={labelColor}>Date de dernière échéance</FormLabel>
-            <Box flex="1">
-              <Controller
-                name="dateDerniereEcheance"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} type="date" {...getFieldStyles(!!errors.dateDerniereEcheance)} isDisabled={readOnly} />
-                )}
-              />
-            </Box>
+            <Controller
+              name="dateDerniereEcheance"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} type="date" {...getFieldStyles(!!errors.dateDerniereEcheance)} isDisabled={readOnly} />
+              )}
+            />
             {errors.dateDerniereEcheance && (
               <Text color={errorRed} fontSize="sm">{String(errors.dateDerniereEcheance.message)}</Text>
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.dateOctroi}>
             <FormLabel color={labelColor}>Date d'octroi</FormLabel>
@@ -1094,27 +1079,25 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
+      </Grid>
 
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.datePremierPrecept}>
             <FormLabel color={labelColor}>Date de 1er précept</FormLabel>
-            <Box flex="1">
-              <Controller
-                name="datePremierPrecept"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} type="date" {...getFieldStyles(!!errors.datePremierPrecept)} isDisabled={readOnly} />
-                )}
-              />
-            </Box>
+            <Controller
+              name="datePremierPrecept"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} type="date" {...getFieldStyles(!!errors.datePremierPrecept)} isDisabled={readOnly} />
+              )}
+            />
             {errors.datePremierPrecept && (
               <Text color={errorRed} fontSize="sm">{String(errors.datePremierPrecept.message)}</Text>
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.creanceSoldeAvantLid}>
             <FormLabel color={labelColor}>Créance solde avant LID</FormLabel>
@@ -1130,15 +1113,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
-      </Grid>
-    </VStack>
-  );
 
-  const renderStep3 = () => (
-    <VStack spacing={4} align="stretch">
-      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Détails financiers</Text>
-      
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.ordonnateur}>
             <FormLabel color={labelColor}>Ordonnateur</FormLabel>
@@ -1151,6 +1126,36 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             />
             {errors.ordonnateur && (
               <Text color={errorRed} fontSize="sm">{String(errors.ordonnateur.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+      </Grid>
+    </VStack>
+  );
+
+  const renderStep3 = () => (
+    <VStack spacing={2} align="stretch">
+      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Détails financiers</Text>
+      
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.commission}>
+            <FormLabel color={labelColor}>Commission</FormLabel>
+            <Controller
+              name="commission"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
+                  {...getFieldStyles(!!errors.commission)} 
+                  isDisabled={readOnly}
+                />
+              )}
+            />
+            {errors.commission && (
+              <Text color={errorRed} fontSize="sm">{String(errors.commission.message)}</Text>
             )}
           </FormControl>
         </GridItem>
@@ -1179,9 +1184,64 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.intConvPourcentage}>
+            <FormLabel color={labelColor}>Int. Conv (pourcentage)</FormLabel>
+            <Controller
+              name="intConvPourcentage"
+              control={control}
+              render={({ field }) => (
+                <Input 
+                  {...field} 
+                  type="number" 
+                  placeholder="0" 
+                  step="0.01"
+                  value={field.value ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') { field.onChange(undefined); return; }
+                    field.onChange(parseFloat(v));
+                  }}
+                  {...getFieldStyles(!!errors.intConvPourcentage)} 
+                  isDisabled={readOnly}
+                />
+              )}
+            />
+            
+            {errors.intConvPourcentage && (
+              <Text color={errorRed} fontSize="sm">{String(errors.intConvPourcentage.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
       </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
+        <GridItem>
+          <FormControl isInvalid={!!errors.montantIntConvPaye}>
+            <FormLabel color={labelColor}>Montant Int Conv</FormLabel>
+            <Controller
+              name="montantIntConvPaye"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
+                  {...getFieldStyles(!!errors.montantIntConvPaye)} 
+                  isDisabled={true}
+                  bg="gray.100"
+                  color="gray.700"
+                />
+              )}
+            />
+            
+            {errors.montantIntConvPaye && (
+              <Text color={errorRed} fontSize="sm">{String(errors.montantIntConvPaye.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+
         <GridItem>
           <FormControl isInvalid={!!errors.montantDu}>
             <FormLabel color={labelColor}>Montant dû</FormLabel>
@@ -1205,6 +1265,38 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         </GridItem>
 
         <GridItem>
+          <FormControl isInvalid={!!errors.intRetPourcentage}>
+            <FormLabel color={labelColor}>Int. Ret (pourcentage)</FormLabel>
+            <Controller
+              name="intRetPourcentage"
+              control={control}
+              render={({ field }) => (
+                <Input 
+                  {...field} 
+                  type="number" 
+                  placeholder="0" 
+                  step="0.01"
+                  value={field.value ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') { field.onChange(undefined); return; }
+                    field.onChange(parseFloat(v));
+                  }}
+                  {...getFieldStyles(!!errors.intRetPourcentage)} 
+                  isDisabled={readOnly}
+                />
+              )}
+            />
+            
+            {errors.intRetPourcentage && (
+              <Text color={errorRed} fontSize="sm">{String(errors.intRetPourcentage.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
+        <GridItem>
           <FormControl isInvalid={!!errors.montantDejaRembourse}>
             <FormLabel color={labelColor}>Montant déjà remboursé</FormLabel>
             <Controller
@@ -1225,9 +1317,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.montantImpaye}>
             <FormLabel color={labelColor}>Montant impayé</FormLabel>
@@ -1276,29 +1366,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         </GridItem>
       </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.commission}>
-            <FormLabel color={labelColor}>Commission</FormLabel>
-            <Controller
-              name="commission"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.commission)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
-            {errors.commission && (
-              <Text color={errorRed} fontSize="sm">{String(errors.commission.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.montantAss}>
             <FormLabel color={labelColor}>Montant Ass</FormLabel>
@@ -1317,95 +1385,6 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             />
             {errors.montantAss && (
               <Text color={errorRed} fontSize="sm">{String(errors.montantAss.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.intConvPourcentage}>
-            <FormLabel color={labelColor}>Int. Conv (pourcentage)</FormLabel>
-            <Controller
-              name="intConvPourcentage"
-              control={control}
-              render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="number" 
-                  placeholder="0" 
-                  step="0.01"
-                  value={field.value ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === '') { field.onChange(undefined); return; }
-                    field.onChange(parseFloat(v));
-                  }}
-                  {...getFieldStyles(!!errors.intConvPourcentage)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
-            
-            {errors.intConvPourcentage && (
-              <Text color={errorRed} fontSize="sm">{String(errors.intConvPourcentage.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-
-        <GridItem>
-          <FormControl isInvalid={!!errors.montantIntConvPaye}>
-            <FormLabel color={labelColor}>Montant Int Conv</FormLabel>
-            <Controller
-              name="montantIntConvPaye"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.montantIntConvPaye)} 
-                  isDisabled={true}
-                  bg="gray.100"
-                  color="gray.700"
-                />
-              )}
-            />
-            
-            {errors.montantIntConvPaye && (
-              <Text color={errorRed} fontSize="sm">{String(errors.montantIntConvPaye.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.intRetPourcentage}>
-            <FormLabel color={labelColor}>Int. Ret (pourcentage)</FormLabel>
-            <Controller
-              name="intRetPourcentage"
-              control={control}
-              render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="number" 
-                  placeholder="0" 
-                  step="0.01"
-                  value={field.value ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === '') { field.onChange(undefined); return; }
-                    field.onChange(parseFloat(v));
-                  }}
-                  {...getFieldStyles(!!errors.intRetPourcentage)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
-            
-            {errors.intRetPourcentage && (
-              <Text color={errorRed} fontSize="sm">{String(errors.intRetPourcentage.message)}</Text>
             )}
           </FormControl>
         </GridItem>
@@ -1431,9 +1410,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.totalDu}>
             <FormLabel color={labelColor}>Total dû</FormLabel>
@@ -1458,7 +1435,9 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
+      </Grid>
 
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.penalite1Pourcent}>
             <FormLabel color={labelColor}>Pénalité 1%</FormLabel>
@@ -1483,9 +1462,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
-      </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
         <GridItem>
           <FormControl isInvalid={!!errors.totalARecouvrer}>
             <FormLabel color={labelColor}>Total à recouvrer</FormLabel>
@@ -1515,10 +1492,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
   );
 
   const renderStep4 = () => (
-    <VStack spacing={4} align="stretch">
+    <VStack spacing={2} align="stretch">
       <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Pièces</Text>
       
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.typePiece}>
             <FormLabel color={labelColor}>Type de pièce</FormLabel>
@@ -1572,9 +1549,25 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           </FormControl>
         </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.dateEmission}>
+            <FormLabel color={labelColor}>Date d'émission</FormLabel>
+            <Controller
+              name="dateEmission"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} type="date" {...getFieldStyles(!!errors.dateEmission)} isDisabled={readOnly} />
+              )}
+            />
+            {errors.dateEmission && (
+              <Text color={errorRed} fontSize="sm">{String(errors.dateEmission.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
       </Grid>
 
-      <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.libelle}>
             <FormLabel color={labelColor}>Libellé</FormLabel>
@@ -1585,7 +1578,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                 <Textarea 
                   {...field} 
                   placeholder="Description de la pièce" 
-                  rows={3}
+                  rows={2}
                   {...getFieldStyles(!!errors.libelle)} 
                   isDisabled={readOnly} 
                 />
@@ -1598,39 +1591,40 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         </GridItem>
 
         <GridItem>
-          <VStack spacing={4} align="stretch">
-            <FormControl isInvalid={!!errors.dateEmission}>
-              <FormLabel color={labelColor}>Date d'émission</FormLabel>
-              <Controller
-                name="dateEmission"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} type="date" {...getFieldStyles(!!errors.dateEmission)} isDisabled={readOnly} />
-                )}
-              />
-              {errors.dateEmission && (
-                <Text color={errorRed} fontSize="sm">{String(errors.dateEmission.message)}</Text>
+          <FormControl isInvalid={!!errors.dateReception}>
+            <FormLabel color={labelColor}>Date de réception</FormLabel>
+            <Controller
+              name="dateReception"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} type="date" {...getFieldStyles(!!errors.dateReception)} isDisabled={readOnly} />
               )}
-            </FormControl>
-
-            <FormControl isInvalid={!!errors.dateReception}>
-              <FormLabel color={labelColor}>Date de réception</FormLabel>
-              <Controller
-                name="dateReception"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} type="date" {...getFieldStyles(!!errors.dateReception)} isDisabled={readOnly} />
-                )}
-              />
-              {errors.dateReception && (
-                <Text color={errorRed} fontSize="sm">{String(errors.dateReception.message)}</Text>
-              )}
-            </FormControl>
-          </VStack>
+            />
+            {errors.dateReception && (
+              <Text color={errorRed} fontSize="sm">{String(errors.dateReception.message)}</Text>
+            )}
+          </FormControl>
         </GridItem>
       </Grid>
     </VStack>
   );
+
+  const addGarantie = () => {
+    const newId = garanties.length > 0 ? Math.max(...garanties.map(g => g.id)) + 1 : 1;
+    setGaranties([...garanties, { id: newId }]);
+  };
+
+  const removeGarantie = (id: number) => {
+    if (garanties.length > 1) {
+      setGaranties(garanties.filter(g => g.id !== id));
+    }
+  };
+
+  const updateGarantie = (id: number, field: string, value: any) => {
+    setGaranties(garanties.map(g => 
+      g.id === id ? { ...g, [field]: value } : g
+    ));
+  };
 
   const renderStep5 = () => {
     const watchedTypeGarantie = watch("typeGarantie");
@@ -1675,83 +1669,91 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
           )}
         </FormControl>
 
-        {watchedTypeGarantie === "personnelles" && (
-          <VStack spacing={4} align="stretch">
-            <Text fontSize="md" fontWeight="semibold" color={titleColor}>Informations garanties personnelles</Text>
+        {watchedTypeGarantie === "personnelles" && garanties.map((garantie, index) => (
+          <Box key={garantie.id} p={4} borderWidth="1px" borderRadius="md" borderColor={primaryGreen} position="relative">
+            <HStack justify="space-between" mb={2}>
+              <Text fontSize="md" fontWeight="semibold" color={titleColor}>
+                Garantie personnelle #{index + 1}
+              </Text>
+              {!readOnly && garanties.length > 1 && (
+                <Button
+                  size="sm"
+                  colorScheme="red"
+                  variant="outline"
+                  onClick={() => removeGarantie(garantie.id)}
+                >
+                  Supprimer
+                </Button>
+              )}
+            </HStack>
             
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+          <VStack spacing={2} align="stretch">
+            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
               <GridItem>
-                <FormControl isInvalid={!!errors.type}>
+                <FormControl>
                   <FormLabel color={labelColor}>Type</FormLabel>
-                  <Controller
-                    name="type"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Type de garantie" {...getFieldStyles(!!errors.type)} isDisabled={readOnly} />
-                    )}
+                  <Input 
+                    value={garantie.type || ''} 
+                    onChange={(e) => updateGarantie(garantie.id, 'type', e.target.value)}
+                    placeholder="Type de garantie" 
+                    borderColor={borderGray}
+                    bg="white"
+                    _focus={{ borderColor: primaryGreen }}
+                    isDisabled={readOnly} 
                   />
-                  {errors.type && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.type.message)}</Text>
+                </FormControl>
+              </GridItem>
+
+              <GridItem>
+                <FormControl>
+                  <FormLabel color={labelColor}>Employeur</FormLabel>
+                  {readOnly ? (
+                    <Input 
+                      value={getEntiteLibelle(garantie.employeur || '')} 
+                      color="gray.700"
+                      borderColor={primaryGreen}
+                      bg="gray.100"
+                      isReadOnly
+                    />
+                  ) : (
+                    <Select 
+                      value={garantie.employeur || ''}
+                      onChange={(e) => updateGarantie(garantie.id, 'employeur', e.target.value)}
+                      placeholder="Sélectionner un employeur" 
+                      borderColor={primaryGreen}
+                      bg="gray.100"
+                      color="gray.700"
+                      _focus={{ borderColor: primaryGreen }}
+                      _hover={{ bg: "gray.100" }}
+                    >
+                      <option value="">Chargement...</option>
+                      {Array.isArray(entites) && entites.map((entite: any) => (
+                        <option key={entite.ENT_CODE || entite.id} value={entite.ENT_CODE || entite.id} style={{ backgroundColor: 'white', color: 'black' }}>
+                          {entite.ENT_LIB || entite.libelle}
+                        </option>
+                      ))}
+                    </Select>
                   )}
                 </FormControl>
               </GridItem>
 
               <GridItem>
-                <FormControl isInvalid={!!errors.employeur}>
-                  <FormLabel color={labelColor}>Employeur</FormLabel>
-                  <Controller
-                    name="employeur"
-                    control={control}
-                    render={({ field }) => (
-                      readOnly ? (
-                        <Input 
-                          value={getEntiteLibelle(field.value)} 
-                          color="gray.700"
-                          {...getFieldStyles(!!errors.employeur)} 
-                          bg="gray.100"
-                        />
-                      ) : (
-                        <Select 
-                          {...field} 
-                          placeholder="Sélectionner un employeur" 
-                          {...getFieldStyles(!!errors.employeur)} 
-                          bg="white"
-                          color="gray.800"
-                        >
-                          <option value="">Chargement...</option>
-                          {Array.isArray(entites) && entites.map((entite: any) => (
-                            <option key={entite.ENT_CODE || entite.id} value={entite.ENT_CODE || entite.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                              {entite.ENT_LIB || entite.libelle}
-                            </option>
-                          ))}
-                        </Select>
-                      )
-                    )}
+                <FormControl>
+                  <FormLabel color={labelColor}>Statut sal.</FormLabel>
+                  <Input 
+                    value={garantie.statutSal || ''} 
+                    onChange={(e) => updateGarantie(garantie.id, 'statutSal', e.target.value)}
+                    placeholder="Statut salarié" 
+                    borderColor={borderGray}
+                    bg="white"
+                    _focus={{ borderColor: primaryGreen }}
+                    isDisabled={readOnly} 
                   />
-                  {errors.employeur && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.employeur.message)}</Text>
-                  )}
                 </FormControl>
               </GridItem>
             </Grid>
 
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-              <GridItem>
-                <FormControl isInvalid={!!errors.statutSal}>
-                  <FormLabel color={labelColor}>Statut sal.</FormLabel>
-        <Controller
-                    name="statutSal"
-          control={control}
-          render={({ field }) => (
-                      <Input {...field} placeholder="Statut salarié" {...getFieldStyles(!!errors.statutSal)} isDisabled={readOnly} />
-                    )}
-                  />
-                  {errors.statutSal && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.statutSal.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
-
+            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
               <GridItem>
                 <FormControl isInvalid={!!errors.quartier}>
                   <FormLabel color={labelColor}>Quartier</FormLabel>
@@ -1789,9 +1791,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   )}
                 </FormControl>
               </GridItem>
-            </Grid>
 
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
               <GridItem>
                 <FormControl isInvalid={!!errors.priorite}>
                   <FormLabel color={labelColor}>Priorité</FormLabel>
@@ -1825,7 +1825,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               </GridItem>
             </Grid>
 
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
               <GridItem>
                 <FormControl isInvalid={!!errors.nom}>
                   <FormLabel color={labelColor}>Nom</FormLabel>
@@ -1857,9 +1857,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   )}
                 </FormControl>
               </GridItem>
-            </Grid>
 
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
               <GridItem>
                 <FormControl isInvalid={!!errors.fonction}>
                   <FormLabel color={labelColor}>Fonction</FormLabel>
@@ -1875,7 +1873,9 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   )}
                 </FormControl>
               </GridItem>
+            </Grid>
 
+            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
               <GridItem>
                 <FormControl isInvalid={!!errors.profession}>
                   <FormLabel color={labelColor}>Profession</FormLabel>
@@ -1891,37 +1891,68 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   )}
                 </FormControl>
               </GridItem>
-            </Grid>
 
-            <GridItem>
-              <FormControl isInvalid={!!errors.adressePostale}>
-                <FormLabel color={labelColor}>Adresse postale</FormLabel>
-                <Controller
-                  name="adressePostale"
-                  control={control}
-                  render={({ field }) => (
-                    <Textarea 
-                      {...field} 
-                      placeholder="Adresse postale complète" 
-                      rows={3}
-                      {...getFieldStyles(!!errors.adressePostale)} 
-                      isDisabled={readOnly} 
-                    />
+              <GridItem colSpan={2}>
+                <FormControl isInvalid={!!errors.adressePostale}>
+                  <FormLabel color={labelColor}>Adresse postale</FormLabel>
+                  <Controller
+                    name="adressePostale"
+                    control={control}
+                    render={({ field }) => (
+                      <Textarea 
+                        {...field} 
+                        placeholder="Adresse postale complète" 
+                        rows={2}
+                        {...getFieldStyles(!!errors.adressePostale)} 
+                        isDisabled={readOnly} 
+                      />
+                    )}
+                  />
+                  {errors.adressePostale && (
+                    <Text color={errorRed} fontSize="sm">{String(errors.adressePostale.message)}</Text>
                   )}
-                />
-                {errors.adressePostale && (
-                  <Text color={errorRed} fontSize="sm">{String(errors.adressePostale.message)}</Text>
-                )}
-              </FormControl>
-            </GridItem>
-    </VStack>
+                </FormControl>
+              </GridItem>
+            </Grid>
+          </VStack>
+          </Box>
+        ))}
+
+        {watchedTypeGarantie === "personnelles" && !readOnly && (
+          <Button
+            leftIcon={<Text>+</Text>}
+            onClick={addGarantie}
+            bg={primaryGreen}
+            color="white"
+            _hover={{ bg: primaryGreenHover }}
+            size="sm"
+            alignSelf="flex-start"
+          >
+            Ajouter une garantie personnelle
+          </Button>
         )}
 
-        {watchedTypeGarantie === "reelles" && (
-    <VStack spacing={4} align="stretch">
-            <Text fontSize="md" fontWeight="semibold" color={titleColor}>Informations garanties réelles</Text>
+        {watchedTypeGarantie === "reelles" && garanties.map((garantie, index) => (
+          <Box key={garantie.id} p={4} borderWidth="1px" borderRadius="md" borderColor={primaryGreen} position="relative">
+            <HStack justify="space-between" mb={2}>
+              <Text fontSize="md" fontWeight="semibold" color={titleColor}>
+                Garantie réelle #{index + 1}
+              </Text>
+              {!readOnly && garanties.length > 1 && (
+                <Button
+                  size="sm"
+                  colorScheme="red"
+                  variant="outline"
+                  onClick={() => removeGarantie(garantie.id)}
+                >
+                  Supprimer
+                </Button>
+              )}
+            </HStack>
             
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+    <VStack spacing={2} align="stretch">
+            
+            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
               <GridItem>
                 <FormControl isInvalid={!!errors.type}>
                   <FormLabel color={labelColor}>Type</FormLabel>
@@ -1953,9 +1984,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         )}
       </FormControl>
               </GridItem>
-            </Grid>
 
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
               <GridItem>
                 <FormControl isInvalid={!!errors.dateInscription}>
                   <FormLabel color={labelColor}>Date d'inscription</FormLabel>
@@ -1971,7 +2000,9 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   )}
       </FormControl>
               </GridItem>
+            </Grid>
 
+            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
               <GridItem>
                 <FormControl isInvalid={!!errors.objetMontant}>
                   <FormLabel color={labelColor}>Objet montant</FormLabel>
@@ -1987,9 +2018,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   )}
                 </FormControl>
               </GridItem>
-            </Grid>
 
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
               <GridItem>
                 <FormControl isInvalid={!!errors.libelle}>
                   <FormLabel color={labelColor}>Libellé</FormLabel>
@@ -2023,7 +2052,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               </GridItem>
             </Grid>
 
-            <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
               <GridItem>
                 <FormControl isInvalid={!!errors.logement}>
                   <FormLabel color={labelColor}>Logement</FormLabel>
@@ -2057,6 +2086,21 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               </GridItem>
             </Grid>
           </VStack>
+          </Box>
+        ))}
+
+        {watchedTypeGarantie === "reelles" && !readOnly && (
+          <Button
+            leftIcon={<Text>+</Text>}
+            onClick={addGarantie}
+            bg={primaryGreen}
+            color="white"
+            _hover={{ bg: primaryGreenHover }}
+            size="sm"
+            alignSelf="flex-start"
+          >
+            Ajouter une garantie réelle
+          </Button>
         )}
     </VStack>
   );
@@ -2078,42 +2122,27 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
       sx={{
         '.chakra-form-control': {
           display: 'flex',
-          alignItems: 'flex-start',
-          gap: '8px'
-        },
-        '.chakra-grid .chakra-form-control': {
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'stretch',
+          alignItems: 'center',
           gap: '4px'
-        },
-        '.chakra-grid .chakra-form-control .chakra-form__label': {
-          marginBottom: '4px',
-          width: '100%',
-          minHeight: '20px'
         },
         '.chakra-form__label': {
           marginBottom: 0,
-          width: '180px',
+          width: '120px',
           fontWeight: 600,
           color: '#111827',
           fontSize: '0.875rem',
-          minHeight: '20px'
+          marginRight: '6px'
         },
         '.chakra-input, .chakra-textarea': {
           flex: 1,
           borderColor: '#d1d5db',
-          backgroundColor: '#ffffff',
-          minHeight: '40px',
-          height: '40px'
+          backgroundColor: '#ffffff'
         },
         '.chakra-select': {
           flex: 1,
           borderColor: '#28A325 !important',
           backgroundColor: '#f3f4f6 !important',
           color: '#374151 !important',
-          minHeight: '40px',
-          height: '40px',
           // Style pour les options du select
           '& option': {
             backgroundColor: 'white !important',
