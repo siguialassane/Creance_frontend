@@ -1,6 +1,9 @@
 "use client"
 
 import { useEffect, useState, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useApiClient } from '@/hooks/useApiClient'
+import { toast } from 'sonner'
 import { ParameterPage } from './parameter-page'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -90,10 +93,14 @@ export default function ParameterView({
 
   // État pour les erreurs d'API
   const [formError, setFormError] = useState<string | null>(null)
-  
+
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<SimpleItem | null>(null)
   const [formData, setFormData] = useState({ code: '', libelle: '' })
+
+  // Hooks pour l'API et le cache
+  const apiClient = useApiClient()
+  const queryClient = useQueryClient()
 
   // Configuration du paramètre actuel
   const currentConfig = type ? PARAMETER_CONFIG.getConfig(type) : null
@@ -180,11 +187,50 @@ export default function ParameterView({
     setShowForm(true)
   }, [])
 
-  const handleDelete = useCallback((item: SimpleItem) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer ${item.libelle} ?`)) {
-      setData(data.filter(d => d.id !== item.id))
+  const handleDelete = useCallback(async (item: SimpleItem) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${item.libelle} ?`)) {
+      return
     }
-  }, [data])
+
+    if (!type) {
+      console.error('Type de paramètre non défini')
+      return
+    }
+
+    try {
+      // Supprimer optimistiquement de l'interface
+      const originalData = data
+      setData(data.filter(d => d.id !== item.id))
+
+      // Dynamiquement importer et utiliser le service de suppression
+      const deleteService = await PARAMETER_CONFIG.getServiceDelete(type)
+      if (!deleteService) {
+        console.log('Service de suppression non trouvé pour le type:', type)
+        setData(originalData)
+        toast.error('Service de suppression non disponible')
+        return
+      }
+
+      // Appeler le service directement
+      await deleteService(apiClient, String(item.code))
+
+      // Invalider le cache et afficher un message de succès
+      queryClient.invalidateQueries({ queryKey: [type] })
+      toast.success('Élément supprimé avec succès')
+
+      // Rafraîchir les données depuis le serveur
+      refetch()
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error)
+      // En cas d'erreur, refetch pour avoir les données correctes
+      refetch()
+
+      const errorMessage = (error as Error & { response?: { data?: { message?: string } } })?.response?.data?.message ||
+                          (error as Error)?.message ||
+                          "Erreur lors de la suppression de l'élément"
+      toast.error(errorMessage)
+    }
+  }, [data, type, refetch, apiClient, queryClient])
 
   const handleSearchChange = useCallback((newQuery: string) => {
     // Ne pas déclencher automatiquement la recherche
@@ -278,28 +324,23 @@ export default function ParameterView({
     }
 
     setIsFormLoading(true)
+    setFormError(null)
 
     try {
       if (editingItem) {
-        // Modification côté client (pour l'instant)
-        setData(data.map(item =>
-          item.id === editingItem.id
-            ? { ...item, code: formData.code, libelle: formData.libelle }
-            : item
-        ))
+        // Modification côté serveur
+        await handleUpdateItem()
       } else {
         // Ajout côté serveur
         await handleCreateNewItem()
       }
-
-      setShowForm(false)
-      setEditingItem(null)
-      setFormData({ code: '', libelle: '' })
     } catch (error) {
       console.error('Erreur lors de la soumission:', error)
-      alert('Erreur lors de la sauvegarde')
-    } finally {
-      setIsFormLoading(false)
+
+      const errorMessage = (error as Error & { response?: { data?: { message?: string } } })?.response?.data?.message ||
+                          (error as Error)?.message ||
+                          "Erreur lors de la sauvegarde"
+      setFormError(errorMessage)
     }
   }
 
@@ -352,6 +393,52 @@ export default function ParameterView({
     }
   }
 
+  const handleUpdateItem = async () => {
+    if (!type || !currentConfig || !editingItem) return
+
+    setFormError(null)
+    setIsFormLoading(true)
+
+    try {
+      // Créer l'objet brut selon le type
+      const rawItem = createRawItem(type, formData.code, formData.libelle)
+
+      console.log(`Mise à jour de l'élément de type: ${type}`, rawItem)
+
+      // Dynamiquement importer et utiliser le service de mise à jour
+      const updateService = await PARAMETER_CONFIG.getServiceUpdate(type)
+      if (!updateService) {
+        throw new Error('Service de mise à jour non trouvé pour le type: ' + type)
+      }
+
+      // Appeler le service directement avec l'objet brut
+      await updateService(apiClient, String(editingItem.code), rawItem)
+
+      // Invalider le cache et afficher un message de succès
+      queryClient.invalidateQueries({ queryKey: [type] })
+      toast.success('Élément mis à jour avec succès')
+
+      // Rafraîchir les données depuis le serveur
+      refetch()
+
+      // Fermer le formulaire
+      setShowForm(false)
+      setFormData({ code: '', libelle: '' })
+      setEditingItem(null)
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error)
+
+      const errorMessage = (error as Error & { response?: { data?: { message?: string } } })?.response?.data?.message ||
+                          (error as Error)?.message ||
+                          "Erreur lors de la mise à jour de l'élément"
+
+      setFormError(errorMessage)
+      toast.error(errorMessage)
+    } finally {
+      setIsFormLoading(false)
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const createRawItem = (type: string, code: string, libelle: string): any => {
     switch (type) {
@@ -360,11 +447,11 @@ export default function ParameterView({
       case 'agence_de_banque':
         return { BQAG_NUM: code, BQAG_LIB: libelle }
       case 'classe':
-        return { CL_CODE: code, CL_LIB: libelle }
+        return { CLAS_CODE: code, CLAS_LIB: libelle }
       case 'categorie_debiteur':
-        return { CD_CODE: code, CD_LIB: libelle }
+        return { CATEG_DEB_CODE: code, CATEG_DEB_LIB: libelle }
       case 'civilite':
-        return { CV_CODE: code, CV_LIB: libelle }
+        return { CIV_CODE: code, CIV_LIB: libelle }
       case 'nationalite':
         return { NAT_CODE: code, NAT_LIB: libelle }
       case 'profession':
@@ -374,9 +461,57 @@ export default function ParameterView({
       case 'ville':
         return { V_CODE: code, V_LIB: libelle }
       case 'zone':
-        return { Z_CODE: code, Z_LIB: libelle }
+        return { ZONE_CODE: code, ZONE_LIB: libelle }
       case 'type_operation':
-        return { TOP_CODE: code, TOP_LIB: libelle }
+        return { TYPOPER_CODE: code, TYPOPER_LIB: libelle }
+      case 'type_acte':
+        return { TYPACTE_CODE: code, TYPACTE_LIB: libelle }
+      case 'type_auxiliaire':
+        return { TYPAUXI_CODE: code, TYPAUXI_LIB: libelle }
+      case 'mode_paiement':
+        return { TYP_PAIE_CODE: code, TYP_PAIE_LIB: libelle }
+      case 'type_charge':
+        return { TYPCHARG_CODE: code, TYPCHARG_LIB: libelle }
+      case 'type_contrat':
+        return { TYPCONT_CODE: code, TYPCONT_LIB: libelle }
+      case 'type_compte':
+        return { TYPCPT_CODE: code, TYPCPT_LIB: libelle }
+      case 'type_domiciliation':
+        return { TYPDOM_CODE: code, TYPDOM_LIB: libelle }
+      case 'type_echeancier':
+        return { TYPECH_CODE: code, TYPECH_LIB: libelle }
+      case 'type_effet':
+        return { TYPEFT_CODE: code, TYPEFT_LIB: libelle }
+      case 'type_employeur':
+        return { TYPEMP_CODE: code, TYPEMP_LIB: libelle }
+      case 'type_frais':
+        return { TYPFRAIS_CODE: code, TYPFRAIS_LIB: libelle }
+      case 'type_logement':
+        return { TYPE_LOGE_CODE: code, TYPE_LOGE_LIB: libelle }
+      case 'type_ovp':
+        return { TYPOVP_CODE: code, TYPOVP_LIB: libelle }
+      case 'type_piece':
+        return { TYPE_PIECE_CODE: code, TYPE_PIECE_LIB: libelle }
+      case 'type_regularisation':
+        return { REGUL_TYPE_CODE: code, REGUL_TYPE_LIB: libelle }
+      case 'type_saisie':
+        return { TYPSAIS_CODE: code, TYPSAIS_LIB: libelle }
+      case 'type_garantie_personnelle':
+        return { TYPGAR_PHYS_CODE: code, TYPGAR_PHYS_LIB: libelle }
+      case 'type_garantie_reelle':
+        return { TYPGAR_REEL_CODE: code, TYPGAR_REEL_LIB: libelle }
+      case 'compte_operation':
+        return { CO_CODE: code, CO_LIB: libelle }
+      case 'entite':
+        return { ENTITE_CODE: code, ENTITE_LIB: libelle }
+      case 'etape':
+        return { ETAP_CODE: code, ETAP_LIB: libelle }
+      case 'exercice':
+        return { EXO_CODE: code, EXO_LIB: libelle }
+      case 'fonction':
+        return { FON_CODE: code, FON_LIB: libelle }
+      case 'groupe_creance':
+        return { GC_CODE: code, GC_LIB: libelle }
       default:
         return { code, libelle }
     }
@@ -387,16 +522,23 @@ export default function ParameterView({
     if (!itemType) return
 
     try {
-      // Dynamiquement importer et utiliser le bon hook de création
-      const createHook = await PARAMETER_CONFIG.getCreateHook(itemType)
-      if (!createHook) {
-        console.log('Hook de création non trouvé pour le type:', itemType)
+      // Dynamiquement importer et utiliser le service de création
+      const createService = await PARAMETER_CONFIG.getServiceCreate(itemType)
+      if (!createService) {
+        console.log('Service de création non trouvé pour le type:', itemType)
+        toast.error('Service de création non disponible')
         return
       }
 
-      // Créer le hook de mutation
-      const mutationHook = createHook()
-      await mutationHook.mutateAsync(item)
+      // Appeler le service directement
+      await createService(apiClient, item)
+
+      // Invalider le cache et afficher un message de succès
+      queryClient.invalidateQueries({ queryKey: [itemType] })
+      toast.success('Élément créé avec succès')
+
+      // Rafraîchir les données depuis le serveur
+      refetch()
 
     } catch (error) {
       console.error('Erreur lors de la création:', error)
@@ -543,7 +685,7 @@ export default function ParameterView({
           <div className="bg-gradient-to-r from-emerald-50 to-white border-b px-6 py-4">
             <DialogHeader>
               <DialogTitle className="text-lg font-semibold text-gray-900">
-                {editingItem ? 'Modifier' : 'Ajouter'} {title.toLowerCase().slice(0, -1)}
+                {editingItem ? 'Modifier' : 'Ajouter'} {title.toLowerCase().endsWith('s') ? title.toLowerCase().slice(0, -1) : title.toLowerCase()}
               </DialogTitle>
               <DialogDescription className="text-sm text-gray-600">
                 Veuillez renseigner les champs obligatoires marqués par *

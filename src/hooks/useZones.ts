@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ZoneService } from "@/services/zone.service";
 import { ZoneCreateRequest, ZoneUpdateRequest } from "@/types/zone";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const zoneKeys = {
@@ -16,7 +16,7 @@ export const zoneKeys = {
 
 export function useZones() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: zoneKeys.lists(),
@@ -34,7 +34,7 @@ export function useZones() {
 
 export function useZone(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: zoneKeys.detail(code),
@@ -45,7 +45,7 @@ export function useZone(code: string) {
 
 export function useSearchZones(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: zoneKeys.search(searchTerm),

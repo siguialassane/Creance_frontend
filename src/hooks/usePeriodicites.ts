@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PeriodiciteService } from "@/services/periodicite.service";
 import { PeriodiciteCreateRequest, PeriodiciteUpdateRequest } from "@/types/periodicite";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const periodiciteKeys = {
@@ -16,7 +16,7 @@ export const periodiciteKeys = {
 
 export function usePeriodicites() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: periodiciteKeys.lists(),
@@ -34,7 +34,7 @@ export function usePeriodicites() {
 
 export function usePeriodicite(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: periodiciteKeys.detail(code),
@@ -45,7 +45,7 @@ export function usePeriodicite(code: string) {
 
 export function useSearchPeriodicites(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: periodiciteKeys.search(searchTerm),

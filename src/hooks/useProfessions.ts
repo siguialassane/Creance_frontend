@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ProfessionService } from "@/services/profession.service";
 import { ProfessionCreateRequest, ProfessionUpdateRequest } from "@/types/profession";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const professionKeys = {
@@ -16,7 +16,7 @@ export const professionKeys = {
 
 export function useProfessions() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: professionKeys.lists(),
@@ -34,7 +34,7 @@ export function useProfessions() {
 
 export function useProfession(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: professionKeys.detail(code),
@@ -45,7 +45,7 @@ export function useProfession(code: string) {
 
 export function useSearchProfessions(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: professionKeys.search(searchTerm),

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TypeActeService } from "@/services/type-acte.service";
 import { TypeActeCreateRequest, TypeActeUpdateRequest } from "@/types/type-acte";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const typeActeKeys = {
@@ -16,7 +16,7 @@ export const typeActeKeys = {
 
 export function useTypesActe() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: typeActeKeys.lists(),
@@ -34,7 +34,7 @@ export function useTypesActe() {
 
 export function useTypeActe(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: typeActeKeys.detail(code),
@@ -45,7 +45,7 @@ export function useTypeActe(code: string) {
 
 export function useSearchTypesActe(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: typeActeKeys.search(searchTerm),

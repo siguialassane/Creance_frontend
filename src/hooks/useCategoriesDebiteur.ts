@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CategorieDebiteurService } from "@/services/categorie-debiteur.service";
 import { CategorieDebiteurCreateRequest, CategorieDebiteurUpdateRequest } from "@/types/categorie-debiteur";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const categorieDebiteurKeys = {
@@ -16,7 +16,7 @@ export const categorieDebiteurKeys = {
 
 export function useCategoriesDebiteur() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: categorieDebiteurKeys.lists(),
@@ -34,7 +34,7 @@ export function useCategoriesDebiteur() {
 
 export function useCategorieDebiteur(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: categorieDebiteurKeys.detail(code),
@@ -45,7 +45,7 @@ export function useCategorieDebiteur(code: string) {
 
 export function useSearchCategoriesDebiteur(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: categorieDebiteurKeys.search(searchTerm),

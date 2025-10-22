@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EtapeService } from "@/services/etape.service";
 import { EtapeCreateRequest, EtapeUpdateRequest } from "@/types/etape";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const etapeKeys = {
@@ -16,7 +16,7 @@ export const etapeKeys = {
 
 export function useEtapes() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: etapeKeys.lists(),
@@ -34,7 +34,7 @@ export function useEtapes() {
 
 export function useEtape(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: etapeKeys.detail(code),
@@ -45,7 +45,7 @@ export function useEtape(code: string) {
 
 export function useSearchEtapes(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: etapeKeys.search(searchTerm),

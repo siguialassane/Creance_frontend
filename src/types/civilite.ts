@@ -1,9 +1,6 @@
 export interface Civilite {
-  CV_CODE: string;
-  CV_LIB: string;
-  CV_DESC: string | null;
-  CV_ACTIF: boolean;
-  CV_ORDRE: number | null;
+  CIV_CODE: string;
+  CIV_LIB: string;
 }
 
 export interface CiviliteApiResponse {
@@ -19,12 +16,10 @@ export interface CiviliteApiResponse {
 }
 
 export interface CiviliteCreateRequest {
-  CV_LIB: string;
-  CV_DESC?: string;
-  CV_ACTIF?: boolean;
-  CV_ORDRE?: number;
+  CIV_CODE: string;
+  CIV_LIB: string;
 }
 
-export interface CiviliteUpdateRequest extends Partial<CiviliteCreateRequest> {
-  CV_CODE: string;
+export interface CiviliteUpdateRequest {
+  CIV_LIB: string;
 }

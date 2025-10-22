@@ -1,14 +1,15 @@
 import { ModePaiement, ModePaiementApiResponse, ModePaiementCreateRequest, ModePaiementUpdateRequest } from "@/types/mode-paiement";
+import { ApiClient } from "@/lib/api";
 
 export class ModePaiementService {
-  private static readonly BASE_URL = "/modes-paiement";
+  private static readonly BASE_URL = "/types/AC_TYPE_PAIEMENT";
 
-  static async getAll(apiClient: any): Promise<ModePaiementApiResponse> {
+  static async getAll(apiClient: ApiClient): Promise<ModePaiementApiResponse> {
     const response = await apiClient.get<ModePaiementApiResponse>(this.BASE_URL);
     return response.data;
   }
 
-  static async getByCode(apiClient: any, code: string): Promise<ModePaiement> {
+  static async getByCode(apiClient: ApiClient, code: string): Promise<ModePaiement> {
     const response = await apiClient.get<ModePaiementApiResponse>(`${this.BASE_URL}/${code}`);
     if (!response.data.data || response.data.data.length === 0) {
       throw new Error("Mode de paiement non trouvé");
@@ -16,26 +17,25 @@ export class ModePaiementService {
     return response.data.data[0];
   }
 
-  static async create(apiClient: any, mode: ModePaiementCreateRequest): Promise<ModePaiementApiResponse> {
+  static async create(apiClient: ApiClient, mode: ModePaiementCreateRequest): Promise<ModePaiementApiResponse> {
     const response = await apiClient.post<ModePaiementApiResponse>(this.BASE_URL, mode);
     return response.data;
   }
 
-  static async update(apiClient: any, code: string, mode: ModePaiementUpdateRequest): Promise<ModePaiementApiResponse> {
+  static async update(apiClient: ApiClient, code: string, mode: ModePaiementUpdateRequest): Promise<ModePaiementApiResponse> {
     const response = await apiClient.put<ModePaiementApiResponse>(`${this.BASE_URL}/${code}`, mode);
     return response.data;
   }
 
-  static async delete(apiClient: any, code: string): Promise<ModePaiementApiResponse> {
+  static async delete(apiClient: ApiClient, code: string): Promise<ModePaiementApiResponse> {
     const response = await apiClient.delete<ModePaiementApiResponse>(`${this.BASE_URL}/${code}`);
     return response.data;
   }
 
-  static async search(apiClient: any, searchTerm: string): Promise<ModePaiementApiResponse> {
+  static async search(apiClient: ApiClient, searchTerm: string): Promise<ModePaiementApiResponse> {
     const response = await apiClient.get<ModePaiementApiResponse>(`${this.BASE_URL}/search`, {
-      params: { q: searchTerm }
+      params: { libelle: searchTerm }
     });
     return response.data;
   }
 }
-

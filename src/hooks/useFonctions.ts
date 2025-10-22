@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FonctionService } from "@/services/fonction.service";
 import { FonctionCreateRequest, FonctionUpdateRequest } from "@/types/fonction";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const fonctionKeys = {
@@ -16,7 +16,7 @@ export const fonctionKeys = {
 
 export function useFonctions() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: fonctionKeys.lists(),
@@ -34,7 +34,7 @@ export function useFonctions() {
 
 export function useFonction(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: fonctionKeys.detail(code),
@@ -45,13 +45,13 @@ export function useFonction(code: string) {
 
 export function useSearchFonctions(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: fonctionKeys.search(searchTerm),
     queryFn: () => FonctionService.search(apiClient, searchTerm).then((res) => res.data),
     enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!searchTerm,
-    staleTime: 1000 * 60 * 2, // 2 minutes pour les recherches
+    staleTime: 1000 * 60 * 2,
   });
 }
 
@@ -107,4 +107,3 @@ export function useDeleteFonction() {
     },
   });
 }
-

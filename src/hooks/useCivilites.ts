@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CiviliteService } from "@/services/civilite.service";
 import { CiviliteCreateRequest, CiviliteUpdateRequest } from "@/types/civilite";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const civiliteKeys = {
@@ -16,7 +16,7 @@ export const civiliteKeys = {
 
 export function useCivilites() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: civiliteKeys.lists(),
@@ -34,7 +34,7 @@ export function useCivilites() {
 
 export function useCivilite(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: civiliteKeys.detail(code),
@@ -45,7 +45,7 @@ export function useCivilite(code: string) {
 
 export function useSearchCivilites(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: civiliteKeys.search(searchTerm),

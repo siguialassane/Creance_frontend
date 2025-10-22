@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MessageService } from "@/services/message.service";
 import { MessageCreateRequest, MessageUpdateRequest } from "@/types/message";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const messageKeys = {
@@ -16,7 +16,7 @@ export const messageKeys = {
 
 export function useMessages() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: messageKeys.lists(),
@@ -34,7 +34,7 @@ export function useMessages() {
 
 export function useMessage(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: messageKeys.detail(code),
@@ -45,7 +45,7 @@ export function useMessage(code: string) {
 
 export function useSearchMessages(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: messageKeys.search(searchTerm),

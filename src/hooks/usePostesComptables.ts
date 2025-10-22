@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PosteComptableService } from "@/services/poste-comptable.service";
 import { PosteComptableCreateRequest, PosteComptableUpdateRequest } from "@/types/poste-comptable";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const posteComptableKeys = {
@@ -16,7 +16,7 @@ export const posteComptableKeys = {
 
 export function usePostesComptables() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: posteComptableKeys.lists(),
@@ -34,7 +34,7 @@ export function usePostesComptables() {
 
 export function usePosteComptable(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: posteComptableKeys.detail(code),
@@ -45,7 +45,7 @@ export function usePosteComptable(code: string) {
 
 export function useSearchPostesComptables(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: posteComptableKeys.search(searchTerm),

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { QuartierService } from "@/services/quartier.service";
 import { QuartierCreateRequest, QuartierUpdateRequest } from "@/types/quartier";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const quartierKeys = {
@@ -16,7 +16,7 @@ export const quartierKeys = {
 
 export function useQuartiers() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: quartierKeys.lists(),
@@ -34,7 +34,7 @@ export function useQuartiers() {
 
 export function useQuartier(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: quartierKeys.detail(code),
@@ -45,7 +45,7 @@ export function useQuartier(code: string) {
 
 export function useSearchQuartiers(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: quartierKeys.search(searchTerm),

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { NationaliteService } from "@/services/nationalite.service";
 import { NationaliteCreateRequest, NationaliteUpdateRequest } from "@/types/nationalite";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const nationaliteKeys = {
@@ -16,7 +16,7 @@ export const nationaliteKeys = {
 
 export function useNationalites() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: nationaliteKeys.lists(),
@@ -34,7 +34,7 @@ export function useNationalites() {
 
 export function useNationalite(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: nationaliteKeys.detail(code),
@@ -45,7 +45,7 @@ export function useNationalite(code: string) {
 
 export function useSearchNationalites(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: nationaliteKeys.search(searchTerm),

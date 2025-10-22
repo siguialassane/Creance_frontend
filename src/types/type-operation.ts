@@ -1,9 +1,9 @@
 export interface TypeOperation {
-  TOP_CODE: string;
-  TOP_LIB: string;
-  TOP_LIBLONG?: string;
-  TOP_ACTIF?: boolean;
-  TOP_ORDRE?: number;
+  TYPOPER_CODE: string;
+  TYPOPER_LIB: string;
+  MODE_PAIE_CODE?: string;
+  TYPAIE_CODE?: string;
+  LIB_COURT?: string | null;
 }
 
 export interface TypeOperationApiResponse {
@@ -19,13 +19,10 @@ export interface TypeOperationApiResponse {
 }
 
 export interface TypeOperationCreateRequest {
-  TOP_LIB: string;
-  TOP_LIBLONG?: string;
-  TOP_ACTIF?: boolean;
-  TOP_ORDRE?: number;
+  TYPOPER_CODE: string;
+  TYPOPER_LIB: string;
 }
 
-export interface TypeOperationUpdateRequest extends Partial<TypeOperationCreateRequest> {
-  TOP_CODE: string;
+export interface TypeOperationUpdateRequest {
+  TYPOPER_LIB: string;
 }
-

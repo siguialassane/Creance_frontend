@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CompteOperationService } from "@/services/compte-operation.service";
 import { CompteOperationCreateRequest, CompteOperationUpdateRequest } from "@/types/compte-operation";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const compteOperationKeys = {
@@ -16,7 +16,7 @@ export const compteOperationKeys = {
 
 export function useComptesOperation() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: compteOperationKeys.lists(),
@@ -34,7 +34,7 @@ export function useComptesOperation() {
 
 export function useCompteOperation(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: compteOperationKeys.detail(code),
@@ -45,7 +45,7 @@ export function useCompteOperation(code: string) {
 
 export function useSearchComptesOperation(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: compteOperationKeys.search(searchTerm),

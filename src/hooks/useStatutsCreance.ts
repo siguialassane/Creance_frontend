@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { StatutCreanceService } from "@/services/statut-creance.service";
 import { StatutCreanceCreateRequest, StatutCreanceUpdateRequest } from "@/types/statut-creance";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const statutCreanceKeys = {
@@ -16,7 +16,7 @@ export const statutCreanceKeys = {
 
 export function useStatutsCreance() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: statutCreanceKeys.lists(),
@@ -34,7 +34,7 @@ export function useStatutsCreance() {
 
 export function useStatutCreance(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: statutCreanceKeys.detail(code),
@@ -45,7 +45,7 @@ export function useStatutCreance(code: string) {
 
 export function useSearchStatutsCreance(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: statutCreanceKeys.search(searchTerm),

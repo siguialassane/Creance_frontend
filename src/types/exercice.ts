@@ -1,9 +1,9 @@
 export interface Exercice {
-  EX_CODE: string;
-  EX_LIB: string;
-  EX_LIBLONG?: string;
-  EX_ACTIF?: boolean;
-  EX_ORDRE?: number;
+  EXO_CODE: string;
+  EXO_LIB: string;
+  EXO_LIBLONG?: string;
+  EXO_ACTIF?: boolean;
+  EXO_ORDRE?: number;
 }
 
 export interface ExerciceApiResponse {
@@ -19,14 +19,14 @@ export interface ExerciceApiResponse {
 }
 
 export interface ExerciceCreateRequest {
-  EX_LIB: string;
-  EX_LIBLONG?: string;
-  EX_ACTIF?: boolean;
-  EX_ORDRE?: number;
+  EXO_LIB: string;
+  EXO_LIBLONG?: string;
+  EXO_ACTIF?: boolean;
+  EXO_ORDRE?: number;
 }
 
 export interface ExerciceUpdateRequest extends Partial<ExerciceCreateRequest> {
-  EX_CODE: string;
+  EXO_CODE: string;
 }
 
 

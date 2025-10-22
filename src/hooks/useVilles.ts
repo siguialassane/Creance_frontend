@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { VilleService } from "@/services/ville.service";
 import { VilleCreateRequest, VilleUpdateRequest } from "@/types/ville";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const villeKeys = {
@@ -16,7 +16,7 @@ export const villeKeys = {
 
 export function useVilles() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: villeKeys.lists(),
@@ -34,7 +34,7 @@ export function useVilles() {
 
 export function useVille(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: villeKeys.detail(code),
@@ -45,7 +45,7 @@ export function useVille(code: string) {
 
 export function useSearchVilles(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: villeKeys.search(searchTerm),

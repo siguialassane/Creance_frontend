@@ -4,7 +4,7 @@ export class FonctionService {
   private static readonly BASE_URL = "/fonctions";
 
   static async getAll(apiClient: any): Promise<FonctionApiResponse> {
-    const response = await apiClient.get<FonctionApiResponse>(this.BASE_URL);
+    const response = await apiClient.get<FonctionApiResponse>(`${this.BASE_URL}/all`);
     return response.data;
   }
 

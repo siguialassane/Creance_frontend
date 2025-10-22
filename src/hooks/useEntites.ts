@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EntiteService } from "@/services/entite.service";
 import { EntiteCreateRequest, EntiteUpdateRequest } from "@/types/entite";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const entiteKeys = {
@@ -16,7 +16,7 @@ export const entiteKeys = {
 
 export function useEntites() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: entiteKeys.lists(),
@@ -34,7 +34,7 @@ export function useEntites() {
 
 export function useEntite(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: entiteKeys.detail(code),
@@ -45,7 +45,7 @@ export function useEntite(code: string) {
 
 export function useSearchEntites(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: entiteKeys.search(searchTerm),

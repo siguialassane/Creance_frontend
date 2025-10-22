@@ -1,9 +1,10 @@
 export interface Entite {
-  ENT_CODE: string;
-  ENT_LIB: string;
-  ENT_LIBLONG?: string;
-  ENT_ACTIF?: boolean;
-  ENT_ORDRE?: number;
+  ENTITE_CODE: string;
+  ENTITE_LIB: string;
+  ENTITE_LIB_LONG?: string;
+  ENTITE_RESP?: string;
+  ENTITE_ASSIGN?: string;
+  ENTITE_LIB_MINUSC?: string;
 }
 
 export interface EntiteApiResponse {
@@ -19,14 +20,14 @@ export interface EntiteApiResponse {
 }
 
 export interface EntiteCreateRequest {
-  ENT_LIB: string;
-  ENT_LIBLONG?: string;
-  ENT_ACTIF?: boolean;
-  ENT_ORDRE?: number;
+  ENTITE_LIB: string;
+  ENTITE_LIB_LONG?: string;
+  ENTITE_RESP?: string;
+  ENTITE_ASSIGN?: string;
 }
 
 export interface EntiteUpdateRequest extends Partial<EntiteCreateRequest> {
-  ENT_CODE: string;
+  ENTITE_CODE: string;
 }
 
 

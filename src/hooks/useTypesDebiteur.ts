@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TypeDebiteurService } from "@/services/type-debiteur.service";
 import { TypeDebiteurCreateRequest, TypeDebiteurUpdateRequest } from "@/types/type-debiteur";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const typeDebiteurKeys = {
@@ -16,7 +16,7 @@ export const typeDebiteurKeys = {
 
 export function useTypesDebiteur() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: typeDebiteurKeys.lists(),
@@ -34,7 +34,7 @@ export function useTypesDebiteur() {
 
 export function useTypeDebiteur(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: typeDebiteurKeys.detail(code),
@@ -45,7 +45,7 @@ export function useTypeDebiteur(code: string) {
 
 export function useSearchTypesDebiteur(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: typeDebiteurKeys.search(searchTerm),

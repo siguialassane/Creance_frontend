@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClasseService } from "@/services/classe.service";
 import { ClasseCreateRequest, ClasseUpdateRequest } from "@/types/classe";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const classeKeys = {
@@ -16,7 +16,7 @@ export const classeKeys = {
 
 export function useClasses() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: classeKeys.lists(),
@@ -34,7 +34,7 @@ export function useClasses() {
 
 export function useClasse(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: classeKeys.detail(code),
@@ -45,7 +45,7 @@ export function useClasse(code: string) {
 
 export function useSearchClasses(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: classeKeys.search(searchTerm),

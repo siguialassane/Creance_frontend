@@ -1,9 +1,6 @@
 export interface TypeAuxiliaire {
-  TAUX_CODE: string;
-  TAUX_LIB: string;
-  TAUX_LIBLONG?: string;
-  TAUX_ACTIF?: boolean;
-  TAUX_ORDRE?: number;
+  TYPAUXI_CODE: string;
+  TYPAUXI_LIB: string;
 }
 
 export interface TypeAuxiliaireApiResponse {
@@ -19,13 +16,10 @@ export interface TypeAuxiliaireApiResponse {
 }
 
 export interface TypeAuxiliaireCreateRequest {
-  TAUX_LIB: string;
-  TAUX_LIBLONG?: string;
-  TAUX_ACTIF?: boolean;
-  TAUX_ORDRE?: number;
+  TYPAUXI_CODE: string;
+  TYPAUXI_LIB: string;
 }
 
-export interface TypeAuxiliaireUpdateRequest extends Partial<TypeAuxiliaireCreateRequest> {
-  TAUX_CODE: string;
+export interface TypeAuxiliaireUpdateRequest {
+  TYPAUXI_LIB: string;
 }
-

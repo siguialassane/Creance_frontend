@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ObjetCreanceService } from "@/services/objet-creance.service";
 import { ObjetCreanceCreateRequest, ObjetCreanceUpdateRequest } from "@/types/objet-creance";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const objetCreanceKeys = {
@@ -16,7 +16,7 @@ export const objetCreanceKeys = {
 
 export function useObjetsCreance() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: objetCreanceKeys.lists(),
@@ -34,7 +34,7 @@ export function useObjetsCreance() {
 
 export function useObjetCreance(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: objetCreanceKeys.detail(code),
@@ -45,7 +45,7 @@ export function useObjetCreance(code: string) {
 
 export function useSearchObjetsCreance(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: objetCreanceKeys.search(searchTerm),

@@ -123,10 +123,16 @@ export default function ParameterPage() {
                 columns={COLUMN_CONFIGS['fonction']}
                 type="fonction" />
             case 'nationalite':
-                return <ParameterView title={subMenu.name} 
-                description={`Gestion des ${subMenu.name.toLowerCase()}`} 
+                return <ParameterView title={subMenu.name}
+                description={`Gestion des ${subMenu.name.toLowerCase()}`}
                 columns={COLUMN_CONFIGS['nationalite']}
                 type="nationalite" />
+            case 'mode_de_paiement':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['mode_paiement']}
+                    type="mode_paiement" />
             case 'profession':
                 return <ParameterView title={subMenu.name} 
                 description={`Gestion des ${subMenu.name.toLowerCase()}`} 
@@ -159,14 +165,14 @@ export default function ParameterPage() {
                     description={`Gestion des ${subMenu.name.toLowerCase()}`}
                     columns={COLUMN_CONFIGS['statut_salarie']}
                     type="statut_salarie" />
-            case 'type_acte':
-                return <ParameterView 
+            case 'type_dacte':
+                return <ParameterView
                     title={subMenu.name}
                     description={`Gestion des ${subMenu.name.toLowerCase()}`}
                     columns={COLUMN_CONFIGS['type_acte']}
                     type="type_acte" />
-            case 'type_auxiliaire':
-                return <ParameterView 
+            case 'type_dauxiliaire':
+                return <ParameterView
                     title={subMenu.name}
                     description={`Gestion des ${subMenu.name.toLowerCase()}`}
                     columns={COLUMN_CONFIGS['type_auxiliaire']}
@@ -177,31 +183,127 @@ export default function ParameterPage() {
                     description={`Gestion des ${subMenu.name.toLowerCase()}`}
                     columns={COLUMN_CONFIGS['type_operation']}
                     type="type_operation" />
-            case 'type_ovp':
-                return <ParameterView 
+            case 'type_de_charge':
+                return <ParameterView
                     title={subMenu.name}
                     description={`Gestion des ${subMenu.name.toLowerCase()}`}
-                    columns={typedColumns(undefined)}
+                    columns={COLUMN_CONFIGS['type_charge']}
+                    type="type_charge" />
+            case 'type_de_contrat':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['type_contrat']}
+                    type="type_contrat" />
+            case 'type_de_compte':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['type_compte']}
+                    type="type_compte" />
+            case 'type_de_domiciliation':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['type_domiciliation']}
+                    type="type_domiciliation" />
+            case 'type_decheancier':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['type_echeancier']}
+                    type="type_echeancier" />
+            case 'type_effet':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['type_effet']}
+                    type="type_effet" />
+            case 'type_employeur':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['type_employeur']}
+                    type="type_employeur" />
+            case 'type_de_frais':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['type_frais']}
+                    type="type_frais" />
+            case 'type_logement':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['type_logement']}
+                    type="type_logement" />
+            case 'type_ovp':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['type_ovp']}
                     type="type_ovp" />
             case 'type_piece':
-                return <ParameterView 
+                return <ParameterView
                     title={subMenu.name}
                     description={`Gestion des ${subMenu.name.toLowerCase()}`}
-                    columns={typedColumns(undefined)}
+                    columns={COLUMN_CONFIGS['type_piece']}
                     type="type_piece" />
             case 'type_regularisation':
-                return <ParameterView 
+                return <ParameterView
                     title={subMenu.name}
                     description={`Gestion des ${subMenu.name.toLowerCase()}`}
-                    columns={typedColumns(undefined)}
+                    columns={COLUMN_CONFIGS['type_regularisation']}
                     type="type_regularisation" />
             case 'type_saisie':
-                return <ParameterView 
+                return <ParameterView
                     title={subMenu.name}
                     description={`Gestion des ${subMenu.name.toLowerCase()}`}
-                    columns={typedColumns(undefined)}
+                    columns={COLUMN_CONFIGS['type_saisie']}
                     type="type_saisie" />
-            
+            case 'type_garantie_personnelle':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['type_garantie_personnelle']}
+                    type="type_garantie_personnelle" />
+            case 'type_garantie_reelle':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['type_garantie_reelle']}
+                    type="type_garantie_reelle" />
+            case 'compte_doperation':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['compte_operation']}
+                    type="compte_operation" />
+            case 'entite':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['entite']}
+                    type="entite" />
+            case 'etape':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['etape']}
+                    type="etape" />
+            case 'exercice':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['exercice']}
+                    type="exercice" />
+            case 'groupe_creance':
+                return <ParameterView
+                    title={subMenu.name}
+                    description={`Gestion des ${subMenu.name.toLowerCase()}`}
+                    columns={COLUMN_CONFIGS['groupe_creance']}
+                    type="groupe_creance" />
+
             default:
                 return <ParameterView 
                     title={subMenu.name}

@@ -1,9 +1,7 @@
 export interface Zone {
-  Z_CODE: string;
-  Z_LIB: string;
-  Z_LIBLONG?: string;
-  Z_ACTIF?: boolean;
-  Z_ORDRE?: number;
+  ZONE_CODE: string;
+  ZONE_LIB: string;
+  ZONE_DESCRIPT?: string;
 }
 
 export interface ZoneApiResponse {
@@ -19,13 +17,12 @@ export interface ZoneApiResponse {
 }
 
 export interface ZoneCreateRequest {
-  Z_LIB: string;
-  Z_LIBLONG?: string;
-  Z_ACTIF?: boolean;
-  Z_ORDRE?: number;
+  ZONE_CODE: string;
+  ZONE_LIB: string;
+  ZONE_DESCRIPT?: string;
 }
 
-export interface ZoneUpdateRequest extends Partial<ZoneCreateRequest> {
-  Z_CODE: string;
+export interface ZoneUpdateRequest {
+  ZONE_LIB: string;
+  ZONE_DESCRIPT?: string;
 }
-

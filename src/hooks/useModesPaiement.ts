@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ModePaiementService } from "@/services/mode-paiement.service";
 import { ModePaiementCreateRequest, ModePaiementUpdateRequest } from "@/types/mode-paiement";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const modePaiementKeys = {
@@ -16,7 +16,7 @@ export const modePaiementKeys = {
 
 export function useModesPaiement() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: modePaiementKeys.lists(),
@@ -34,7 +34,7 @@ export function useModesPaiement() {
 
 export function useModePaiement(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: modePaiementKeys.detail(code),
@@ -45,7 +45,7 @@ export function useModePaiement(code: string) {
 
 export function useSearchModesPaiement(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: modePaiementKeys.search(searchTerm),

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ExerciceService } from "@/services/exercice.service";
 import { ExerciceCreateRequest, ExerciceUpdateRequest } from "@/types/exercice";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const exerciceKeys = {
@@ -16,7 +16,7 @@ export const exerciceKeys = {
 
 export function useExercices() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: exerciceKeys.lists(),
@@ -34,7 +34,7 @@ export function useExercices() {
 
 export function useExercice(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: exerciceKeys.detail(code),
@@ -45,13 +45,13 @@ export function useExercice(code: string) {
 
 export function useSearchExercices(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: exerciceKeys.search(searchTerm),
     queryFn: () => ExerciceService.search(apiClient, searchTerm).then((res) => res.data),
     enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!searchTerm,
-    staleTime: 1000 * 60 * 2, // 2 minutes pour les recherches
+    staleTime: 1000 * 60 * 2,
   });
 }
 
@@ -107,4 +107,3 @@ export function useDeleteExercice() {
     },
   });
 }
-

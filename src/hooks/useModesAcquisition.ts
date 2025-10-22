@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ModeAcquisitionService } from "@/services/mode-acquisition.service";
 import { ModeAcquisitionCreateRequest, ModeAcquisitionUpdateRequest } from "@/types/mode-acquisition";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const modeAcquisitionKeys = {
@@ -16,7 +16,7 @@ export const modeAcquisitionKeys = {
 
 export function useModesAcquisition() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: modeAcquisitionKeys.lists(),
@@ -34,7 +34,7 @@ export function useModesAcquisition() {
 
 export function useModeAcquisition(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: modeAcquisitionKeys.detail(code),
@@ -45,7 +45,7 @@ export function useModeAcquisition(code: string) {
 
 export function useSearchModesAcquisition(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: modeAcquisitionKeys.search(searchTerm),

@@ -1,9 +1,9 @@
 export interface Etape {
-  ET_CODE: string;
-  ET_LIB: string;
-  ET_LIBLONG?: string;
-  ET_ACTIF?: boolean;
-  ET_ORDRE?: number;
+  ETAP_CODE: string;
+  ETAP_LIB: string;
+  ETAP_LIBLONG?: string;
+  ETAP_ACTIF?: boolean;
+  ETAP_ORDRE?: number;
 }
 
 export interface EtapeApiResponse {
@@ -19,14 +19,14 @@ export interface EtapeApiResponse {
 }
 
 export interface EtapeCreateRequest {
-  ET_LIB: string;
-  ET_LIBLONG?: string;
-  ET_ACTIF?: boolean;
-  ET_ORDRE?: number;
+  ETAP_LIB: string;
+  ETAP_LIBLONG?: string;
+  ETAP_ACTIF?: boolean;
+  ETAP_ORDRE?: number;
 }
 
 export interface EtapeUpdateRequest extends Partial<EtapeCreateRequest> {
-  ET_CODE: string;
+  ETAP_CODE: string;
 }
 
 

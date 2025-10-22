@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { StatutSalarieService } from "@/services/statut-salarie.service";
 import { StatutSalarieCreateRequest, StatutSalarieUpdateRequest } from "@/types/statut-salarie";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const statutSalarieKeys = {
@@ -16,7 +16,7 @@ export const statutSalarieKeys = {
 
 export function useStatutsSalarie() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: statutSalarieKeys.lists(),
@@ -34,7 +34,7 @@ export function useStatutsSalarie() {
 
 export function useStatutSalarie(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: statutSalarieKeys.detail(code),
@@ -45,7 +45,7 @@ export function useStatutSalarie(code: string) {
 
 export function useSearchStatutsSalarie(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: statutSalarieKeys.search(searchTerm),

@@ -1,9 +1,10 @@
 export interface TypeActe {
-  TA_CODE: string;
-  TA_LIB: string;
-  TA_LIBLONG?: string;
-  TA_ACTIF?: boolean;
-  TA_ORDRE?: number;
+  TYPACTE_CODE: string;
+  TYPACTE_LIB: string;
+  TYPACTE_CODE_PREC?: string | null;
+  TYPACTE_DELAI?: number | null;
+  TYPACTE_SERV?: number | null;
+  TYPACTE_ORD_EMIS?: number | null;
 }
 
 export interface TypeActeApiResponse {
@@ -19,13 +20,10 @@ export interface TypeActeApiResponse {
 }
 
 export interface TypeActeCreateRequest {
-  TA_LIB: string;
-  TA_LIBLONG?: string;
-  TA_ACTIF?: boolean;
-  TA_ORDRE?: number;
+  TYPACTE_CODE: string;
+  TYPACTE_LIB: string;
 }
 
-export interface TypeActeUpdateRequest extends Partial<TypeActeCreateRequest> {
-  TA_CODE: string;
+export interface TypeActeUpdateRequest {
+  TYPACTE_LIB: string;
 }
-

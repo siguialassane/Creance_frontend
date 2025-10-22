@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { GroupeCreanceService } from "@/services/groupe-creance.service";
 import { GroupeCreanceCreateRequest, GroupeCreanceUpdateRequest } from "@/types/groupe-creance";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const groupeCreanceKeys = {
@@ -16,7 +16,7 @@ export const groupeCreanceKeys = {
 
 export function useGroupesCreance() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: groupeCreanceKeys.lists(),
@@ -34,7 +34,7 @@ export function useGroupesCreance() {
 
 export function useGroupeCreance(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: groupeCreanceKeys.detail(code),
@@ -45,7 +45,7 @@ export function useGroupeCreance(code: string) {
 
 export function useSearchGroupesCreance(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: groupeCreanceKeys.search(searchTerm),

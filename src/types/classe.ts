@@ -17,12 +17,10 @@ export interface ClasseApiResponse {
 }
 
 export interface ClasseCreateRequest {
-  CL_LIB: string;
-  CL_DESC?: string;
-  CL_ACTIF?: boolean;
-  CL_ORDRE?: number;
+  CLAS_CODE: string;
+  CLAS_LIB: string;
 }
 
-export interface ClasseUpdateRequest extends Partial<ClasseCreateRequest> {
-  CL_CODE: string;
+export interface ClasseUpdateRequest {
+  CLAS_LIB: string;
 }

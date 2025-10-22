@@ -1,9 +1,6 @@
 export interface ModePaiement {
-  MP_CODE: string;
-  MP_LIB: string;
-  MP_LIBLONG?: string;
-  MP_ACTIF?: boolean;
-  MP_ORDRE?: number;
+  TYP_PAIE_CODE: string;
+  TYP_PAIE_LIB: string;
 }
 
 export interface ModePaiementApiResponse {
@@ -19,13 +16,10 @@ export interface ModePaiementApiResponse {
 }
 
 export interface ModePaiementCreateRequest {
-  MP_LIB: string;
-  MP_LIBLONG?: string;
-  MP_ACTIF?: boolean;
-  MP_ORDRE?: number;
+  TYP_PAIE_CODE: string;
+  TYP_PAIE_LIB: string;
 }
 
-export interface ModePaiementUpdateRequest extends Partial<ModePaiementCreateRequest> {
-  MP_CODE: string;
+export interface ModePaiementUpdateRequest {
+  TYP_PAIE_LIB: string;
 }
-

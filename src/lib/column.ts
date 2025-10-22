@@ -120,4 +120,64 @@ export const COLUMN_CONFIGS = {
       { key: 'code', label: 'Code', sortable: true },
       { key: 'libelle', label: 'Libellé', sortable: true },
     ],
+    type_charge: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_contrat: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_compte: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_domiciliation: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_echeancier: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_effet: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_employeur: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_frais: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_logement: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_ovp: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_piece: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_regularisation: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_saisie: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_garantie_personnelle: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
+    type_garantie_reelle: [
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'libelle', label: 'Libellé', sortable: true },
+    ],
   }

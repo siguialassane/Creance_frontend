@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { JournalService } from "@/services/journal.service";
 import { JournalCreateRequest, JournalUpdateRequest } from "@/types/journal";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const journalKeys = {
@@ -16,7 +16,7 @@ export const journalKeys = {
 
 export function useJournaux() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: journalKeys.lists(),
@@ -34,7 +34,7 @@ export function useJournaux() {
 
 export function useJournal(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: journalKeys.detail(code),
@@ -45,7 +45,7 @@ export function useJournal(code: string) {
 
 export function useSearchJournaux(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: journalKeys.search(searchTerm),

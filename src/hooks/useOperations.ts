@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { OperationService } from "@/services/operation.service";
 import { OperationCreateRequest, OperationUpdateRequest } from "@/types/operation";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const operationKeys = {
@@ -16,7 +16,7 @@ export const operationKeys = {
 
 export function useOperations() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: operationKeys.lists(),
@@ -34,7 +34,7 @@ export function useOperations() {
 
 export function useOperation(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: operationKeys.detail(code),
@@ -45,7 +45,7 @@ export function useOperation(code: string) {
 
 export function useSearchOperations(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: operationKeys.search(searchTerm),

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TypeAuxiliaireService } from "@/services/type-auxiliaire.service";
 import { TypeAuxiliaireCreateRequest, TypeAuxiliaireUpdateRequest } from "@/types/type-auxiliaire";
 import { useApiClient } from "./useApiClient";
-import { useSession } from "next-auth/react";
+import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const typeAuxiliaireKeys = {
@@ -16,7 +16,7 @@ export const typeAuxiliaireKeys = {
 
 export function useTypesAuxiliaire() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: typeAuxiliaireKeys.lists(),
@@ -34,7 +34,7 @@ export function useTypesAuxiliaire() {
 
 export function useTypeAuxiliaire(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: typeAuxiliaireKeys.detail(code),
@@ -45,7 +45,7 @@ export function useTypeAuxiliaire(code: string) {
 
 export function useSearchTypesAuxiliaire(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: typeAuxiliaireKeys.search(searchTerm),
