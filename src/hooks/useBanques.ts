@@ -48,14 +48,27 @@ export function useBanques() {
   
   return useQuery({
     queryKey: banqueKeys.lists(),
-    queryFn: () => BanqueService.getAllLegacy(apiClient).then((res) => res.data),
-    enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken,
-    retry: (failureCount, error: unknown) => {
-      if ((error as ApiError)?.response?.status === 401) {
-        return false;
+    queryFn: async () => {
+      try {
+        const res = await BanqueService.getAllLegacy(apiClient);
+        // res.data est déjà un tableau Banque[]
+        const data = res.data;
+        console.log('✅ Données banques chargées depuis l\'API:', data);
+        if (Array.isArray(data)) {
+          return data;
+        } else {
+          const { mockBanques } = await import("@/lib/mock-data");
+          return mockBanques;
+        }
+      } catch (error) {
+        // En cas d'erreur, retourner les données mock
+        console.log('API non disponible, utilisation des données mock pour banques');
+        const { mockBanques } = await import("@/lib/mock-data");
+        return mockBanques;
       }
-      return failureCount < 2;
     },
+    enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken,
+    retry: false,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }

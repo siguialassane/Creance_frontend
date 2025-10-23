@@ -211,156 +211,157 @@ const menuItemsData = [
     subMenu: [
       {
         name: "Debiteur",
-        path: "debiteur",
+        path: "debiteur/create",
+        customPath: true, // Marqueur pour indiquer que le chemin est personnalisé
       },
       {
         name: "Creance",
         path: "",
       },
-      {
-        name:"Creation de  Frais",
-        path: "creation_de_frais",
-      },
-      {
-        name:"Visite de terrain",
-        path: "visite_de_terrain",
-      },
-      {
-        name:"Autre frais",
-        path: "autre_frais",
-      },
-      {
-        name:"Gestion amiable",
-        path: "gestion_amiable",
-      },
+      // {
+      //   name:"Creation de  Frais",
+      //   path: "creation_de_frais",
+      // },
+      // {
+      //   name:"Visite de terrain",
+      //   path: "visite_de_terrain",
+      // },
+      // {
+      //   name:"Autre frais",
+      //   path: "autre_frais",
+      // },
+      // {
+      //   name:"Gestion amiable",
+      //   path: "gestion_amiable",
+      // },
     ]
   },
-  {
-    name: "Suivi Clientèle",
-    path: "/followClient",
-    icon: FollowClient,
-    subMenu: [
-      {
-        name: "Paiemt. de Creance",
-        subMenu: [
-          {
-            id: 1,
-            name: 'Paiement X',
-            path: '/paiementX',
-          },
-        ]
-      },
-      {
-        name: "Paiemt. de Facture",
-      },
-      {
-        name: "Paiemt. de cheque de Creances",
-      },
-      {
-        name: "Paiemt. de cheque de Factures",
-      },
-      {
-        name:'Paiement par virement non reçu(CGRAE,OVP,PGT,CNPS) ',
-      },    
-    ],
-  },
-  {
-    name: "Suivi Récouv.",
-    path: "/recovery",
-    icon: Recovery,
-    subMenu: [
-      { name: "Enregistrement" },
-      { name: "Mise à jour" },
-      { name: "Consultation" },
-    ],
-  },
-  {
-    name: "Contentieux",
-    path: "/contentieux",
-    icon: Contentieux,
-    subMenu: [
-      { name: "Enregistrement" },
-      { name: "Mise à jour" },
-      { name: "Consultation" },
-      { name: "Suivi des Actes de Recouvrement" },
-    ],
-  },
-  {
-    name: "Patrimoine",
-    path: "/patrimoine",
-    icon: Patrimoine,
-    subMenu: [
-      { name: "Enregistrement" },
-      { name: "Mise à jour" },
-      { name: "Consultation" },
-    ],
-  },
-  {
-    name: "Opérations Div",
-    path: "/operations",
-    icon: Operation,
-    subMenu: [
-      { name: "Enregistrement" },
-      { name: "Mise à jour" },
-      { name: "Consultation" },
-      { name: "Budget" },
-      { name: "Remboursement des Créanciers" },
-      { name: "Gestion de Carnet" },
-      { name: "Tableau de Bord-Direction ACCC" },
-      { name: "Gestion des Stocks" },
-    ],
-  },
+  // {
+  //   name: "Suivi Clientèle",
+  //   path: "/followClient",
+  //   icon: FollowClient,
+  //   subMenu: [
+  //     {
+  //       name: "Paiemt. de Creance",
+  //       subMenu: [
+  //         {
+  //           id: 1,
+  //           name: 'Paiement X',
+  //           path: '/paiementX',
+  //         },
+  //       ]
+  //     },
+  //     {
+  //       name: "Paiemt. de Facture",
+  //     },
+  //     {
+  //       name: "Paiemt. de cheque de Creances",
+  //     },
+  //     {
+  //       name: "Paiemt. de cheque de Factures",
+  //     },
+  //     {
+  //       name:'Paiement par virement non reçu(CGRAE,OVP,PGT,CNPS) ',
+  //     },    
+  //   ],
+  // },
+  // {
+  //   name: "Suivi Récouv.",
+  //   path: "/recovery",
+  //   icon: Recovery,
+  //   subMenu: [
+  //     { name: "Enregistrement" },
+  //     { name: "Mise à jour" },
+  //     { name: "Consultation" },
+  //   ],
+  // },
+  // {
+  //   name: "Contentieux",
+  //   path: "/contentieux",
+  //   icon: Contentieux,
+  //   subMenu: [
+  //     { name: "Enregistrement" },
+  //     { name: "Mise à jour" },
+  //     { name: "Consultation" },
+  //     { name: "Suivi des Actes de Recouvrement" },
+  //   ],
+  // },
+  // {
+  //   name: "Patrimoine",
+  //   path: "/patrimoine",
+  //   icon: Patrimoine,
+  //   subMenu: [
+  //     { name: "Enregistrement" },
+  //     { name: "Mise à jour" },
+  //     { name: "Consultation" },
+  //   ],
+  // },
+  // {
+  //   name: "Opérations Div",
+  //   path: "/operations",
+  //   icon: Operation,
+  //   subMenu: [
+  //     { name: "Enregistrement" },
+  //     { name: "Mise à jour" },
+  //     { name: "Consultation" },
+  //     { name: "Budget" },
+  //     { name: "Remboursement des Créanciers" },
+  //     { name: "Gestion de Carnet" },
+  //     { name: "Tableau de Bord-Direction ACCC" },
+  //     { name: "Gestion des Stocks" },
+  //   ],
+  // },
   
-  {
-    name: "Etats",
-    path: "/etats",
-    icon: Archivre,
-    subMenu: [
-      { name: "Etude créance" },
-      { name: "Suivi Clientèle" },
-      { name: "Suivi Recouvrement" },
-      { name: "Contentieux" },
-      { name: "Patrimoine" },
-      { name: "Autres" },
-    ],
-  },
-  {
-    name: "Gestion des utilisateurs",
-    path: "/action",
-    icon: Account,    
-    subMenu: [
-      {
-        name: "Connexion",
-      },
-      {
-        name: "Déconnexion",
-      },
-      {
-        name: "Comptabilité",
-      },
-      {
-        name: "Utilisateur",
-      },
-      {
-        name: "Habilitations",
-      },
-      {
-        name: "Modifier mot de passe",
-      },
-      {
-        name: "Initialisation du mot de passe",
-      },
-      {
-        name: "Quitter",
-      },
-    ],
-  },
-  {
-    name: "Aide",
-    icon: Help,
-    path: "/aide",
-    subMenu: [{ name: "Apropos" }, { name: "Manuel" }, { name: "Aide Oracle" }],
-  },
+  // {
+  //   name: "Etats",
+  //   path: "/etats",
+  //   icon: Archivre,
+  //   subMenu: [
+  //     { name: "Etude créance" },
+  //     { name: "Suivi Clientèle" },
+  //     { name: "Suivi Recouvrement" },
+  //     { name: "Contentieux" },
+  //     { name: "Patrimoine" },
+  //     { name: "Autres" },
+  //   ],
+  // },
+  // {
+  //   name: "Gestion des utilisateurs",
+  //   path: "/action",
+  //   icon: Account,    
+  //   subMenu: [
+  //     {
+  //       name: "Connexion",
+  //     },
+  //     {
+  //       name: "Déconnexion",
+  //     },
+  //     {
+  //       name: "Comptabilité",
+  //     },
+  //     {
+  //       name: "Utilisateur",
+  //     },
+  //     {
+  //       name: "Habilitations",
+  //     },
+  //     {
+  //       name: "Modifier mot de passe",
+  //     },
+  //     {
+  //       name: "Initialisation du mot de passe",
+  //     },
+  //     {
+  //       name: "Quitter",
+  //     },
+  //   ],
+  // },
+  // {
+  //   name: "Aide",
+  //   icon: Help,
+  //   path: "/aide",
+  //   subMenu: [{ name: "Apropos" }, { name: "Manuel" }, { name: "Aide Oracle" }],
+  // },
 ];
 
 const letters = new Map<string, string>([
@@ -392,7 +393,7 @@ export const menuItems: MenuItem[] = menuItemsData.map((menuItem, index) => ({
       subMenuType: subMenu as any,      
       viewName: menuItem.path === "/settings" ? "parameter" : undefined,
       columns: (subMenu as any).columns,
-      path: formatLabelToPath(subMenu), // Utiliser la fonction formatLabelToPath pour tous les sous-menus
+      path: (subMenu as any).customPath ? (subMenu as any).path : formatLabelToPath(subMenu), // Utiliser le chemin personnalisé s'il existe, sinon formater le nom
       subMenus: (subMenu as any).subMenu
     })
   ),

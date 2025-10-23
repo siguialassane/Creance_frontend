@@ -2,18 +2,16 @@
 
 import { Suspense } from "react";
 import { useState, useRef, useEffect } from "react";
-import { Box, Button, Card, CardBody, CardHeader, Heading, Text, VStack, HStack, Progress, useToast } from "@chakra-ui/react";
-import { ChevronLeftIcon, ChevronRightIcon, ArrowBackIcon } from "@chakra-ui/icons";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import CreanceForm from "@/components/creance-form/creance-form";
 
 const EditerCreancePageInner = () => {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(true);
   const totalSteps = 5;
   const formRef = useRef<any>(null);
-  const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const creanceId = searchParams.get('id');
@@ -108,168 +106,120 @@ const EditerCreancePageInner = () => {
     return formRef.current.validateStep();
   };
 
-  const handleNext = async () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
   const handleSubmit = (data: any) => {
     console.log("Données de la créance modifiée:", data);
     // Ici vous pouvez ajouter la logique de mise à jour
-    toast({
-      title: "Créance modifiée",
-      description: "La créance a été modifiée avec succès.",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-    // Rediriger vers la liste des créances après modification
     router.push("/etude_creance/creance/views");
   };
-
-  const handleBack = () => {
-    router.push("/etude_creance/creance/views");
-  };
-
-  const progressPercentage = (currentStep / totalSteps) * 100;
 
   if (loading) {
     return (
-      <Box p={6} maxW="1200px" mx="auto">
-        <Text>Chargement de la créance...</Text>
-      </Box>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement de la créance...</p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box p={6} maxW="1200px" mx="auto">
-      <VStack spacing={6} align="stretch">
-        {/* En-tête avec design moderne */}
-        <div className="py-6 border-b border-gray-200">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* Contenu principal */}
+          <div className="lg:col-span-12">
+            
+        {/* En-tête comme dans l'image */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold mb-2" style={{ color: '#28A325' }}>Modifier une créance</h1>
           <div className="flex items-center justify-between mb-4">
-            <div className="space-y-2 mb-5 bg-primary w-full py-4 px-8">
-              <h1 className="text-2xl tracking-tight" style={{ fontWeight: 'bold', color: '#fff' }}>
-                Modification d'une Créance
-              </h1>
-              <p className="text-base text-white">
-                Modifiez la créance {mockCreanceData.numeroCreance}
-              </p>
+            <div className="flex items-center justify-between w-full">
+              <div className={`text-sm font-medium ${step >= 1 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Informations générales
+              </div>
+              <div className={`text-sm font-medium ${step >= 2 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Informations générales 2
+              </div>
+              <div className={`text-sm font-medium ${step >= 3 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Détails financiers
+              </div>
+              <div className={`text-sm font-medium ${step >= 4 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Pièces
+              </div>
+              <div className={`text-sm font-medium ${step >= 5 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Garanties
+              </div>
             </div>
           </div>
-          
-          <div className="flex items-center justify-end gap-6 px-8">
-            <Button
-              leftIcon={<ArrowBackIcon />}
-              onClick={handleBack}
-              variant="outline"
-              colorScheme="gray"
-              size="md"
-            >
-              Retour à la liste
-            </Button>
+          <div className="w-full bg-gray-200 rounded-full h-1">
+            <div 
+              className="bg-orange-500 h-1 rounded-full transition-all duration-300" 
+              style={{ width: `${(step / totalSteps) * 100}%` }}
+            ></div>
           </div>
         </div>
 
-        {/* Indicateur de progression */}
-        <Card>
-          <CardBody>
-            <VStack spacing={4}>
-              <HStack w="full" justify="space-between">
-                {steps.map((step, index) => (
-                  <VStack key={step.id} spacing={2} flex={1}>
-                    <Box
-                      w={8}
-                      h={8}
-                      borderRadius="full"
-                      bg={currentStep >= step.id ? "#28A325" : "gray.200"}
-                      color={currentStep >= step.id ? "white" : "gray.500"}
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      fontWeight="bold"
+            {/* Contenu du formulaire */}
+            <div className="bg-white rounded-lg border p-6 shadow-sm">
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-orange-600 mb-2">
+                  {steps[step - 1].title}
+                </h2>
+                <p className="text-sm text-gray-600">
+                  {steps[step - 1].description}
+                </p>
+              </div>
+
+              <CreanceForm
+                ref={formRef}
+                currentStep={step}
+                formData={formData}
+                onDataChange={setFormData}
+                onSubmit={handleSubmit}
+              />
+            </div>
+
+            {/* Navigation comme dans l'image - pied de page */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <div className="flex justify-between items-center">
+                <div>
+                  {step > 1 && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setStep(step - 1)}
+                      className="text-gray-600 border-gray-300 hover:bg-gray-50 bg-white px-24 py-4 text-base min-w-[120px]"
                     >
-                      {step.id}
-                    </Box>
-                    <Text fontSize="sm" fontWeight="medium" textAlign="center">
-                      {step.title}
-                    </Text>
-                    <Text fontSize="xs" color="gray.500" textAlign="center">
-                      {step.description}
-                    </Text>
-                  </VStack>
-                ))}
-              </HStack>
-              <Progress value={progressPercentage} w="full" colorScheme="green" size="sm" />
-            </VStack>
-          </CardBody>
-        </Card>
-
-        {/* Formulaire */}
-        <Card>
-          <CardHeader>
-            <Heading size="md" color="#1a202c">
-              Étape {currentStep} : {steps[currentStep - 1].title}
-            </Heading>
-            <Text color="#718096">{steps[currentStep - 1].description}</Text>
-          </CardHeader>
-          <CardBody>
-            <CreanceForm
-              ref={formRef}
-              currentStep={currentStep}
-              formData={formData}
-              onDataChange={setFormData}
-              onSubmit={handleSubmit}
-            />
-          </CardBody>
-        </Card>
-
-        {/* Navigation */}
-        <Card>
-          <CardBody>
-            <HStack justify="space-between">
-              <Button
-                leftIcon={<ChevronLeftIcon />}
-                onClick={handlePrevious}
-                isDisabled={currentStep === 1}
-                variant="outline"
-              >
-                Précédent
-              </Button>
-              
-              <HStack spacing={4}>
-                <Text fontSize="sm" color="gray.500">
-                  Étape {currentStep} sur {totalSteps}
-                </Text>
-              </HStack>
-
-              {currentStep < totalSteps ? (
-                <Button
-                  rightIcon={<ChevronRightIcon />}
-                  onClick={handleNext}
-                  colorScheme="green"
-                >
-                  Suivant
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => handleSubmit(formData)}
-                  colorScheme="green"
-                >
-                  Mettre à jour la créance
-                </Button>
-              )}
-            </HStack>
-          </CardBody>
-        </Card>
-      </VStack>
-    </Box>
+                      Précédent
+                    </Button>
+                  )}
+                </div>
+                <div>
+                  {step < totalSteps ? (
+                    <Button 
+                      onClick={() => setStep(step + 1)}
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px]"
+                      style={{ backgroundColor: '#f97316', color: 'white' }}
+                    >
+                      Suivant
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={() => handleSubmit(formData)}
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px]"
+                      style={{ backgroundColor: '#f97316', color: 'white' }}
+                    >
+                      Mettre à jour
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

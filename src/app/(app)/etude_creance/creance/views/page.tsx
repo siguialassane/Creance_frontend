@@ -211,7 +211,7 @@ const CreancePageInner = () => {
       header: "Débiteur",
       cell: ({ row }) => {
         const debiteurNom = row.getValue("debiteurNom") as string;
-        const debiteurPrenom = row.getValue("debiteurPrenom") as string;
+        const debiteurPrenom = row.original.debiteurPrenom;
         return (
           <div className="font-medium">{debiteurNom} {debiteurPrenom}</div>
         );

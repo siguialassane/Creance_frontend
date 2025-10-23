@@ -1,12 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { CategorieDebiteurService } from "@/services/categorie-debiteur.service";
-import { CategorieDebiteurCreateRequest, CategorieDebiteurUpdateRequest } from "@/types/categorie-debiteur";
 import { useApiClient } from "./useApiClient";
 import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
+import { CategorieDebiteurCreateRequest, CategorieDebiteurUpdateRequest } from "@/types/categorie-debiteur";
 
 export const categorieDebiteurKeys = {
-  all: ["categories-debiteur"] as const,
+  all: ["categoriesDebiteur"] as const,
   lists: () => [...categorieDebiteurKeys.all, "list"] as const,
   list: (filters: Record<string, unknown>) => [...categorieDebiteurKeys.lists(), { filters }] as const,
   details: () => [...categorieDebiteurKeys.all, "detail"] as const,
@@ -14,21 +14,24 @@ export const categorieDebiteurKeys = {
   search: (term: string) => [...categorieDebiteurKeys.all, "search", term] as const,
 };
 
-export function useCategoriesDebiteur() {
+export const useCategoriesDebiteur = () => {
   const apiClient = useApiClient();
   const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: categorieDebiteurKeys.lists(),
-    queryFn: () => CategorieDebiteurService.getAll(apiClient).then((res) => res.data),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
-    retry: (failureCount, error: any) => {
-      if (error?.response?.status === 401) {
-        return false;
+    queryFn: async () => {
+      try {
+        const res = await CategorieDebiteurService.getAll(apiClient);
+        const data = res.data;
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.log('API non disponible, utilisation des données mock pour catégories débiteur');
       }
-      return failureCount < 2;
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 

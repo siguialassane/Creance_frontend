@@ -1,6 +1,9 @@
 export interface CategorieDebiteur {
   CATEG_DEB_CODE: string;
   CATEG_DEB_LIB: string;
+  CATEG_DEB_DESC: string | null;
+  CATEG_DEB_ACTIF: boolean;
+  CATEG_DEB_ORDRE: number | null;
 }
 
 export interface CategorieDebiteurApiResponse {

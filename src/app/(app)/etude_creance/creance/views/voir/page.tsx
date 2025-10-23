@@ -2,10 +2,11 @@
 
 import { Suspense } from "react";
 import { useState, useRef, useEffect } from "react";
-import { Box, Button, Card, CardBody, CardHeader, Heading, Text, VStack, HStack, Progress, useToast } from "@chakra-ui/react";
+import { Box, Button as ChakraButton, Card, CardBody, CardHeader, Heading, Text, VStack, HStack, Progress, useToast } from "@chakra-ui/react";
 import { ChevronLeftIcon, ChevronRightIcon, ArrowBackIcon, EditIcon } from "@chakra-ui/icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import CreanceForm from "@/components/creance-form/creance-form";
+import { Button } from "@/components/ui/button";
 
 const VoirCreancePageInner = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -135,21 +136,16 @@ const VoirCreancePageInner = () => {
     <Box p={6} maxW="1200px" mx="auto">
       <VStack spacing={6} align="stretch">
         {/* En-tête avec design moderne */}
-        <div className="py-6 border-b border-gray-200">
+        <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <div className="space-y-2 mb-5 bg-primary w-full py-4 px-8">
-              <h1 className="text-2xl tracking-tight" style={{ fontWeight: 'bold', color: '#fff' }}>
-                Consultation de Créance
-              </h1>
-              <p className="text-base text-white">
+            <div>
+              <h1 className="text-2xl font-semibold mb-2" style={{ color: '#28A325' }}>Consultation de Créance</h1>
+              <p className="text-base text-gray-600">
                 Consultez les détails de la créance {mockCreanceData.numeroCreance}
               </p>
             </div>
-          </div>
-          
-          <div className="flex items-center justify-end gap-6 px-8">
             <HStack spacing={3}>
-              <Button
+              <ChakraButton
                 leftIcon={<EditIcon />}
                 onClick={handleEdit}
                 colorScheme="green"
@@ -157,62 +153,60 @@ const VoirCreancePageInner = () => {
                 _hover={{ bg: "#047857" }}
               >
                 Modifier
-              </Button>
-              <Button
+              </ChakraButton>
+              <ChakraButton
                 leftIcon={<ArrowBackIcon />}
                 onClick={handleBack}
                 variant="outline"
                 colorScheme="gray"
               >
                 Retour à la liste
-              </Button>
+              </ChakraButton>
             </HStack>
+          </div>
+          
+          {/* Indicateurs des étapes */}
+          <div className="flex items-center justify-between mb-4 mt-12">
+            <div className="flex items-center justify-between w-full">
+              <div className={`text-sm font-medium ${currentStep >= 1 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Informations générales
+              </div>
+              <div className={`text-sm font-medium ${currentStep >= 2 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Informations générales 2
+              </div>
+              <div className={`text-sm font-medium ${currentStep >= 3 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Détails financiers
+              </div>
+              <div className={`text-sm font-medium ${currentStep >= 4 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Pièces
+              </div>
+              <div className={`text-sm font-medium ${currentStep >= 5 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Garanties
+              </div>
+            </div>
+          </div>
+          
+          {/* Barre de progression */}
+          <div className="w-full bg-gray-200 rounded-full h-1">
+            <div 
+              className="bg-orange-500 h-1 rounded-full transition-all duration-300" 
+              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+            ></div>
           </div>
         </div>
 
-        {/* Indicateur de progression */}
-        <Card>
-          <CardBody>
-            <VStack spacing={4}>
-              <HStack w="full" justify="space-between">
-                {steps.map((step, index) => (
-                  <VStack key={step.id} spacing={2} flex={1}>
-                    <Box
-                      w={8}
-                      h={8}
-                      borderRadius="full"
-                      bg={currentStep >= step.id ? "#28A325" : "gray.200"}
-                      color={currentStep >= step.id ? "white" : "gray.500"}
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      fontWeight="bold"
-                    >
-                      {step.id}
-                    </Box>
-                    <Text fontSize="sm" fontWeight="medium" textAlign="center">
-                      {step.title}
-                    </Text>
-                    <Text fontSize="xs" color="gray.500" textAlign="center">
-                      {step.description}
-                    </Text>
-                  </VStack>
-                ))}
-              </HStack>
-              <Progress value={progressPercentage} w="full" colorScheme="green" size="sm" />
-            </VStack>
-          </CardBody>
-        </Card>
-
         {/* Formulaire */}
-        <Card>
-          <CardHeader>
-            <Heading size="md" color="#1a202c">
-              Étape {currentStep} : {steps[currentStep - 1].title}
-            </Heading>
-            <Text color="#718096">{steps[currentStep - 1].description}</Text>
-          </CardHeader>
-          <CardBody>
+        <div className="bg-white rounded-lg border p-6 shadow-sm">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-orange-600 mb-2">
+              {steps[currentStep - 1].title}
+            </h2>
+            <p className="text-sm text-gray-600">
+              {steps[currentStep - 1].description}
+            </p>
+          </div>
+
+          <div>
             <CreanceForm
               ref={formRef}
               currentStep={currentStep}
@@ -221,52 +215,37 @@ const VoirCreancePageInner = () => {
               onSubmit={() => {}} // Pas de soumission en mode consultation
               readOnly={true} // Mode lecture seule
             />
-          </CardBody>
-        </Card>
+          </div>
+        </div>
 
         {/* Navigation */}
-        <Card>
-          <CardBody>
-            <HStack justify="space-between">
-              <Button
-                leftIcon={<ChevronLeftIcon />}
-                onClick={handlePrevious}
-                isDisabled={currentStep === 1}
-                variant="outline"
-              >
-                Précédent
-              </Button>
-              
-              <HStack spacing={4}>
-                <Text fontSize="sm" color="gray.500">
-                  Étape {currentStep} sur {totalSteps}
-                </Text>
-              </HStack>
-
-              <HStack spacing={3}>
-                {currentStep < totalSteps ? (
-                  <Button
-                    rightIcon={<ChevronRightIcon />}
-                    onClick={handleNext}
-                    colorScheme="green"
+        <div className="bg-white rounded-lg border shadow-sm">
+          <div className="pt-6 pb-6 px-6">
+            <div className="flex justify-between items-center">
+              <div>
+                {currentStep > 1 && (
+                  <Button 
+                    variant="outline" 
+                    onClick={handlePrevious}
+                    className="text-gray-600 border-gray-300 hover:bg-gray-50 bg-white px-24 py-4 text-base min-w-[120px]"
                   >
-                    Suivant
-                  </Button>
-                ) : (
-                  <Button
-                    leftIcon={<EditIcon />}
-                    onClick={handleEdit}
-                    colorScheme="green"
-                    bg="#28A325"
-                    _hover={{ bg: "#047857" }}
-                  >
-                    Modifier cette créance
+                    Précédent
                   </Button>
                 )}
-              </HStack>
-            </HStack>
-          </CardBody>
-        </Card>
+              </div>
+              <div>
+                <Button 
+                  onClick={handleNext}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px]"
+                  style={{ backgroundColor: '#f97316', color: 'white' }}
+                  disabled={currentStep === totalSteps}
+                >
+                  Suivant
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       </VStack>
     </Box>
   );

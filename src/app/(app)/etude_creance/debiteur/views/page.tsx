@@ -141,12 +141,42 @@ const DebiteurPage = () => {
   ];
 
   useEffect(() => {
-    // Simulation du chargement des données
-    setTimeout(() => {
-      setDebiteurs(mockDebiteurs);
-      setFilteredDebiteurs(mockDebiteurs);
-      setLoading(false);
-    }, 1000);
+    // Charger les débiteurs depuis le localStorage
+    const loadDebiteurs = () => {
+      try {
+        const storedDebiteurs = localStorage.getItem('debiteurs');
+        
+        if (storedDebiteurs) {
+          const parsedDebiteurs = JSON.parse(storedDebiteurs);
+          
+          // Si le localStorage est vide, utiliser les données de test
+          if (parsedDebiteurs.length === 0) {
+            setDebiteurs(mockDebiteurs);
+            setFilteredDebiteurs(mockDebiteurs);
+            // Sauvegarder les données de test dans le localStorage
+            localStorage.setItem('debiteurs', JSON.stringify(mockDebiteurs));
+          } else {
+            setDebiteurs(parsedDebiteurs);
+            setFilteredDebiteurs(parsedDebiteurs);
+          }
+        } else {
+          // Première utilisation : utiliser les données de test
+          setDebiteurs(mockDebiteurs);
+          setFilteredDebiteurs(mockDebiteurs);
+          localStorage.setItem('debiteurs', JSON.stringify(mockDebiteurs));
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Erreur lors du chargement des débiteurs:', error);
+        // En cas d'erreur, utiliser les données de test
+        setDebiteurs(mockDebiteurs);
+        setFilteredDebiteurs(mockDebiteurs);
+        setLoading(false);
+      }
+    };
+    
+    loadDebiteurs();
   }, []);
 
   useEffect(() => {
@@ -219,13 +249,19 @@ const DebiteurPage = () => {
 
   const handleDeleteDebiteur = (debiteur: Debiteur) => {
     if (confirm(`Êtes-vous sûr de vouloir supprimer le débiteur ${debiteur.codeDebiteur} ?`)) {
-      setDebiteurs(debiteurs.filter(d => d.id !== debiteur.id));
+      const updatedDebiteurs = debiteurs.filter(d => d.id !== debiteur.id);
+      setDebiteurs(updatedDebiteurs);
+      
+      // Mettre à jour le localStorage
+      localStorage.setItem('debiteurs', JSON.stringify(updatedDebiteurs));
+      
       toast({
-        title: "Débiteur supprimé",
+        title: "Débiteur supprimé avec succès !",
         description: `Le débiteur ${debiteur.codeDebiteur} a été supprimé avec succès.`,
         status: "success",
         duration: 3000,
         isClosable: true,
+        position: "top",
       });
     }
   };
@@ -271,13 +307,6 @@ const DebiteurPage = () => {
       header: "Email",
       cell: ({ row }) => (
         <div className="font-medium">{row.getValue("email")}</div>
-      ),
-    },
-    {
-      accessorKey: "numeroCellulaire",
-      header: "Téléphone",
-      cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("numeroCellulaire")}</div>
       ),
     },
     {
@@ -349,6 +378,8 @@ const DebiteurPage = () => {
         status={loading ? 'pending' : undefined}
         useServerPagination={false}
         isTableLoading={loading}
+        sectionTitle="DÉBITEURS"
+        listTitle="LISTE DES DÉBITEURS"
       />
     </div>
   );
