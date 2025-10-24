@@ -4,8 +4,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Menu, User, Settings, LogOut } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useSession, signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { handleSignOut } from "@/lib/auth-helpers"
 
 interface HeaderProps {
   onMenuToggle: () => void
@@ -15,9 +16,9 @@ interface HeaderProps {
 export default function Header({ onMenuToggle, isMobile }: HeaderProps) {
   const { data: session } = useSession()
   const router = useRouter()
-  
-  const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/login" })
+
+  const onSignOutClick = async () => {
+    await handleSignOut("/login")
   }
 
   const handleProfile = () => {
@@ -117,7 +118,7 @@ export default function Header({ onMenuToggle, isMobile }: HeaderProps) {
               <Settings className="mr-2 h-4 w-4 text-emerald-600" /> Paramètres
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={handleSignOut}>
+            <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={onSignOutClick}>
               <LogOut className="mr-2 h-4 w-4" /> Déconnexion
             </DropdownMenuItem>
           </DropdownMenuContent>

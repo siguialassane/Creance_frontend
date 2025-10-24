@@ -4,7 +4,7 @@ export class GroupeCreanceService {
   private static readonly BASE_URL = "/groupes-creance";
 
   static async getAll(apiClient: any): Promise<GroupeCreanceApiResponse> {
-    const response = await apiClient.get<GroupeCreanceApiResponse>(`${this.BASE_URL}/all`);
+    const response = await apiClient.get<GroupeCreanceApiResponse>(`${this.BASE_URL}`);
     return response.data;
   }
 

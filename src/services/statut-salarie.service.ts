@@ -1,10 +1,10 @@
 import { StatutSalarie, StatutSalarieApiResponse, StatutSalarieCreateRequest, StatutSalarieUpdateRequest } from "@/types/statut-salarie";
 
 export class StatutSalarieService {
-  private static readonly BASE_URL = "/statuts-salarie";
+  private static readonly BASE_URL = "/statut-salaries";
 
   static async getAll(apiClient: any): Promise<any> {
-    const response = await apiClient.get(`${this.BASE_URL}/all`);
+    const response = await apiClient.get(`${this.BASE_URL}`);
     return response.data;
   }
 

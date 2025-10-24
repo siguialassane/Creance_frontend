@@ -23,20 +23,26 @@ export function useQuartiers() {
     queryFn: async () => {
       try {
         const res = await QuartierService.getAll(apiClient);
-        // L'API /all retourne : { data: [...], message, status }
-        const data = res.data?.data || res.data || res;
+        console.log('📦 Réponse brute quartiers:', res);
+
+        // Structure: { data: { content: [...], totalElements, totalPages }, message: "OK", status: "SUCCESS" }
+        const data = res.data?.content || res.data?.data || res.data || [];
+
+        console.log('✅ Données quartiers transformées:', data);
         return Array.isArray(data) ? data : [];
       } catch (error) {
-
-        // En cas d'erreur, retourner les données mock
-        console.log('API non disponible, utilisation des données mock pour quartiers');
-        const { mockQuartiers } = await import("@/lib/mock-data");
-        return mockQuartiers;
+        console.error('❌ Erreur chargement quartiers:', error);
+        return [];
       }
     },
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
-    retry: false,
+    retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: Infinity,
+    cacheTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 }
 

@@ -4,7 +4,7 @@ export class ExerciceService {
   private static readonly BASE_URL = "/exercices";
 
   static async getAll(apiClient: any): Promise<ExerciceApiResponse> {
-    const response = await apiClient.get<ExerciceApiResponse>(`${this.BASE_URL}/all`);
+    const response = await apiClient.get<ExerciceApiResponse>(`${this.BASE_URL}`);
     return response.data;
   }
 

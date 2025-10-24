@@ -14,27 +14,43 @@ export const fonctionKeys = {
   search: (term: string) => [...fonctionKeys.all, "search", term] as const,
 };
 
-export function useFonctions() {
+type UseFonctionsOptions = {
+  enabled?: boolean;
+};
+
+export function useFonctions(options: UseFonctionsOptions = {}) {
   const apiClient = useApiClient();
   const { data: session, status } = useSessionWrapper();
+  const { enabled = true } = options;
+  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
 
   return useQuery({
     queryKey: fonctionKeys.lists(),
     queryFn: async () => {
+      console.log('🔍 [useFonctions] Début du chargement...');
+      console.log('🔍 [useFonctions] Session status:', status);
+      console.log('🔍 [useFonctions] isSessionReady:', isSessionReady);
+      console.log('🔍 [useFonctions] accessToken présent:', !!(session as any)?.accessToken);
+
       try {
         const res = await FonctionService.getAll(apiClient);
-        // L'API /all retourne : { data: [...], message, status }
-        const data = res.data?.data || res.data || res;
+        console.log('📦 [useFonctions] Réponse brute:', res);
+        console.log('📦 [useFonctions] res.data:', res.data);
+        console.log('📦 [useFonctions] res.data?.content:', res.data?.content);
+
+        // L'API retourne { data: { content: [...], totalElements, ... } }
+        const data = res.data?.content || res.data?.data || res.data || res;
+        console.log('✅ [useFonctions] Données finales:', data);
+        console.log('✅ [useFonctions] Nombre d\'éléments:', Array.isArray(data) ? data.length : 'N/A');
+
         return Array.isArray(data) ? data : [];
       } catch (error) {
-        // En cas d'erreur, retourner les données mock
-        console.log('API non disponible, utilisation des données mock pour fonctions');
-        const { mockFonctions } = await import("@/lib/mock-data");
-        return mockFonctions;
+        console.error('❌ [useFonctions] Erreur:', error);
+        throw error;
       }
     },
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
-    retry: false,
+    enabled: enabled && isSessionReady,
+    retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }

@@ -7,17 +7,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 // Import des hooks pour les données de sélection
-import { useCivilites } from "@/hooks/useCivilites";
-import { useNationalites } from "@/hooks/useNationalites";
-import { useQuartiers } from "@/hooks/useQuartiers";
+import { useStaticData } from "@/hooks/useStaticData";
 import { useFonctions } from "@/hooks/useFonctions";
 import { useProfessions } from "@/hooks/useProfessions";
 import { useStatutsSalarie } from "@/hooks/useStatutsSalarie";
-import { useBanques } from "@/hooks/useBanques";
 import { useAgencesBanque } from "@/hooks/useAgencesBanque";
 import { useEntites } from "@/hooks/useEntites";
-import { useTypesDebiteur } from "@/hooks/useTypesDebiteur";
-import { useCategoriesDebiteur } from "@/hooks/useCategoriesDebiteur";
 import { useTypesDomicil } from "@/hooks/useTypesDomicil";
 import { useUtilisateurs } from "@/hooks/useUtilisateurs";
 
@@ -27,6 +22,8 @@ const step1Schema = z.object({
   categorieDebiteur: z.string().min(1, "La catégorie débiteur est requise"),
   adressePostale: z.string().min(1, "L'adresse postale est requise"),
   email: z.string().email("Email invalide").min(1, "L'email est requis"),
+  telephone: z.string().optional(),
+  numeroCell: z.string().optional(),
   typeDebiteur: z.string().min(1, "Le type débiteur est requis"),
 });
 
@@ -100,22 +97,48 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
 
-  // Hooks pour les données de sélection
-  const { data: civilites, isLoading: loadingCivilites } = useCivilites();
-  const { data: nationalites, isLoading: loadingNationalites } = useNationalites();
-  const { data: quartiers, isLoading: loadingQuartiers } = useQuartiers();
-  const { data: fonctions, isLoading: loadingFonctions } = useFonctions();
-  const { data: professions, isLoading: loadingProfessions } = useProfessions();
-  const { data: statutsSalarie, isLoading: loadingStatutsSalarie } = useStatutsSalarie();
-  const { data: banques, isLoading: loadingBanques } = useBanques();
-  const { data: agencesBanque, isLoading: loadingAgencesBanque } = useAgencesBanque();
-  const { data: entites, isLoading: loadingEntites } = useEntites();
+  // Utilisation du hook de données statiques (chargement unique)
+  const {
+    quartiers,
+    nationalites,
+    banques,
+    civilites,
+    typesDebiteur,
+    categoriesDebiteur,
+    loadingQuartiers,
+    loadingNationalites,
+    loadingBanques,
+    loadingCivilites,
+    loadingTypesDebiteur,
+    loadingCategoriesDebiteur,
+    reloadQuartiers,
+    reloadNationalites,
+    reloadBanques,
+    reloadCivilites,
+    reloadTypesDebiteur,
+    reloadCategoriesDebiteur,
+  } = useStaticData({ autoLoad: false });
   
-  // Hooks pour les champs d'interrogation (récupérés automatiquement)
-  const { data: typesDebiteur, isLoading: loadingTypesDebiteur } = useTypesDebiteur();
-  const { data: categoriesDebiteur, isLoading: loadingCategoriesDebiteur } = useCategoriesDebiteur();
-  const { data: typesDomicil, isLoading: loadingTypesDomicil } = useTypesDomicil();
-  const { data: utilisateurs, isLoading: loadingUtilisateurs } = useUtilisateurs();
+  const hasReachedStep2 = currentStep >= 2;
+  const hasReachedStep3 = currentStep >= 3;
+  
+  // Hooks pour les autres données (chargées uniquement pour l'étape courante)
+  const { data: fonctions, isLoading: loadingFonctions } = useFonctions({ enabled: currentStep === 2 });
+  const { data: professions, isLoading: loadingProfessions } = useProfessions({ enabled: currentStep === 2 });
+  const { data: statutsSalarie, isLoading: loadingStatutsSalarie } = useStatutsSalarie({ enabled: currentStep === 2 });
+  const { data: agencesBanque, isLoading: loadingAgencesBanque } = useAgencesBanque({ enabled: currentStep === 3 });
+  const { data: entites, isLoading: loadingEntites } = useEntites({ enabled: currentStep === 2 });
+  const { data: typesDomicil, isLoading: loadingTypesDomicil } = useTypesDomicil({ enabled: currentStep === 3 });
+  const { data: utilisateurs, isLoading: loadingUtilisateurs } = useUtilisateurs({ enabled: currentStep === 3 });
+
+  // Logs pour déboguer les listes déroulantes
+  useEffect(() => {
+    console.log('🎯 [debiteur-form] Fonctions reçues:', { fonctions, loadingFonctions, count: Array.isArray(fonctions) ? fonctions.length : 'N/A' });
+  }, [fonctions, loadingFonctions]);
+
+  useEffect(() => {
+    console.log('🎯 [debiteur-form] Entités reçues:', { entites, loadingEntites, count: Array.isArray(entites) ? entites.length : 'N/A' });
+  }, [entites, loadingEntites]);
 
   const getSchemaForStep = useCallback((step: number) => {
     switch (step) {
@@ -152,6 +175,27 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
     });
     return () => subscription.unsubscribe();
   }, [watch]);
+
+  useEffect(() => {
+    if (currentStep >= 1) {
+      void reloadTypesDebiteur();
+      void reloadCategoriesDebiteur();
+    }
+  }, [currentStep, reloadCategoriesDebiteur, reloadTypesDebiteur]);
+
+  useEffect(() => {
+    if (currentStep >= 2) {
+      void reloadCivilites();
+      void reloadQuartiers();
+      void reloadNationalites();
+    }
+  }, [currentStep, reloadCivilites, reloadQuartiers, reloadNationalites]);
+
+  useEffect(() => {
+    if (currentStep >= 3) {
+      void reloadBanques();
+    }
+  }, [currentStep, reloadBanques]);
 
   // Reset seulement quand l'étape change
   useEffect(() => {
@@ -221,8 +265,8 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
   const getQuartierLibelle = (code: string) => {
     if (!code) return '';
     if (!quartiers || !Array.isArray(quartiers)) return code;
-    const quartier: any = quartiers.find((q: any) => q.Q_CODE === code || q.code === code || q.id === code);
-    return quartier?.Q_LIB || quartier?.libelle || code;
+    const quartier: any = quartiers.find((q: any) => q.QUART_CODE === code || q.code === code || q.id === code);
+    return quartier?.QUART_LIB || quartier?.libelle || code;
   }
 
   const getFonctionLibelle = (id: string) => {
@@ -270,8 +314,10 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
   const getTypeDomicilLibelle = (id: string) => {
     if (!id) return '';
     if (!typesDomicil || !Array.isArray(typesDomicil)) return id;
-    const type: any = typesDomicil.find((t: any) => t.id === id);
-    return type?.libelle || id;
+    const type: any = typesDomicil.find((t: any) => 
+      t.TYPDOM_CODE === id || t.code === id || t.id === id
+    );
+    return type?.TYPDOM_LIB || type?.libelle || id;
   }
 
   const getCiviliteLibelle = (code: string) => {
@@ -412,6 +458,40 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
           </FormControl>
         </GridItem>
 
+        <GridItem>
+          <FormControl isInvalid={!!errors.telephone}>
+            <FormLabel color={labelColor}>Téléphone</FormLabel>
+            <Controller
+              name="telephone"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: +225 27 12 34 56 78" {...getFieldStyles(!!errors.telephone)} />
+              )}
+            />
+            {errors.telephone && (
+              <Text color={errorRed} fontSize="sm">{String(errors.telephone.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+
+        <GridItem>
+          <FormControl isInvalid={!!errors.numeroCell}>
+            <FormLabel color={labelColor}>N° Cellulaire</FormLabel>
+            <Controller
+              name="numeroCell"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder="Ex: +225 07 12 34 56 78" {...getFieldStyles(!!errors.numeroCell)} />
+              )}
+            />
+            {errors.numeroCell && (
+              <Text color={errorRed} fontSize="sm">{String(errors.numeroCell.message)}</Text>
+            )}
+          </FormControl>
+        </GridItem>
+      </Grid>
+
+      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         <GridItem>
           <FormControl isInvalid={!!errors.typeDebiteur}>
             <FormLabel color={labelColor}>Type débiteur</FormLabel>
@@ -629,8 +709,8 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       <>
                         {Array.isArray(quartiers) && quartiers.length > 0 ? (
                           quartiers.filter((q: any) => q).map((quartier: any, index: number) => {
-                            const code = quartier.Q_CODE || quartier.code || quartier.id;
-                            const libelle = quartier.Q_LIB || quartier.libelle;
+                            const code = quartier.QUART_CODE || quartier.code || quartier.id;
+                            const libelle = quartier.QUART_LIB || quartier.libelle;
                             return (
                               <option key={code || `quartier-${index}`} value={code}>
                                 {libelle}
@@ -654,60 +734,6 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
       </Grid>
 
       <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.quartier}>
-            <FormLabel color={labelColor}>Quartier</FormLabel>
-            <Controller
-              name="quartier"
-              control={control}
-              render={({ field }) => (
-                readOnly ? (
-                  <Input 
-                    value={getQuartierLibelle(field.value)} 
-                    isReadOnly 
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.quartier)} 
-                    bg="gray.100"
-                  />
-                ) : (
-                  <Select 
-                    {...field}
-                    value={field.value || ''}
-                    placeholder="Sélectionner" 
-                    {...getFieldStyles(!!errors.quartier)}
-                    bg="gray.100"
-                    color="gray.700"
-                    _hover={{ bg: "gray.100" }}
-                  >
-                    {loadingQuartiers ? (
-                      <option key="loading" value="">Chargement...</option>
-                    ) : (
-                      <>
-                        {Array.isArray(quartiers) && quartiers.length > 0 ? (
-                          quartiers.filter((q: any) => q).map((quartier: any, index: number) => {
-                            const code = quartier.Q_CODE || quartier.code || quartier.id;
-                            const libelle = quartier.Q_LIB || quartier.libelle;
-                            return (
-                              <option key={code || `quartier-${index}`} value={code}>
-                                {libelle}
-                              </option>
-                            );
-                          })
-                        ) : (
-                          <option key="empty" value="">Aucun quartier disponible</option>
-                        )}
-                      </>
-                    )}
-                  </Select>
-                )
-              )}
-            />
-            {errors.quartier && (
-              <Text color={errorRed} fontSize="sm">{String(errors.quartier.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-
         <GridItem>
           <FormControl isInvalid={!!errors.nationalite}>
             <FormLabel color={labelColor}>Nationalité</FormLabel>
@@ -845,11 +871,15 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     {loadingProfessions ? (
                       <option value="">Chargement...</option>
                     ) : (
-                      Array.isArray(professions) && professions.map((profession: any) => (
-                        <option key={profession.id} value={profession.id}>
-                          {profession.libelle}
-                        </option>
-                      ))
+                      Array.isArray(professions) && professions.map((profession: any) => {
+                        const code = profession.PROFES_CODE || profession.code || profession.id;
+                        const libelle = profession.PROFES_LIB || profession.libelle;
+                        return (
+                          <option key={code} value={code}>
+                            {libelle}
+                          </option>
+                        );
+                      })
                     )}
                   </Select>
                 )
@@ -892,8 +922,8 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       <>
                         {Array.isArray(entites) && entites.length > 0 ? (
                           entites.filter((e: any) => e).map((entite: any, index: number) => {
-                            const code = entite.ENT_CODE || entite.code || entite.id;
-                            const libelle = entite.ENT_LIB || entite.libelle;
+                            const code = entite.ENTITE_CODE || entite.ENT_CODE || entite.code || entite.id;
+                            const libelle = entite.ENTITE_LIB || entite.ENT_LIB || entite.libelle;
                             return (
                               <option key={code || `entite-${index}`} value={code}>
                                 {libelle}
@@ -942,11 +972,15 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     {loadingStatutsSalarie ? (
                       <option value="">Chargement...</option>
                     ) : (
-                      Array.isArray(statutsSalarie) && statutsSalarie.map((statut: any) => (
-                        <option key={statut.id} value={statut.id}>
-                          {statut.libelle}
-                        </option>
-                      ))
+                      Array.isArray(statutsSalarie) && statutsSalarie.map((statut: any) => {
+                        const code = statut.STATSAL_CODE || statut.code || statut.id;
+                        const libelle = statut.STATSAL_LIB || statut.libelle;
+                        return (
+                          <option key={code} value={code}>
+                            {libelle}
+                          </option>
+                        );
+                      })
                     )}
                   </Select>
                 )
@@ -1577,11 +1611,15 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       {loadingTypesDomicil ? (
                         <option value="">Chargement...</option>
                       ) : (
-                        Array.isArray(typesDomicil) && typesDomicil.map((type: any) => (
-                          <option key={type.id} value={type.id}>
-                            {type.libelle}
-                          </option>
-                        ))
+                        Array.isArray(typesDomicil) && typesDomicil.map((type: any) => {
+                          const code = type.TYPDOM_CODE || type.code || type.id;
+                          const libelle = type.TYPDOM_LIB || type.libelle;
+                          return (
+                            <option key={code} value={code}>
+                              {libelle}
+                            </option>
+                          );
+                        })
                       )}
                     </Select>
                   )
@@ -1660,11 +1698,15 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       {loadingBanques ? (
                         <option value="">Chargement...</option>
                       ) : (
-                        Array.isArray(banques) && banques.map((banque: any) => (
-                          <option key={banque.id} value={banque.id}>
-                            {banque.libelle}
-                          </option>
-                        ))
+                        Array.isArray(banques) && banques.map((banque: any) => {
+                          const code = banque.BQ_CODE || banque.BANQ_CODE || banque.code || banque.id;
+                          const libelle = banque.BQ_LIB || banque.BANQ_LIB || banque.libelle;
+                          return (
+                            <option key={code} value={code}>
+                              {code} - {libelle}
+                            </option>
+                          );
+                        })
                       )}
                     </Select>
                   )
@@ -1705,11 +1747,23 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                       {loadingAgencesBanque ? (
                         <option value="">Chargement...</option>
                       ) : (
-                        Array.isArray(agencesBanque) && agencesBanque.map((agence: any) => (
-                          <option key={agence.id} value={agence.id}>
-                            {agence.libelle}
-                          </option>
-                        ))
+                        Array.isArray(agencesBanque) && agencesBanque
+                          .filter((agence: any) => {
+                            // Filtrer par banque sélectionnée
+                            const banqueSelectionnee = formData.domiciliation?.banque;
+                            if (!banqueSelectionnee) return true; // Afficher toutes si aucune banque sélectionnée
+                            const banqueAgence = agence.BQ_CODE || agence.banqueCode;
+                            return banqueAgence === banqueSelectionnee;
+                          })
+                          .map((agence: any, index: number) => {
+                            const code = agence.BQAG_NUM || agence.AGENCE_CODE || agence.code || agence.id || index;
+                            const libelle = agence.BQAG_LIB || agence.AGENCE_LIB || agence.libelle;
+                            return (
+                              <option key={code} value={code}>
+                                {code} - {libelle}
+                              </option>
+                            );
+                          })
                       )}
                     </Select>
                   )

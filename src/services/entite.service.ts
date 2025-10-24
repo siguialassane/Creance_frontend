@@ -1,10 +1,10 @@
 import { Entite, EntiteApiResponse, EntiteCreateRequest, EntiteUpdateRequest } from "@/types/entite";
 
 export class EntiteService {
-  private static readonly BASE_URL = "/employeurs";
+  private static readonly BASE_URL = "/entites";
 
   static async getAll(apiClient: any): Promise<any> {
-    const response = await apiClient.get(`${this.BASE_URL}/all`);
+    const response = await apiClient.get(`${this.BASE_URL}`);
     return response.data;
   }
 

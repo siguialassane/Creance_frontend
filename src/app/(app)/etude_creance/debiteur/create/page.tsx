@@ -5,12 +5,19 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import DebiteurForm from "@/components/debiteur-form/debiteur-form"
 import { useToast } from "@chakra-ui/react"
+import { useApiClient } from "@/hooks/useApiClient"
+import { useSession } from "next-auth/react"
+import { DebiteurService } from "@/services/debiteur.service"
+import { DebiteurCreateRequest } from "@/types/debiteur"
 
 export default function NouveauDebiteurPage() {
   const router = useRouter()
   const toast = useToast()
+  const apiClient = useApiClient()
+  const { data: session } = useSession()
   const [step, setStep] = React.useState(0)
   const [formData, setFormData] = React.useState({})
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const formRef = React.useRef<any>(null)
 
   const steps = [
@@ -19,52 +26,55 @@ export default function NouveauDebiteurPage() {
     { id: 2, title: "Domiciliation", description: "Type, compte, banque et agence" }
   ]
 
-  // Fonction pour générer un code débiteur unique
-  const generateCodeDebiteur = () => {
-    const year = new Date().getFullYear();
-    const existingDebiteurs = JSON.parse(localStorage.getItem('debiteurs') || '[]');
-    const lastNumber = existingDebiteurs.length + 1;
-    return `DEB-${year}-${String(lastNumber).padStart(3, '0')}`;
-  };
+  const handleSubmit = async (data: any) => {
+    console.log("Données du débiteur à envoyer:", data);
 
-  const handleSubmit = (data: any) => {
-    console.log("Données du débiteur:", data);
-    
-    // Générer un code débiteur
-    const codeDebiteur = generateCodeDebiteur();
-    
-    // Créer l'objet débiteur avec toutes les informations
-    const nouveauDebiteur = {
-      id: Date.now().toString(),
-      codeDebiteur: codeDebiteur,
-      ...data,
-      dateCreation: new Date().toISOString().split('T')[0],
-      statut: "Actif"
-    };
-    
-    // Récupérer les débiteurs existants du localStorage
-    const existingDebiteurs = JSON.parse(localStorage.getItem('debiteurs') || '[]');
-    
-    // Ajouter le nouveau débiteur
-    existingDebiteurs.push(nouveauDebiteur);
-    
-    // Sauvegarder dans le localStorage
-    localStorage.setItem('debiteurs', JSON.stringify(existingDebiteurs));
-    
-    // Afficher l'alerte de succès
-    toast({
-      title: "Débiteur enregistré avec succès !",
-      description: `Le débiteur ${codeDebiteur} a été créé avec succès.`,
-      status: "success",
-      duration: 5000,
-      isClosable: true,
-      position: "top",
-    });
-    
-    // Rediriger vers la liste après un court délai
-    setTimeout(() => {
-      router.push("/etude_creance/debiteur/views");
-    }, 1500);
+    setIsSubmitting(true);
+
+    try {
+      // Ajouter l'utilisateur connecté au payload
+      // Le nettoyage des champs numériques est maintenant fait dans DebiteurService
+      const payload = {
+        ...data,
+        utilisateur: (session as any)?.user?.username || (session as any)?.user?.name
+      };
+
+      console.log("Payload avec utilisateur:", payload);
+
+      // Appeler l'API pour créer le débiteur
+      const response = await DebiteurService.create(apiClient, payload as DebiteurCreateRequest);
+
+      console.log("Réponse de l'API:", response);
+
+      // Afficher l'alerte de succès
+      toast({
+        title: "Débiteur enregistré avec succès !",
+        description: `Le débiteur ${response.data?.DEB_CODE || ''} a été créé avec succès.`,
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+        position: "top",
+      });
+
+      // Rediriger vers la liste après un court délai
+      setTimeout(() => {
+        router.push("/etude_creance/debiteur/views");
+      }, 1500);
+    } catch (error: any) {
+      console.error("Erreur lors de la création du débiteur:", error);
+
+      // Afficher l'erreur
+      toast({
+        title: "Erreur lors de l'enregistrement",
+        description: error.response?.data?.error?.message || error.message || "Une erreur est survenue",
+        status: "error",
+        duration: 7000,
+        isClosable: true,
+        position: "top",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -153,12 +163,13 @@ export default function NouveauDebiteurPage() {
                       Suivant
                     </Button>
                   ) : (
-                    <Button 
+                    <Button
                       onClick={() => handleSubmit(formData)}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px]"
+                      disabled={isSubmitting}
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ backgroundColor: '#f97316', color: 'white' }}
                     >
-                      Enregistrer
+                      {isSubmitting ? "Enregistrement..." : "Enregistrer"}
                     </Button>
                   )}
                 </div>

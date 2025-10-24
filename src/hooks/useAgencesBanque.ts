@@ -43,33 +43,26 @@ export function useAgencesBanquePaginated(params: PaginationParams = {}) {
 /**
  * Hook pour récupérer toutes les agences bancaires (méthode legacy)
  */
-export function useAgencesBanque() {
+type UseAgencesBanqueOptions = {
+  enabled?: boolean;
+};
+
+export function useAgencesBanque(options: UseAgencesBanqueOptions = {}) {
   const apiClient = useApiClient();
   const { data: session, status } = useSession();
+  const { enabled = true } = options;
+  const isSessionReady = status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken;
   
   return useQuery({
     queryKey: agenceBanqueKeys.lists(),
     queryFn: async () => {
-      try {
-        const res = await AgenceBanqueService.getAllLegacy(apiClient);
-        // res.data est déjà un tableau AgenceBanque[]
-        const data = res.data;
-        console.log('✅ Données agences banque chargées depuis l\'API:', data);
-        if (Array.isArray(data)) {
-          return data;
-        } else {
-          const { mockAgencesBanque } = await import("@/lib/mock-data");
-          return mockAgencesBanque;
-        }
-      } catch (error) {
-        // En cas d'erreur, retourner les données mock
-        console.log('API non disponible, utilisation des données mock pour agences banque');
-        const { mockAgencesBanque } = await import("@/lib/mock-data");
-        return mockAgencesBanque;
-      }
+      const res = await AgenceBanqueService.getAllLegacy(apiClient);
+      const data = res.data?.content || res.data?.data || res.data || res;
+      console.log('✅ Données agences banque chargées depuis l\'API:', data);
+      return Array.isArray(data) ? data : [];
     },
-    enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken,
-    retry: false,
+    enabled: enabled && isSessionReady,
+    retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }

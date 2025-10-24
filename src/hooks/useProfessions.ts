@@ -14,27 +14,26 @@ export const professionKeys = {
   search: (term: string) => [...professionKeys.all, "search", term] as const,
 };
 
-export function useProfessions() {
+type UseProfessionsOptions = {
+  enabled?: boolean;
+};
+
+export function useProfessions(options: UseProfessionsOptions = {}) {
   const apiClient = useApiClient();
   const { data: session, status } = useSessionWrapper();
+  const { enabled = true } = options;
+  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
 
   return useQuery({
     queryKey: professionKeys.lists(),
     queryFn: async () => {
-      try {
-        const res = await ProfessionService.getAll(apiClient);
-        // L'API /all retourne : { data: [...], message, status }
-        const data = res.data?.data || res.data || res;
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        // En cas d'erreur, retourner les données mock
-        console.log('API non disponible, utilisation des données mock pour professions');
-        const { mockProfessions } = await import("@/lib/mock-data");
-        return mockProfessions;
-      }
+      const res = await ProfessionService.getAll(apiClient);
+      const data = res.data?.content || res.data?.data || res.data || res;
+      console.log('✅ Données professions chargées depuis l\'API:', data);
+      return Array.isArray(data) ? data : [];
     },
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
-    retry: false,
+    enabled: enabled && isSessionReady,
+    retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
@@ -114,4 +113,3 @@ export function useDeleteProfession() {
     },
   });
 }
-

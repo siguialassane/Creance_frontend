@@ -73,7 +73,7 @@ export const authConfig = {
         sameSite: "lax",
         path: "/",
         secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 30, // 30 jours (aligné avec le refresh token)
       },
     },
   },
@@ -154,6 +154,8 @@ export const authConfig = {
     signIn: "/login",
   },
   trustHost: true,
+  // Désactiver la vérification CSRF en développement pour éviter les erreurs
+  skipCSRFCheck: process.env.NODE_ENV === "development",
 } satisfies NextAuthConfig;
 
 

@@ -4,7 +4,7 @@ export class CompteOperationService {
   private static readonly BASE_URL = "/comptes-operation";
 
   static async getAll(apiClient: any): Promise<CompteOperationApiResponse> {
-    const response = await apiClient.get<CompteOperationApiResponse>(`${this.BASE_URL}/all`);
+    const response = await apiClient.get<CompteOperationApiResponse>(`${this.BASE_URL}`);
     return response.data;
   }
 

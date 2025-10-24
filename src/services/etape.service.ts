@@ -4,7 +4,7 @@ export class EtapeService {
   private static readonly BASE_URL = "/etapes";
 
   static async getAll(apiClient: any): Promise<EtapeApiResponse> {
-    const response = await apiClient.get<EtapeApiResponse>(`${this.BASE_URL}/all`);
+    const response = await apiClient.get<EtapeApiResponse>(`${this.BASE_URL}`);
     return response.data;
   }
 

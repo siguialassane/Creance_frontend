@@ -23,20 +23,26 @@ export function useNationalites() {
     queryFn: async () => {
       try {
         const res = await NationaliteService.getAll(apiClient);
-        // L'API /all retourne : { data: [...], message, status }
-        const data = res.data?.data || res.data || res;
+        console.log('📦 Réponse brute nationalités:', res);
+        
+        // Structure: { data: [...], message: "OK", status: "SUCCESS" }
+        const data = res.data || [];
+        
+        console.log('✅ Données nationalités transformées:', data);
         return Array.isArray(data) ? data : [];
       } catch (error) {
-
-        // En cas d'erreur, retourner les données mock
-        console.log('API non disponible, utilisation des données mock pour nationalités');
-        const { mockNationalites } = await import("@/lib/mock-data");
-        return mockNationalites;
+        console.error('❌ Erreur chargement nationalités:', error);
+        return [];
       }
     },
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
-    retry: false,
+    retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: Infinity,
+    cacheTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 }
 
@@ -115,4 +121,3 @@ export function useDeleteNationalite() {
     },
   });
 }
-

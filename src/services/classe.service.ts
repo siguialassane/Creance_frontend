@@ -5,8 +5,7 @@ export class ClasseService {
   private static readonly BASE_URL = "/classes";
 
   static async getAll(apiClient: ApiClient): Promise<ClasseApiResponse> {
-    // Utiliser l'endpoint /all pour récupérer toutes les classes sans pagination
-    const response = await apiClient.get<ClasseApiResponse>(`${this.BASE_URL}/all`);
+    const response = await apiClient.get<ClasseApiResponse>(`${this.BASE_URL}`);
     return response.data;
   }
 

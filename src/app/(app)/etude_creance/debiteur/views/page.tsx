@@ -17,6 +17,8 @@ import { EditIcon, DeleteIcon, ViewIcon } from "@chakra-ui/icons";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
+import { useApiClient } from "@/hooks/useApiClient";
+import { DebiteurService } from "@/services/debiteur.service";
 
 // Types pour les débiteurs
 interface Debiteur {
@@ -60,124 +62,106 @@ const DebiteurPage = () => {
   const [categorieFilter, setCategorieFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const router = useRouter();
   const toast = useToast();
+  const apiClient = useApiClient();
 
-  // Données de test
-  const mockDebiteurs: Debiteur[] = [
-    {
-      id: "1",
-      codeDebiteur: "DEB-2024-001",
-      categorieDebiteur: "Particulier",
-      typeDebiteur: "Physique",
-      email: "amadou.kone@example.com",
-      adressePostale: "Cocody, Angré 8ème Tranche, Abidjan",
-      nom: "Koné",
-      prenom: "Amadou",
-      civilite: "Monsieur",
-      nationalite: "Ivoirienne",
-      quartier: "Cocody",
-      numeroCellulaire: "+225 07 12 34 56 78",
-      numeroTelephone: "+225 20 30 40 50",
-      profession: "Fonctionnaire",
-      fonction: "Directeur",
-      employeur: "Ministère des Finances",
-      statutSalarie: "Actif",
-      dateCreation: "2024-01-15",
-      statut: "Actif"
-    },
-    {
-      id: "2",
-      codeDebiteur: "DEB-2024-002",
-      categorieDebiteur: "Particulier",
-      typeDebiteur: "Physique",
-      email: "fatou.traore@example.com",
-      adressePostale: "Plateau, Rue des Jardins, Abidjan",
-      nom: "Traoré",
-      prenom: "Fatou",
-      civilite: "Madame",
-      nationalite: "Malienne",
-      quartier: "Plateau",
-      numeroCellulaire: "+225 07 98 76 54 32",
-      profession: "Commerçante",
-      fonction: "Propriétaire",
-      employeur: "Commerce Traoré",
-      statutSalarie: "Actif",
-      dateCreation: "2024-02-20",
-      statut: "Actif"
-    },
-    {
-      id: "3",
-      codeDebiteur: "DEB-2024-003",
-      categorieDebiteur: "Entreprise",
-      typeDebiteur: "Moral",
-      email: "contact@societe-abc.com",
-      adressePostale: "Yopougon, Zone Industrielle, Abidjan",
-      raisonSociale: "Société ABC SARL",
-      registreCommerce: "CI-ABJ-2024-A-12345",
-      formeJuridique: "SARL",
-      domaineActivite: "Industrie",
-      siegeSocial: "Yopougon, Zone Industrielle",
-      nomGerant: "Koné Mamadou",
-      dateCreation: "2024-03-10",
-      statut: "Actif"
-    },
-    {
-      id: "4",
-      codeDebiteur: "DEB-2024-004",
-      categorieDebiteur: "Entreprise",
-      typeDebiteur: "Moral",
-      email: "info@commerce-dia.com",
-      adressePostale: "Cocody, Boulevard de la République, Abidjan",
-      raisonSociale: "Commerce Dia SARL",
-      registreCommerce: "CI-ABJ-2024-B-67890",
-      formeJuridique: "SARL",
-      domaineActivite: "Commerce",
-      siegeSocial: "Cocody, Boulevard de la République",
-      nomGerant: "Dia Aminata",
-      dateCreation: "2024-04-05",
-      statut: "Actif"
-    }
-  ];
-
+  // Charger les données depuis l'API backend
   useEffect(() => {
-    // Charger les débiteurs depuis le localStorage
-    const loadDebiteurs = () => {
+    if (hasLoaded) return; // Éviter les appels multiples
+    
+    let isMounted = true;
+    
+    const loadDebiteurs = async () => {
+      if (!isMounted || hasLoaded) return;
+      
+      setLoading(true);
+      setError(null);
+      
       try {
-        const storedDebiteurs = localStorage.getItem('debiteurs');
-        
-        if (storedDebiteurs) {
-          const parsedDebiteurs = JSON.parse(storedDebiteurs);
+        console.log('Chargement des débiteurs...');
+        const response = await DebiteurService.getAll(apiClient);
+        console.log('Réponse API:', response);
+
+        if (response.status === "SUCCESS" && response.data) {
+          // Extraire le contenu paginé
+          const debiteursList = response.data.content || response.data;
+          console.log('Liste des débiteurs extraite:', debiteursList);
+
+          // Transformer les données de l'API pour correspondre à notre interface
+          const transformedDebiteurs = Array.isArray(debiteursList) ? debiteursList.map((item: any) => ({
+            id: item.DEB_CODE?.toString() || Math.random().toString(),
+            codeDebiteur: item.DEB_CODE?.toString() || 'N/A',
+            categorieDebiteur: item.CATEG_DEB_CODE || 'N/A',
+            typeDebiteur: item.TYPDEB_CODE === 'P' ? 'Physique' : item.TYPDEB_CODE === 'M' ? 'Morale' : 'N/A',
+            email: item.DEB_EMAIL || '',
+            adressePostale: item.DEB_ADRPOST || '',
+            
+            // Personne physique
+            nom: item.DEB_NOM || '',
+            prenom: item.DEB_PRENOM || '',
+            civilite: item.CIVILITE || '',
+            nationalite: item.NATIONALITE || '',
+            quartier: item.QUARTIER || '',
+            numeroCellulaire: item.DEB_CEL || '',
+            numeroTelephone: item.DEB_TELBUR || '',
+            profession: item.PROFESSION || '',
+            fonction: item.FONCTION || '',
+            employeur: item.EMPLOYEUR || '',
+            statutSalarie: item.STATUT_SALARIE || '',
+            
+            // Personne morale
+            raisonSociale: item.DEB_RAISON_SOCIALE || '',
+            registreCommerce: item.DEB_RC || '',
+            formeJuridique: item.FORME_JURIDIQUE || '',
+            domaineActivite: item.DOMAINE_ACTIVITE || '',
+            siegeSocial: item.SIEGE_SOCIAL || '',
+            nomGerant: item.NOM_GERANT || '',
+            
+            // Métadonnées
+            dateCreation: item.DEB_DATE_CTL ? new Date(item.DEB_DATE_CTL).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            statut: 'Actif' // Par défaut actif
+          })) : [];
+
+          console.log('Débiteurs transformés:', transformedDebiteurs);
           
-          // Si le localStorage est vide, utiliser les données de test
-          if (parsedDebiteurs.length === 0) {
-            setDebiteurs(mockDebiteurs);
-            setFilteredDebiteurs(mockDebiteurs);
-            // Sauvegarder les données de test dans le localStorage
-            localStorage.setItem('debiteurs', JSON.stringify(mockDebiteurs));
-          } else {
-            setDebiteurs(parsedDebiteurs);
-            setFilteredDebiteurs(parsedDebiteurs);
+          if (isMounted) {
+            setDebiteurs(transformedDebiteurs);
+            setHasLoaded(true);
           }
         } else {
-          // Première utilisation : utiliser les données de test
-          setDebiteurs(mockDebiteurs);
-          setFilteredDebiteurs(mockDebiteurs);
-          localStorage.setItem('debiteurs', JSON.stringify(mockDebiteurs));
+          throw new Error(response.message || 'Erreur lors du chargement des débiteurs');
         }
-        
-        setLoading(false);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Erreur lors du chargement des débiteurs:', error);
-        // En cas d'erreur, utiliser les données de test
-        setDebiteurs(mockDebiteurs);
-        setFilteredDebiteurs(mockDebiteurs);
-        setLoading(false);
+        
+        if (isMounted) {
+          setError(error.message || 'Erreur lors du chargement des données');
+          
+          toast({
+            title: "Erreur de chargement",
+            description: "Impossible de charger la liste des débiteurs. Vérifiez votre connexion.",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+            position: "top",
+          });
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
-    
+
     loadDebiteurs();
-  }, []);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [hasLoaded]); // Dépendance sur hasLoaded pour éviter les appels multiples
 
   useEffect(() => {
     // Filtrage des débiteurs
@@ -247,22 +231,34 @@ const DebiteurPage = () => {
     router.push(`/etude_creance/debiteur/edit?id=${debiteur.id}`);
   };
 
-  const handleDeleteDebiteur = (debiteur: Debiteur) => {
+  const handleDeleteDebiteur = async (debiteur: Debiteur) => {
     if (confirm(`Êtes-vous sûr de vouloir supprimer le débiteur ${debiteur.codeDebiteur} ?`)) {
-      const updatedDebiteurs = debiteurs.filter(d => d.id !== debiteur.id);
-      setDebiteurs(updatedDebiteurs);
-      
-      // Mettre à jour le localStorage
-      localStorage.setItem('debiteurs', JSON.stringify(updatedDebiteurs));
-      
-      toast({
-        title: "Débiteur supprimé avec succès !",
-        description: `Le débiteur ${debiteur.codeDebiteur} a été supprimé avec succès.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-        position: "top",
-      });
+      try {
+        await DebiteurService.delete(apiClient, debiteur.codeDebiteur);
+        
+        // Mettre à jour la liste locale
+        const updatedDebiteurs = debiteurs.filter(d => d.id !== debiteur.id);
+        setDebiteurs(updatedDebiteurs);
+        
+        toast({
+          title: "Débiteur supprimé avec succès !",
+          description: `Le débiteur ${debiteur.codeDebiteur} a été supprimé avec succès.`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+          position: "top",
+        });
+      } catch (error: any) {
+        console.error('Erreur lors de la suppression:', error);
+        toast({
+          title: "Erreur de suppression",
+          description: "Impossible de supprimer le débiteur. Vérifiez votre connexion.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "top",
+        });
+      }
     }
   };
 

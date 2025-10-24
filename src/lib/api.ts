@@ -6,7 +6,7 @@ export type ApiClient = AxiosInstance;
 
 // Configuration de base pour Axios
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://192.168.1.105:8081/api",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -56,14 +56,11 @@ apiClient.interceptors.response.use(
   async (error) => {
     // Gérer les erreurs globalement
     if (error.response?.status === 401) {
-      // Laisser NextAuth gérer la déconnexion
-      try {
-        if (typeof window !== 'undefined') {
-          const { signOut } = await import("next-auth/react");
-          await signOut({ callbackUrl: "/login" });
-        }
-      } catch (err) {
-        console.warn('Failed to sign out:', err);
+      // Rediriger vers login sans appeler signOut pour éviter les erreurs CSRF
+      // Le middleware NextAuth détectera l'absence de session et redirigera proprement
+      if (typeof window !== 'undefined') {
+        console.warn('Session expirée, redirection vers /login');
+        window.location.href = "/login";
       }
     }
     return Promise.reject(error);

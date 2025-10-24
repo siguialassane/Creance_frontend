@@ -4,7 +4,7 @@ export class NationaliteService {
   private static readonly BASE_URL = "/nationalites";
 
   static async getAll(apiClient: any): Promise<any> {
-    const response = await apiClient.get(`${this.BASE_URL}/all`);
+    const response = await apiClient.get(`${this.BASE_URL}`);
     return response.data;
   }
 

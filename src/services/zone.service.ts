@@ -5,8 +5,7 @@ export class ZoneService {
   private static readonly BASE_URL = "/zones";
 
   static async getAll(apiClient: ApiClient): Promise<ZoneApiResponse> {
-    // Utiliser l'endpoint /all pour récupérer toutes les zones sans pagination
-    const response = await apiClient.get<ZoneApiResponse>(`${this.BASE_URL}/all`);
+    const response = await apiClient.get<ZoneApiResponse>(`${this.BASE_URL}`);
     return response.data;
   }
 

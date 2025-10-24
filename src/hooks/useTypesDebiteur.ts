@@ -21,22 +21,19 @@ export const useTypesDebiteur = () => {
   return useQuery({
     queryKey: typeDebiteurKeys.lists(),
     queryFn: async () => {
-      try {
-        const res = await TypeDebiteurService.getAll(apiClient);
-        const data = res.data;
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        // En cas d'erreur, retourner les données mock
-        console.log('API non disponible, utilisation des données mock pour types débiteur');
-        return [
-          { id: "type001", libelle: "Personne physique", code: "physique" },
-          { id: "type002", libelle: "Personne morale", code: "moral" }
-        ];
-      }
+      const res = await TypeDebiteurService.getAll(apiClient);
+      const data = res.data?.content || res.data?.data || res.data || res;
+      console.log('✅ Données types débiteur chargées depuis l\'API:', data);
+      return Array.isArray(data) ? data : [];
     },
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
-    retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: Infinity,
+    cacheTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 }
 

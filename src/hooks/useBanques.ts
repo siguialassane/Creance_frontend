@@ -51,25 +51,26 @@ export function useBanques() {
     queryFn: async () => {
       try {
         const res = await BanqueService.getAllLegacy(apiClient);
-        // res.data est déjà un tableau Banque[]
-        const data = res.data;
-        console.log('✅ Données banques chargées depuis l\'API:', data);
-        if (Array.isArray(data)) {
-          return data;
-        } else {
-          const { mockBanques } = await import("@/lib/mock-data");
-          return mockBanques;
-        }
+        console.log('📦 Réponse brute banques:', res);
+
+        // Structure: { data: { content: [...], totalElements, totalPages }, message: "OK", status: "SUCCESS" }
+        const data = res.data?.content || res.data?.data || res.data || [];
+
+        console.log('✅ Données banques transformées:', data);
+        return Array.isArray(data) ? data : [];
       } catch (error) {
-        // En cas d'erreur, retourner les données mock
-        console.log('API non disponible, utilisation des données mock pour banques');
-        const { mockBanques } = await import("@/lib/mock-data");
-        return mockBanques;
+        console.error('❌ Erreur chargement banques:', error);
+        return [];
       }
     },
     enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken,
-    retry: false,
+    retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: Infinity,
+    cacheTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 }
 

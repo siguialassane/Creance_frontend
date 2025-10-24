@@ -211,7 +211,7 @@ const menuItemsData = [
     subMenu: [
       {
         name: "Debiteur",
-        path: "debiteur/create",
+        path: "debiteur",
         customPath: true, // Marqueur pour indiquer que le chemin est personnalisé
       },
       {
