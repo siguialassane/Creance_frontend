@@ -5,6 +5,8 @@ import { Box, VStack, HStack, FormControl, FormLabel, Input, Select, Textarea, T
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 // Import des hooks pour les données de sélection
 import { useStaticData } from "@/hooks/useStaticData";
@@ -21,7 +23,9 @@ const step1Schema = z.object({
   codeDebiteur: z.string().optional(), // Auto-généré après validation
   categorieDebiteur: z.string().min(1, "La catégorie débiteur est requise"),
   adressePostale: z.string().min(1, "L'adresse postale est requise"),
-  email: z.string().email("Email invalide").min(1, "L'email est requis"),
+  email: z.string()
+    .min(1, "L'email est requis")
+    .email("Email invalide (format attendu: exemple@domaine.com)"),
   telephone: z.string().optional(),
   numeroCell: z.string().optional(),
   typeDebiteur: z.string().min(1, "Le type débiteur est requis"),
@@ -149,7 +153,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
     }
   }, []);
 
-  const { control, handleSubmit, formState: { errors }, watch, setValue, reset, trigger } = useForm({
+  const { control, handleSubmit, formState: { errors }, watch, setValue, reset, trigger, getValues } = useForm({
     resolver: zodResolver(getSchemaForStep(currentStep)),
     defaultValues: formData
   });
@@ -197,28 +201,23 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
     }
   }, [currentStep, reloadBanques]);
 
-  // Reset seulement quand l'étape change
+  // Synchroniser les valeurs du formulaire avec formData UNIQUEMENT au chargement initial
   useEffect(() => {
-    // Seulement si l'étape change réellement
-    if (prevStepRef.current !== currentStep) {
-      prevStepRef.current = currentStep;
-      
-      const currentFormData = formDataRef.current;
-      if (currentFormData) {
-        // S'assurer que toutes les valeurs sont définies pour éviter les erreurs de champs contrôlés/non-contrôlés
-        const sanitizedFormData = Object.keys(currentFormData).reduce((acc, key) => {
-          acc[key] = currentFormData[key] ?? '';
-          return acc;
-        }, {} as any);
-        
-        resetRef.current(sanitizedFormData);
-        
-        if (currentFormData.typeDebiteur) {
-          typeDebiteurRef.current = currentFormData.typeDebiteur;
-          setTypeDebiteur(currentFormData.typeDebiteur);
-        }
+    if (formData && Object.keys(formData).length > 0) {
+      // Utiliser reset avec les données de formData pour initialiser le formulaire
+      reset(formData);
+
+      // Mettre à jour le type de débiteur
+      if (formData.typeDebiteur) {
+        typeDebiteurRef.current = formData.typeDebiteur;
+        setTypeDebiteur(formData.typeDebiteur);
       }
     }
+  }, []); // Exécuter uniquement au montage initial
+
+  // Mettre à jour prevStepRef quand currentStep change (pour le tracking seulement)
+  useEffect(() => {
+    prevStepRef.current = currentStep;
   }, [currentStep]);
 
   // Exposer la méthode de validation au composant parent
@@ -299,16 +298,38 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
 
   const getBanqueLibelle = (id: string) => {
     if (!id) return '';
+
+    // Si on a le libellé directement dans formData (mode visualisation), l'utiliser
+    if (formData.banqueLibelle) {
+      return `${id} - ${formData.banqueLibelle}`;
+    }
+
+    // Sinon chercher dans la liste des banques
     if (!banques || !Array.isArray(banques)) return id;
-    const banque: any = banques.find((b: any) => b.id === id);
-    return banque?.libelle || id;
+    const banque: any = banques.find((b: any) => {
+      const code = b.BQ_CODE || b.BANQ_CODE || b.code || b.id;
+      return code === id;
+    });
+    const libelle = banque?.BQ_LIB || banque?.BANQ_LIB || banque?.libelle;
+    return libelle ? `${id} - ${libelle}` : id;
   }
 
   const getAgenceBanqueLibelle = (id: string) => {
     if (!id) return '';
+
+    // Si on a le libellé directement dans formData (mode visualisation), l'utiliser
+    if (formData.agenceLibelle) {
+      return `${id} - ${formData.agenceLibelle}`;
+    }
+
+    // Sinon chercher dans la liste des agences
     if (!agencesBanque || !Array.isArray(agencesBanque)) return id;
-    const agence: any = agencesBanque.find((a: any) => a.id === id);
-    return agence?.libelle || id;
+    const agence: any = agencesBanque.find((a: any) => {
+      const code = a.BQAG_CODE || a.code || a.id;
+      return code === id;
+    });
+    const libelle = agence?.BQAG_LIB || agence?.libelle;
+    return libelle ? `${id} - ${libelle}` : id;
   }
 
   const getTypeDomicilLibelle = (id: string) => {
@@ -383,17 +404,18 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               control={control}
               render={({ field }) => (
                 readOnly ? (
-                  <Input 
-                    value={getCategorieLibelle(field.value)} 
-                    isReadOnly 
+                  <Input
+                    value={getCategorieLibelle(field.value)}
+                    isReadOnly
                     color="gray.700"
-                    {...getFieldStyles(!!errors.categorieDebiteur)} 
+                    {...getFieldStyles(!!errors.categorieDebiteur)}
                     bg="gray.100"
                   />
                 ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner une catégorie" 
+                  <Select
+                    {...field}
+                    placeholder={loadingCategoriesDebiteur ? "- Chargement -" : "Sélectionner une catégorie"}
+                    isDisabled={loadingCategoriesDebiteur}
                     borderColor={primaryGreen}
                     bg="gray.100"
                     color="gray.700"
@@ -465,7 +487,20 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="telephone"
               control={control}
               render={({ field }) => (
-                <Input {...field} placeholder="Ex: +225 27 12 34 56 78" {...getFieldStyles(!!errors.telephone)} />
+                <PhoneInput
+                  {...field}
+                  defaultCountry="CI"
+                  international
+                  placeholder="Ex: 27 12 34 56 78"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    borderRadius: '0.375rem',
+                    border: `1px solid ${!!errors.telephone ? errorRed : borderGray}`,
+                    backgroundColor: readOnly ? '#f7fafc' : 'white',
+                  }}
+                  disabled={readOnly}
+                />
               )}
             />
             {errors.telephone && (
@@ -481,7 +516,20 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               name="numeroCell"
               control={control}
               render={({ field }) => (
-                <Input {...field} placeholder="Ex: +225 07 12 34 56 78" {...getFieldStyles(!!errors.numeroCell)} />
+                <PhoneInput
+                  {...field}
+                  defaultCountry="CI"
+                  international
+                  placeholder="Ex: 07 12 34 56 78"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    borderRadius: '0.375rem',
+                    border: `1px solid ${!!errors.numeroCell ? errorRed : borderGray}`,
+                    backgroundColor: readOnly ? '#f7fafc' : 'white',
+                  }}
+                  disabled={readOnly}
+                />
               )}
             />
             {errors.numeroCell && (
@@ -500,17 +548,18 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               control={control}
               render={({ field }) => (
                 readOnly ? (
-                  <Input 
-                    value={getTypeDebiteurLibelle(field.value)} 
-                    isReadOnly 
+                  <Input
+                    value={getTypeDebiteurLibelle(field.value)}
+                    isReadOnly
                     color="gray.700"
-                    {...getFieldStyles(!!errors.typeDebiteur)} 
+                    {...getFieldStyles(!!errors.typeDebiteur)}
                     bg="gray.100"
                   />
                 ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner un type" 
+                  <Select
+                    {...field}
+                    placeholder={loadingTypesDebiteur ? "- Chargement -" : "Sélectionner un type"}
+                    isDisabled={loadingTypesDebiteur}
                     borderColor={primaryGreen}
                     bg="gray.100"
                     color="gray.700"
@@ -564,17 +613,18 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               control={control}
               render={({ field }) => (
                 readOnly ? (
-                  <Input 
-                    value={getCiviliteLibelle(field.value)} 
-                    isReadOnly 
+                  <Input
+                    value={getCiviliteLibelle(field.value)}
+                    isReadOnly
                     color="gray.700"
-                    {...getFieldStyles(!!errors.civilite)} 
+                    {...getFieldStyles(!!errors.civilite)}
                     bg="gray.100"
                   />
                 ) : (
-                  <Select 
+                  <Select
                     {...field}
-                    placeholder="Sélectionner" 
+                    placeholder={loadingCivilites ? "- Chargement -" : "Sélectionner"}
+                    isDisabled={loadingCivilites}
                     borderColor={primaryGreen}
                     bg="gray.100"
                     color="gray.700"
@@ -686,21 +736,23 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
               control={control}
               render={({ field }) => (
                 readOnly ? (
-                  <Input 
-                    value={getQuartierLibelle(field.value)} 
-                    isReadOnly 
+                  <Input
+                    value={getQuartierLibelle(field.value)}
+                    isReadOnly
                     color="gray.700"
-                    {...getFieldStyles(!!errors.quartier)} 
+                    {...getFieldStyles(!!errors.quartier)}
                     bg="gray.100"
                   />
                 ) : (
-                  <Select 
+                  <Select
                     {...field}
                     value={field.value || ''}
-                    placeholder="Sélectionner" 
-                    {...getFieldStyles(!!errors.quartier)}
-                    bg="gray.100"
+                    placeholder={loadingQuartiers ? "- Chargement -" : "Sélectionner"}
+                    isDisabled={loadingQuartiers || readOnly}
+                    borderColor={!!errors.quartier ? errorRed : borderGray}
+                    bg={!!errors.quartier ? errorBg : 'gray.100'}
                     color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
                     _hover={{ bg: "gray.100" }}
                   >
                     {loadingQuartiers ? (
@@ -750,13 +802,15 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     bg="gray.100"
                   />
                 ) : (
-                  <Select 
+                  <Select
                     {...field}
                     value={field.value || ''}
-                    placeholder="Sélectionner" 
-                    {...getFieldStyles(!!errors.nationalite)}
-                    bg="gray.100"
+                    placeholder={loadingNationalites ? "- Chargement -" : "Sélectionner"}
+                    isDisabled={loadingNationalites || readOnly}
+                    borderColor={!!errors.nationalite ? errorRed : borderGray}
+                    bg={!!errors.nationalite ? errorBg : 'gray.100'}
                     color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
                     _hover={{ bg: "gray.100" }}
                   >
                     {loadingNationalites ? (
@@ -804,10 +858,11 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     bg="gray.100"
                   />
                 ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner" 
-                    borderColor={primaryGreen}
+                  <Select
+                    {...field}
+                    placeholder={loadingFonctions ? "- Chargement -" : "Sélectionner"}
+                    isDisabled={loadingFonctions || readOnly}
+                    borderColor={!!errors.fonction ? errorRed : primaryGreen}
                     bg="gray.100"
                     color="gray.700"
                     _focus={{ borderColor: primaryGreen }}
@@ -860,12 +915,14 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     bg="gray.100"
                   />
                 ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner" 
-                    {...getFieldStyles(!!errors.profession)}
-                    bg="gray.100"
+                  <Select
+                    {...field}
+                    placeholder={loadingProfessions ? "- Chargement -" : "Sélectionner"}
+                    isDisabled={loadingProfessions || readOnly}
+                    borderColor={!!errors.profession ? errorRed : borderGray}
+                    bg={!!errors.profession ? errorBg : 'gray.100'}
                     color="gray.700"
+                    _focus={{ borderColor: primaryGreen }}
                     _hover={{ bg: "gray.100" }}
                   >
                     {loadingProfessions ? (
@@ -961,11 +1018,12 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
                     bg="gray.100"
                   />
                 ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner" 
-                    {...getFieldStyles(!!errors.statutSalarie)}
-                    bg="gray.100"
+                  <Select
+                    {...field}
+                    placeholder={loadingStatutsSalarie ? "- Chargement -" : "Sélectionner"}
+                    isDisabled={loadingStatutsSalarie || readOnly}
+                    borderColor={!!errors.statutSalarie ? errorRed : borderGray}
+                    bg={!!errors.statutSalarie ? errorBg : 'gray.100'}
                     color="gray.700"
                     _hover={{ bg: "gray.100" }}
                   >

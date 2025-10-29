@@ -93,12 +93,13 @@ export interface DebiteurResponse {
 }
 
 export interface DebiteurApiResponse {
-  success: boolean;
-  data: DebiteurResponse | DebiteurResponse[];
+  status: "SUCCESS" | "ERROR";
+  data?: DebiteurResponse | DebiteurResponse[] | any;
   message?: string;
+  timestamp?: string;
   error?: {
     code: string;
-    message: string;
+    details: string;
     path: string;
   };
 }

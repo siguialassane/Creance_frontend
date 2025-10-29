@@ -7,84 +7,22 @@ import { ChevronLeftIcon, ChevronRightIcon, ArrowBackIcon, EditIcon } from "@cha
 import { useRouter, useSearchParams } from "next/navigation";
 import CreanceForm from "@/components/creance-form/creance-form";
 import { Button } from "@/components/ui/button";
+import { useApiClient } from "@/hooks/useApiClient";
+import { CreanceService } from "@/services/creance.service";
+import { CreanceResponse } from "@/types/creance";
 
 const VoirCreancePageInner = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const totalSteps = 5;
   const formRef = useRef<any>(null);
   const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const creanceId = searchParams.get('id');
-
-  // Données de test (en réalité, vous récupéreriez ces données depuis l'API)
-  const mockCreanceData = {
-    // Étape 1: Informations générales
-    debiteur: "deb1",
-    groupeCreance: "GC001",
-    typeObjet: "OC001",
-    capitalInitial: 5000000,
-    montantDecaisse: 5000000,
-    steCaution: "Société de Caution ABC",
-    statutRecouvrement: "oui",
-    numeroPrecedent: "CRE-2023-999",
-    numeroAncien: "OLD-001",
-    typeStructure: "SARL",
-    classeCreance: "CLAS001",
-    
-    // Étape 2: Informations générales 2
-    numeroCreance: "CRE-2024-001",
-    entite: "ENT001",
-    objetCreance: "Prêt immobilier",
-    periodicite: "mensuelle",
-    nbEch: 12,
-    dateReconnaissance: "2024-01-15",
-    datePremiereEcheance: "2024-02-15",
-    dateDerniereEcheance: "2024-12-15",
-    dateOctroi: "2024-01-10",
-    datePremierPrecept: "2024-01-20",
-    creanceSoldeAvantLid: "Solde avant LID",
-    
-    // Étape 3: Détails financiers
-    ordonnateur: "Ministère des Finances",
-    montantRembourse: 5600000,
-    montantDu: 5600000,
-    montantDejaRembourse: 3600000,
-    montantImpaye: 2000000,
-    diversFrais: 50000,
-    commission: 100000,
-    montantAss: 25000,
-    intConvPourcentage: 10,
-    montantIntConvPaye: 500000,
-    intRetPourcentage: 2,
-    encours: 100000,
-    totalDu: 2150000,
-    penalite1Pourcent: 21500,
-    totalARecouvrer: 2271500,
-    
-    // Étape 4: Pièces
-    typePiece: "contrat",
-    reference: "REF-001",
-    libelle: "Contrat de prêt immobilier",
-    dateEmission: "2024-01-15",
-    dateReception: "2024-01-16",
-    
-    // Étape 5: Garanties
-    typeGarantie: "personnelles",
-    type: "Caution personnelle",
-    employeur: "ENT002",
-    statutSal: "Actif",
-    quartier: "Q001",
-    priorite: "Haute",
-    nom: "Koné",
-    prenoms: "Amadou",
-    dateInscription: "2024-01-15",
-    fonction: "Directeur",
-    profession: "Fonctionnaire",
-    adressePostale: "Cocody, Angré 8ème Tranche, Abidjan"
-  };
+  const apiClient = useApiClient();
 
   const steps = [
     { id: 1, title: "Informations générales", description: "Débiteur, groupe créance, type d'objet, capital initial" },
@@ -94,13 +32,110 @@ const VoirCreancePageInner = () => {
     { id: 5, title: "Garanties", description: "Garanties personnelles ou réelles" }
   ];
 
+  // Transformation des données API vers le format du formulaire
+  const transformApiDataToForm = (apiData: CreanceResponse) => {
+    return {
+      // Étape 1: Informations générales
+      debiteur: apiData.DEB_CODE,
+      groupeCreance: apiData.GC_CODE,
+      typeObjet: apiData.OC_CODE,
+      capitalInitial: apiData.CREAN_CAPIT_INIT,
+      montantDecaisse: apiData.CREAN_MONT_DECAISSE || 0,
+      steCaution: '',
+      statutRecouvrement: '',
+      numeroPrecedent: apiData.CREAN_NUM_PREC || '',
+      numeroAncien: apiData.CREAN_NUM_ANC || '',
+      typeStructure: '',
+      classeCreance: '',
+
+      // Étape 2: Informations générales 2
+      numeroCreance: apiData.CREAN_CODE,
+      entite: '',
+      objetCreance: apiData.CREAN_OBJET || '',
+      periodicite: apiData.CREAN_PERIODICITE?.toLowerCase() || '',
+      nbEch: apiData.CREAN_DUREE || 0,
+      dateReconnaissance: '',
+      datePremiereEcheance: '',
+      dateDerniereEcheance: apiData.CREAN_DATE_ECHEANCE || '',
+      dateOctroi: apiData.CREAN_DATE_DEBLOCAGE || '',
+      datePremierPrecept: '',
+      creanceSoldeAvantLid: '',
+      ordonnateur: apiData.ORDO_CODE,
+
+      // Étape 3: Détails financiers
+      montantRembourse: apiData.CREAN_MONT_A_REMB || 0,
+      montantDu: apiData.CREAN_MONT_DU || 0,
+      montantDejaRembourse: apiData.CREAN_MONT_REMB || 0,
+      montantImpaye: apiData.CREAN_MONT_IMPAYE || 0,
+      diversFrais: apiData.CREAN_FRAIS || 0,
+      commission: apiData.CREAN_COMM_BANQ || 0,
+      montantAss: 0,
+      intConvPourcentage: apiData.CREAN_TAUX_IC || 0,
+      montantIntConvPaye: apiData.CREAN_MONT_IC || 0,
+      intRetPourcentage: apiData.CREAN_TAUX_IR || 0,
+      encours: apiData.CREAN_ENCOURS || 0,
+      totalDu: apiData.CREAN_TOTAL_DU || 0,
+      penalite1Pourcent: apiData.CREAN_PENALITE || 0,
+      totalARecouvrer: apiData.CREAN_TOT_SOLDE || 0,
+
+      // Étape 4: Pièces
+      typePiece: '',
+      reference: '',
+      libelle: apiData.CREAN_OBS || '',
+      dateEmission: '',
+      dateReception: '',
+
+      // Étape 5: Garanties
+      typeGarantie: '',
+      type: '',
+      employeur: '',
+      statutSal: '',
+      quartier: '',
+      priorite: '',
+      nom: '',
+      prenoms: '',
+      dateInscription: '',
+      fonction: '',
+      profession: '',
+      adressePostale: ''
+    };
+  };
+
   useEffect(() => {
-    // Simulation du chargement des données
-    setTimeout(() => {
-      setFormData(mockCreanceData);
-      setLoading(false);
-    }, 1000);
-  }, [creanceId]);
+    const loadCreance = async () => {
+      if (!creanceId) {
+        setError("ID de créance manquant");
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const apiData = await CreanceService.getByCode(apiClient, creanceId);
+        console.log('Données créance reçues:', apiData);
+
+        const transformedData = transformApiDataToForm(apiData);
+        setFormData(transformedData);
+      } catch (error: any) {
+        console.error('Erreur lors du chargement de la créance:', error);
+        setError(error.message || "Impossible de charger la créance");
+        toast({
+          title: "Erreur de chargement",
+          description: error.message || "Impossible de charger la créance",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "top",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCreance();
+  }, [creanceId, apiClient, toast]);
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -132,6 +167,15 @@ const VoirCreancePageInner = () => {
     );
   }
 
+  if (error) {
+    return (
+      <Box p={6} maxW="1200px" mx="auto">
+        <Text color="red.500">Erreur: {error}</Text>
+        <ChakraButton mt={4} onClick={handleBack}>Retour à la liste</ChakraButton>
+      </Box>
+    );
+  }
+
   return (
     <Box p={6} maxW="1200px" mx="auto">
       <VStack spacing={6} align="stretch">
@@ -141,7 +185,7 @@ const VoirCreancePageInner = () => {
             <div>
               <h1 className="text-2xl font-semibold mb-2" style={{ color: '#28A325' }}>Consultation de Créance</h1>
               <p className="text-base text-gray-600">
-                Consultez les détails de la créance {mockCreanceData.numeroCreance}
+                Consultez les détails de la créance {formData.numeroCreance || creanceId}
               </p>
             </div>
             <HStack spacing={3}>

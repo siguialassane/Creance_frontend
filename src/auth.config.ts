@@ -22,7 +22,7 @@ type LoginResponse = {
 };
 
 async function loginWithCredentials(username: string, password: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api";
   const res = await fetch(`${baseUrl}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -154,8 +154,6 @@ export const authConfig = {
     signIn: "/login",
   },
   trustHost: true,
-  // Désactiver la vérification CSRF en développement pour éviter les erreurs
-  skipCSRFCheck: process.env.NODE_ENV === "development",
 } satisfies NextAuthConfig;
 
 

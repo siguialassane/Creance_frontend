@@ -1,17 +1,24 @@
 "use client"
 
-import { useState, useEffect } from "react";
-import { 
-  Box, 
-  Button, 
-  Text, 
-  VStack, 
-  HStack, 
-  Input, 
-  Select, 
+import { useState, useEffect, useRef } from "react";
+import {
+  Box,
+  Button,
+  Text,
+  VStack,
+  HStack,
+  Input,
+  Select,
   Badge,
   IconButton,
-  useToast
+  useToast,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  useDisclosure
 } from "@chakra-ui/react";
 import { EditIcon, DeleteIcon, ViewIcon } from "@chakra-ui/icons";
 import { DataTable } from "@/components/ui/data-table";
@@ -98,28 +105,28 @@ const DebiteurPage = () => {
             typeDebiteur: item.TYPDEB_CODE === 'P' ? 'Physique' : item.TYPDEB_CODE === 'M' ? 'Morale' : 'N/A',
             email: item.DEB_EMAIL || '',
             adressePostale: item.DEB_ADRPOST || '',
-            
-            // Personne physique
+
+            // Personne physique - colonnes réelles d'Oracle
             nom: item.DEB_NOM || '',
-            prenom: item.DEB_PRENOM || '',
-            civilite: item.CIVILITE || '',
-            nationalite: item.NATIONALITE || '',
-            quartier: item.QUARTIER || '',
+            prenom: item.DEB_PREN || '',
+            civilite: item.CIV_CODE || '',
+            nationalite: item.NAT_CODE || '',
+            quartier: item.QUART_CODE || '',
             numeroCellulaire: item.DEB_CEL || '',
             numeroTelephone: item.DEB_TELBUR || '',
-            profession: item.PROFESSION || '',
-            fonction: item.FONCTION || '',
-            employeur: item.EMPLOYEUR || '',
-            statutSalarie: item.STATUT_SALARIE || '',
-            
-            // Personne morale
-            raisonSociale: item.DEB_RAISON_SOCIALE || '',
-            registreCommerce: item.DEB_RC || '',
-            formeJuridique: item.FORME_JURIDIQUE || '',
-            domaineActivite: item.DOMAINE_ACTIVITE || '',
-            siegeSocial: item.SIEGE_SOCIAL || '',
-            nomGerant: item.NOM_GERANT || '',
-            
+            profession: item.PROFES_CODE || '',
+            fonction: item.FONCT_CODE || '',
+            employeur: item.EMP_CODE || '',
+            statutSalarie: item.STATSAL_CODE || '',
+
+            // Personne morale - colonnes réelles d'Oracle
+            raisonSociale: item.DEB_RAIS_SOCIALE || 'N/A',
+            registreCommerce: item.DEB_REGISTCOM || '',
+            formeJuridique: item.DEB_FORM_JURID || '',
+            domaineActivite: item.DEB_DOM_ACTIV || '',
+            siegeSocial: item.DEB_SIEG_SOCIAL || '',
+            nomGerant: item.DEB_NOM_GERANT || '',
+
             // Métadonnées
             dateCreation: item.DEB_DATE_CTL ? new Date(item.DEB_DATE_CTL).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             statut: 'Actif' // Par défaut actif
@@ -224,11 +231,13 @@ const DebiteurPage = () => {
   };
 
   const handleViewDebiteur = (debiteur: Debiteur) => {
-    router.push(`/etude_creance/debiteur/views/voir?id=${debiteur.id}`);
+    // Utiliser codeDebiteur qui contient le vrai DEB_CODE
+    router.push(`/etude_creance/debiteur/views/voir?id=${debiteur.codeDebiteur}`);
   };
 
   const handleEditDebiteur = (debiteur: Debiteur) => {
-    router.push(`/etude_creance/debiteur/edit?id=${debiteur.id}`);
+    // Utiliser codeDebiteur qui contient le vrai DEB_CODE, pas l'id qui pourrait être un numéro
+    router.push(`/etude_creance/debiteur/edit?id=${debiteur.codeDebiteur}`);
   };
 
   const handleDeleteDebiteur = async (debiteur: Debiteur) => {
@@ -266,7 +275,7 @@ const DebiteurPage = () => {
     router.push("/etude_creance/debiteur/create");
   };
 
-  // Configuration des colonnes pour DataTable
+  // Configuration des colonnes pour DataTable - Colonnes essentielles uniquement
   const columns: ColumnDef<Debiteur>[] = [
     {
       accessorKey: "codeDebiteur",
@@ -292,13 +301,6 @@ const DebiteurPage = () => {
       ),
     },
     {
-      accessorKey: "categorieDebiteur",
-      header: "Catégorie",
-      cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("categorieDebiteur")}</div>
-      ),
-    },
-    {
       accessorKey: "email",
       header: "Email",
       cell: ({ row }) => (
@@ -306,21 +308,10 @@ const DebiteurPage = () => {
       ),
     },
     {
-      accessorKey: "adressePostale",
-      header: "Adresse",
+      accessorKey: "numeroCellulaire",
+      header: "Téléphone",
       cell: ({ row }) => (
-        <div className="font-medium max-w-[200px] truncate" title={row.getValue("adressePostale") as string}>
-          {row.getValue("adressePostale")}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "statut",
-      header: "Statut",
-      cell: ({ row }) => (
-        <Badge colorScheme={row.getValue("statut") === "Actif" ? "green" : "red"}>
-          {row.getValue("statut")}
-        </Badge>
+        <div className="font-medium">{row.getValue("numeroCellulaire") || '-'}</div>
       ),
     },
     {

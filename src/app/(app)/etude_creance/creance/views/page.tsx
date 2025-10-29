@@ -2,14 +2,14 @@
 
 import { Suspense } from "react";
 import { useState, useEffect } from "react";
-import { 
-  Box, 
-  Button, 
-  Text, 
-  VStack, 
-  HStack, 
-  Input, 
-  Select, 
+import {
+  Box,
+  Button,
+  Text,
+  VStack,
+  HStack,
+  Input,
+  Select,
   Badge,
   IconButton,
   useToast
@@ -18,8 +18,11 @@ import { EditIcon, DeleteIcon, ViewIcon } from "@chakra-ui/icons";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useApiClient } from "@/hooks/useApiClient";
+import { CreanceService } from "@/services/creance.service";
+import { CreanceResponse } from "@/types/creance";
 
-// Types pour les créances
+// Types pour les créances (mapping de CreanceResponse à l'interface locale)
 interface Creance {
   id: string;
   numeroCreance: string;
@@ -27,6 +30,7 @@ interface Creance {
   groupeCreance: string;
   debiteurNom: string;
   debiteurPrenom: string;
+  raisonSociale: string;
   capitalInitial: number;
   montantARembourser: number;
   montantImpaye: number;
@@ -48,74 +52,67 @@ const CreancePageInner = () => {
   const router = useRouter();
   const toast = useToast();
   const searchParams = useSearchParams();
+  const apiClient = useApiClient();
 
   // Récupérer les paramètres de filtrage depuis l'URL
   const debiteurId = searchParams.get('debiteurId');
   const debiteurCode = searchParams.get('debiteurCode');
 
-  // Données de test
-  const mockCreances: Creance[] = [
-    {
-      id: "1",
-      numeroCreance: "CRE-2024-001",
-      objetCreance: "Prêt immobilier",
-      groupeCreance: "Prêts immobiliers",
-      debiteurNom: "Koné",
-      debiteurPrenom: "Amadou",
-      capitalInitial: 5000000,
-      montantARembourser: 6000000,
-      montantImpaye: 2000000,
-      totalSolde: 2200000,
-      statutCreance: "En cours",
-      dateCreation: "2024-01-15",
-      periodicite: "Mensuelle",
-      garantiePersonnelle: true,
-      garantieReelle: false
-    },
-    {
-      id: "2",
-      numeroCreance: "CRE-2024-002",
-      objetCreance: "Prêt véhicule",
-      groupeCreance: "Prêts véhicules",
-      debiteurNom: "Traoré",
-      debiteurPrenom: "Fatou",
-      capitalInitial: 2500000,
-      montantARembourser: 3000000,
-      montantImpaye: 1500000,
-      totalSolde: 1650000,
-      statutCreance: "En retard",
-      dateCreation: "2024-02-20",
-      periodicite: "Mensuelle",
-      garantiePersonnelle: false,
-      garantieReelle: true
-    },
-    {
-      id: "3",
-      numeroCreance: "CRE-2024-003",
-      objetCreance: "Prêt consommation",
-      groupeCreance: "Prêts consommation",
-      debiteurNom: "Diabaté",
-      debiteurPrenom: "Moussa",
-      capitalInitial: 1000000,
-      montantARembourser: 1200000,
-      montantImpaye: 0,
-      totalSolde: 0,
-      statutCreance: "Remboursé",
-      dateCreation: "2024-03-10",
-      periodicite: "Mensuelle",
-      garantiePersonnelle: true,
-      garantieReelle: false
-    }
-  ];
+  // Transformation des données de l'API vers l'interface locale
+  const transformApiDataToCreance = (apiData: CreanceResponse): Creance => {
+    return {
+      id: apiData.CREAN_CODE,
+      numeroCreance: apiData.CREAN_CODE,
+      objetCreance: apiData.OBJET_CREANCE_LIB || apiData.CREAN_OBJET || '',
+      groupeCreance: apiData.GROUPE_CREANCE_LIB || '',
+      debiteurNom: apiData.DEB_NOM || '',
+      debiteurPrenom: apiData.DEB_PREN || '',
+      raisonSociale: apiData.DEB_RAIS_SOCIALE || '',
+      capitalInitial: apiData.CREAN_CAPIT_INIT || 0,
+      montantARembourser: apiData.CREAN_MONT_A_REMB || 0,
+      montantImpaye: apiData.CREAN_MONT_IMPAYE || 0,
+      totalSolde: apiData.CREAN_TOT_SOLDE || 0,
+      statutCreance: apiData.CREAN_STATUT || '',
+      dateCreation: apiData.CREAN_DATE_CREAT || '',
+      periodicite: apiData.CREAN_PERIODICITE || '',
+      garantiePersonnelle: false, // À déterminer par requête séparée si nécessaire
+      garantieReelle: false // À déterminer par requête séparée si nécessaire
+    };
+  };
 
   useEffect(() => {
-    // Simulation du chargement des données
-    setTimeout(() => {
-      setCreances(mockCreances);
-      setFilteredCreances(mockCreances);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    const loadCreances = async () => {
+      setLoading(true);
+      try {
+        const response = await CreanceService.getAll(apiClient);
+        console.log('Données créances reçues:', response);
+
+        if (response.success && Array.isArray(response.data.items)) {
+          const transformedCreances = response.data.items.map(transformApiDataToCreance);
+          setCreances(transformedCreances);
+          setFilteredCreances(transformedCreances);
+        } else if (response.success && Array.isArray(response.data)) {
+          const transformedCreances = response.data.map(transformApiDataToCreance);
+          setCreances(transformedCreances);
+          setFilteredCreances(transformedCreances);
+        }
+      } catch (error: any) {
+        console.error('Erreur lors du chargement des créances:', error);
+        toast({
+          title: "Erreur de chargement",
+          description: error.message || "Impossible de charger les créances",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "top",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCreances();
+  }, [apiClient, toast]);
 
   useEffect(() => {
     // Filtrage des créances
@@ -173,16 +170,34 @@ const CreancePageInner = () => {
     router.push(`/etude_creance/creance/edit?id=${creance.id}`);
   };
 
-  const handleDeleteCreance = (creance: Creance) => {
+  const handleDeleteCreance = async (creance: Creance) => {
     if (confirm(`Êtes-vous sûr de vouloir supprimer la créance ${creance.numeroCreance} ?`)) {
-      setCreances(creances.filter(c => c.id !== creance.id));
-      toast({
-        title: "Créance supprimée",
-        description: `La créance ${creance.numeroCreance} a été supprimée avec succès.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+      try {
+        const response = await CreanceService.delete(apiClient, creance.id);
+        if (response.success) {
+          setCreances(creances.filter(c => c.id !== creance.id));
+          toast({
+            title: "Créance supprimée",
+            description: `La créance ${creance.numeroCreance} a été supprimée avec succès.`,
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+            position: "top",
+          });
+        } else {
+          throw new Error(response.message || "Erreur lors de la suppression");
+        }
+      } catch (error: any) {
+        console.error('Erreur lors de la suppression:', error);
+        toast({
+          title: "Erreur de suppression",
+          description: error.message || "Impossible de supprimer la créance",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "top",
+        });
+      }
     }
   };
 
@@ -212,8 +227,15 @@ const CreancePageInner = () => {
       cell: ({ row }) => {
         const debiteurNom = row.getValue("debiteurNom") as string;
         const debiteurPrenom = row.original.debiteurPrenom;
+        const raisonSociale = row.original.raisonSociale;
+
+        // Afficher raison sociale si personne morale, sinon nom prénom
+        const displayName = raisonSociale
+          ? raisonSociale
+          : `${debiteurNom} ${debiteurPrenom}`.trim() || "Non disponible";
+
         return (
-          <div className="font-medium">{debiteurNom} {debiteurPrenom}</div>
+          <div className="font-medium">{displayName}</div>
         );
       },
     },

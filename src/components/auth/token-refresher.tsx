@@ -30,7 +30,7 @@ export function TokenRefresher() {
         }
 
         console.log('🔄 Rafraîchissement proactif du token...')
-        const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+        const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api"
 
         const res = await fetch(`${baseURL}/auth/refresh`, {
           method: 'POST',
@@ -72,26 +72,22 @@ export function TokenRefresher() {
       }
     }
 
-    // Rafraîchir le token toutes les 7 heures (token valide 8 heures)
-    // Cela laisse 1 heure de marge avant l'expiration
-    const REFRESH_INTERVAL = 7 * 60 * 60 * 1000 // 7 heures en millisecondes
+    // Rafraîchir le token toutes les 4 minutes pour maintenir la session Oracle active
+    // Le backend Oracle a un keepalive-interval de 5 minutes (300 secondes)
+    // En rafraîchissant toutes les 4 minutes, on s'assure que la connexion reste active
+    // ET on déclenche le keep-alive backend avant qu'Oracle ne ferme la connexion
+    const REFRESH_INTERVAL = 4 * 60 * 1000 // 4 minutes en millisecondes
 
     // Démarrer le rafraîchissement périodique si on a une session
     if (session && (session as any)?.refreshToken) {
-      console.log('🚀 Démarrage du rafraîchissement automatique du token')
+      console.log('🚀 Démarrage du rafraîchissement automatique du token (toutes les 4 minutes)')
 
-      // Premier rafraîchissement après 1 minute (pour tester)
-      // puis toutes les 7 heures
-      const firstRefreshTimeout = setTimeout(() => {
-        refreshToken()
-      }, 60 * 1000) // 1 minute
-
+      // Démarrer le rafraîchissement immédiatement puis toutes les 4 minutes
       refreshIntervalRef.current = setInterval(() => {
         refreshToken()
       }, REFRESH_INTERVAL)
 
       return () => {
-        clearTimeout(firstRefreshTimeout)
         if (refreshIntervalRef.current) {
           clearInterval(refreshIntervalRef.current)
           refreshIntervalRef.current = null

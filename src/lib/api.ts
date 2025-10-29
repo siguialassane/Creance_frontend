@@ -7,7 +7,7 @@ export type ApiClient = AxiosInstance;
 // Configuration de base pour Axios
 export const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api",
-  timeout: 10000,
+  timeout: 60000, // Augmenté à 60 secondes pour les requêtes Oracle lentes
   headers: {
     "Content-Type": "application/json",
   },
@@ -48,21 +48,57 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Intercepteur pour les réponses
+// Intercepteur pour les réponses avec retry automatique sur 401
 apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
   async (error) => {
-    // Gérer les erreurs globalement
-    if (error.response?.status === 401) {
-      // Rediriger vers login sans appeler signOut pour éviter les erreurs CSRF
-      // Le middleware NextAuth détectera l'absence de session et redirigera proprement
+    const originalRequest = error.config;
+
+    // Gérer les erreurs 401 (session expirée)
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // Tenter de rafraîchir le token automatiquement
+        if (typeof window !== 'undefined') {
+          const { getSession } = await import("next-auth/react");
+          const session = await getSession();
+          const refreshToken = (session as any)?.refreshToken;
+
+          if (refreshToken) {
+            console.log('🔄 Tentative de rafraîchissement du token après 401...');
+
+            const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api";
+            const refreshRes = await axios.post(`${baseURL}/auth/refresh`, null, {
+              headers: { Authorization: `Bearer ${refreshToken}` },
+            });
+
+            if (refreshRes.data?.data?.token) {
+              const newAccessToken = refreshRes.data.data.token;
+              console.log('✅ Token rafraîchi avec succès, nouvelle tentative de la requête...');
+
+              // Note: La session sera mise à jour par TokenRefresher au prochain cycle
+              // Pour l'instant, on utilise directement le nouveau token pour cette requête
+
+              // Réessayer la requête originale avec le nouveau token
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+              return apiClient(originalRequest);
+            }
+          }
+        }
+      } catch (refreshError) {
+        console.error('❌ Échec du rafraîchissement du token:', refreshError);
+      }
+
+      // Si le refresh échoue, rediriger vers login
       if (typeof window !== 'undefined') {
-        console.warn('Session expirée, redirection vers /login');
+        console.warn('Session expirée et impossible à rafraîchir, redirection vers /login');
         window.location.href = "/login";
       }
     }
+
     return Promise.reject(error);
   }
 );

@@ -3,85 +3,26 @@
 import { Suspense } from "react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useToast } from "@chakra-ui/react";
 import { Button } from "@/components/ui/button";
 import CreanceForm from "@/components/creance-form/creance-form";
+import { useApiClient } from "@/hooks/useApiClient";
+import { CreanceService } from "@/services/creance.service";
+import { CreanceResponse } from "@/types/creance";
 
 const EditerCreancePageInner = () => {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const totalSteps = 5;
   const formRef = useRef<any>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const creanceId = searchParams.get('id');
-
-  // Données de test (en réalité, vous récupéreriez ces données depuis l'API)
-  const mockCreanceData = {
-    // Étape 1: Informations générales
-    debiteur: "deb1",
-    groupeCreance: "GC001",
-    typeObjet: "OC001",
-    capitalInitial: 5000000,
-    montantDecaisse: 5000000,
-    steCaution: "Société de Caution ABC",
-    statutRecouvrement: "oui",
-    numeroPrecedent: "CRE-2023-999",
-    numeroAncien: "OLD-001",
-    typeStructure: "SARL",
-    classeCreance: "CLAS001",
-    
-    // Étape 2: Informations générales 2
-    numeroCreance: "CRE-2024-001",
-    entite: "ENT001",
-    objetCreance: "Prêt immobilier",
-    periodicite: "mensuelle",
-    nbEch: 12,
-    dateReconnaissance: "2024-01-15",
-    datePremiereEcheance: "2024-02-15",
-    dateDerniereEcheance: "2024-12-15",
-    dateOctroi: "2024-01-10",
-    datePremierPrecept: "2024-01-20",
-    creanceSoldeAvantLid: "Solde avant LID",
-    
-    // Étape 3: Détails financiers
-    ordonnateur: "Ministère des Finances",
-    montantRembourse: 5600000,
-    montantDu: 5600000,
-    montantDejaRembourse: 3600000,
-    montantImpaye: 2000000,
-    diversFrais: 50000,
-    commission: 100000,
-    montantAss: 25000,
-    intConvPourcentage: 10,
-    montantIntConvPaye: 500000,
-    intRetPourcentage: 2,
-    encours: 100000,
-    totalDu: 2150000,
-    penalite1Pourcent: 21500,
-    totalARecouvrer: 2271500,
-    
-    // Étape 4: Pièces
-    typePiece: "contrat",
-    reference: "REF-001",
-    libelle: "Contrat de prêt immobilier",
-    dateEmission: "2024-01-15",
-    dateReception: "2024-01-16",
-    
-    // Étape 5: Garanties
-    typeGarantie: "personnelles",
-    type: "Caution personnelle",
-    employeur: "ENT002",
-    statutSal: "Actif",
-    quartier: "Q001",
-    priorite: "Haute",
-    nom: "Koné",
-    prenoms: "Amadou",
-    dateInscription: "2024-01-15",
-    fonction: "Directeur",
-    profession: "Fonctionnaire",
-    adressePostale: "Cocody, Angré 8ème Tranche, Abidjan"
-  };
+  const apiClient = useApiClient();
+  const toast = useToast();
 
   const steps = [
     { id: 1, title: "Informations générales", description: "Débiteur, groupe créance, type d'objet, capital initial" },
@@ -91,25 +32,170 @@ const EditerCreancePageInner = () => {
     { id: 5, title: "Garanties", description: "Garanties personnelles ou réelles" }
   ];
 
+  // Transformation des données API vers le format du formulaire (même que dans voir/page.tsx)
+  const transformApiDataToForm = (apiData: CreanceResponse) => {
+    return {
+      debiteur: apiData.DEB_CODE,
+      groupeCreance: apiData.GC_CODE,
+      typeObjet: apiData.OC_CODE,
+      capitalInitial: apiData.CREAN_CAPIT_INIT,
+      montantDecaisse: apiData.CREAN_MONT_DECAISSE || 0,
+      steCaution: '',
+      statutRecouvrement: '',
+      numeroPrecedent: apiData.CREAN_NUM_PREC || '',
+      numeroAncien: apiData.CREAN_NUM_ANC || '',
+      typeStructure: '',
+      classeCreance: '',
+      numeroCreance: apiData.CREAN_CODE,
+      entite: '',
+      objetCreance: apiData.CREAN_OBJET || '',
+      periodicite: apiData.CREAN_PERIODICITE?.toLowerCase() || '',
+      nbEch: apiData.CREAN_DUREE || 0,
+      dateReconnaissance: '',
+      datePremiereEcheance: '',
+      dateDerniereEcheance: apiData.CREAN_DATE_ECHEANCE || '',
+      dateOctroi: apiData.CREAN_DATE_DEBLOCAGE || '',
+      datePremierPrecept: '',
+      creanceSoldeAvantLid: '',
+      ordonnateur: apiData.ORDO_CODE,
+      montantRembourse: apiData.CREAN_MONT_A_REMB || 0,
+      montantDu: apiData.CREAN_MONT_DU || 0,
+      montantDejaRembourse: apiData.CREAN_MONT_REMB || 0,
+      montantImpaye: apiData.CREAN_MONT_IMPAYE || 0,
+      diversFrais: apiData.CREAN_FRAIS || 0,
+      commission: apiData.CREAN_COMM_BANQ || 0,
+      montantAss: 0,
+      intConvPourcentage: apiData.CREAN_TAUX_IC || 0,
+      montantIntConvPaye: apiData.CREAN_MONT_IC || 0,
+      intRetPourcentage: apiData.CREAN_TAUX_IR || 0,
+      encours: apiData.CREAN_ENCOURS || 0,
+      totalDu: apiData.CREAN_TOTAL_DU || 0,
+      penalite1Pourcent: apiData.CREAN_PENALITE || 0,
+      totalARecouvrer: apiData.CREAN_TOT_SOLDE || 0,
+      typePiece: '',
+      reference: '',
+      libelle: apiData.CREAN_OBS || '',
+      dateEmission: '',
+      dateReception: '',
+      typeGarantie: '',
+      type: '',
+      employeur: '',
+      statutSal: '',
+      quartier: '',
+      priorite: '',
+      nom: '',
+      prenoms: '',
+      dateInscription: '',
+      fonction: '',
+      profession: '',
+      adressePostale: ''
+    };
+  };
+
   useEffect(() => {
-    // Simulation du chargement des données
-    setTimeout(() => {
-      setFormData(mockCreanceData);
-      setLoading(false);
-    }, 1000);
-  }, [creanceId]);
+    const loadCreance = async () => {
+      if (!creanceId) {
+        setError("ID de créance manquant");
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const apiData = await CreanceService.getByCode(apiClient, creanceId);
+        console.log('Données créance reçues:', apiData);
+
+        const transformedData = transformApiDataToForm(apiData);
+        setFormData(transformedData);
+      } catch (error: any) {
+        console.error('Erreur lors du chargement de la créance:', error);
+        setError(error.message || "Impossible de charger la créance");
+        toast({
+          title: "Erreur de chargement",
+          description: error.message || "Impossible de charger la créance",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "top",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCreance();
+  }, [creanceId, apiClient, toast]);
 
   const validateCurrentStep = () => {
     if (!formRef.current) return false;
-    
-    // Déclencher la validation du formulaire
     return formRef.current.validateStep();
   };
 
-  const handleSubmit = (data: any) => {
+  const handleSubmit = async (data: any) => {
     console.log("Données de la créance modifiée:", data);
-    // Ici vous pouvez ajouter la logique de mise à jour
-    router.push("/etude_creance/creance/views");
+    if (!creanceId) return;
+
+    setIsSubmitting(true);
+
+    try {
+      // Transformation des données du formulaire vers le format API
+      const creanceData = {
+        debiteur: data.debiteur,
+        groupeCreance: data.groupeCreance,
+        objetCreance: data.typeObjet,
+        objetDetail: data.objetCreance,
+        capitalInitial: data.capitalInitial,
+        montantDecaisse: data.montantDecaisse,
+        montantInteretConventionnel: data.montantIntConvPaye,
+        commissionBanque: data.commission,
+        numeroPrecedent: data.numeroPrecedent,
+        numeroAncien: data.numeroAncien,
+        montantDu: data.montantDu,
+        montantRembourse: data.montantDejaRembourse,
+        montantInteretRetard: data.intRetPourcentage,
+        frais: data.diversFrais,
+        encours: data.encours,
+        dateDeblocage: data.dateOctroi,
+        dateEcheance: data.dateDerniereEcheance,
+        periodicite: data.periodicite?.toUpperCase(),
+        duree: data.nbEch,
+        tauxInteretConventionnel: data.intConvPourcentage,
+        tauxInteretRetard: data.intRetPourcentage,
+        ordonnateur: data.ordonnateur,
+        statut: 'EN_COURS',
+        observations: data.libelle
+      };
+
+      const response = await CreanceService.update(apiClient, creanceId, creanceData);
+
+      if (response.success) {
+        toast({
+          title: "Créance mise à jour",
+          description: "La créance a été mise à jour avec succès",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+          position: "top",
+        });
+        router.push("/etude_creance/creance/views");
+      } else {
+        throw new Error(response.message || "Erreur lors de la mise à jour");
+      }
+    } catch (error: any) {
+      console.error("Erreur lors de la mise à jour:", error);
+      toast({
+        title: "Erreur de mise à jour",
+        description: error.message || "Impossible de mettre à jour la créance",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "top",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -205,12 +291,13 @@ const EditerCreancePageInner = () => {
                       Suivant
                     </Button>
                   ) : (
-                    <Button 
+                    <Button
                       onClick={() => handleSubmit(formData)}
+                      disabled={isSubmitting}
                       className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px]"
                       style={{ backgroundColor: '#f97316', color: 'white' }}
                     >
-                      Mettre à jour
+                      {isSubmitting ? "Mise à jour..." : "Mettre à jour"}
                     </Button>
                   )}
                 </div>

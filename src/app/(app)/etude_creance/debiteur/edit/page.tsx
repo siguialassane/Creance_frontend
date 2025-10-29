@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { useRouter, useSearchParams } from "next/navigation";
 import DebiteurForm from "@/components/debiteur-form/debiteur-form";
 import { useToast } from "@chakra-ui/react";
+import { useApiClient } from "@/hooks/useApiClient";
+import { DebiteurService } from "@/services/debiteur.service";
 
 const EditerDebiteurPageInner = () => {
   const [step, setStep] = React.useState(0)
@@ -15,57 +17,7 @@ const EditerDebiteurPageInner = () => {
   const debiteurId = searchParams.get('id')
   const formRef = React.useRef<any>(null)
   const toast = useToast()
-
-  // Données de test (en réalité, vous récupéreriez ces données depuis l'API)
-  const mockDebiteurData = {
-    // Étape 1: Informations générales
-    codeDebiteur: "DEB-2024-001",
-    categorieDebiteur: "particulier",
-    adressePostale: "Cocody, Angré 8ème Tranche, Abidjan",
-    email: "amadou.kone@example.com",
-    typeDebiteur: "physique",
-    
-    // Étape 2: Personne physique
-    civilite: "monsieur",
-    nom: "Koné",
-    prenom: "Amadou",
-    dateNaissance: "1985-06-15",
-    lieuNaissance: "Abidjan",
-    quartier: "quartier1",
-    nationalite: "nationalite1",
-    fonction: "fonction1",
-    profession: "profession1",
-    employeur: "entite1",
-    statutSalarie: "statut1",
-    matricule: "MAT123456",
-    sexe: "M",
-    dateDeces: "",
-    naturePieceIdentite: "CNI",
-    numeroPieceIdentite: "123456789",
-    dateEtablie: "2020-01-15",
-    lieuEtablie: "Abidjan",
-    statutMatrimonial: "marie",
-    regimeMariage: "communaute",
-    nombreEnfant: "2",
-    nomConjoint: "Traoré",
-    prenomsConjoint: "Fatou",
-    dateNaissanceConjoint: "1987-03-20",
-    adresseConjoint: "Cocody, Angré 8ème Tranche",
-    telConjoint: "+225 07 98 76 54 32",
-    numeroPieceConjoint: "987654321",
-    nomPere: "Koné",
-    prenomsPere: "Mamadou",
-    nomMere: "Traoré",
-    prenomsMere: "Aminata",
-    rue: "Rue des Écoles, N°123",
-    
-    // Étape 3: Domiciliation
-    type: "domicile",
-    numeroCompte: "1234567890123456",
-    libelle: "Compte principal",
-    banque: "banque1",
-    banqueAgence: "agence1"
-  };
+  const apiClient = useApiClient()
 
   const [formData, setFormData] = React.useState({})
 
@@ -75,103 +27,162 @@ const EditerDebiteurPageInner = () => {
     { id: 2, title: "Domiciliation", description: "Type, compte, banque et agence" }
   ]
 
+  // Transformer les données de l'API vers le format du formulaire
+  const transformApiDataToFormData = (apiData: any): any => {
+    return {
+      // Étape 1: Informations générales
+      codeDebiteur: apiData.DEB_CODE?.toString() || '',
+      categorieDebiteur: apiData.CATEG_DEB_CODE || '',
+      adressePostale: apiData.DEB_ADRPOST || '',
+      email: apiData.DEB_EMAIL || '',
+      telephone: apiData.DEB_TELBUR || '',
+      numeroCell: apiData.DEB_CEL || '',
+      typeDebiteur: apiData.TYPDEB_CODE || '',
+
+      // Étape 2: Personne physique
+      civilite: apiData.CIV_CODE || '',
+      nom: apiData.DEB_NOM || '',
+      prenom: apiData.DEB_PREN || '',
+      dateNaissance: apiData.DEB_DATNAISS || '',
+      lieuNaissance: apiData.DEB_LIEUNAISS || '',
+      quartier: apiData.QUART_CODE || '',
+      nationalite: apiData.NAT_CODE || '',
+      fonction: apiData.FONCT_CODE || '',
+      profession: apiData.PROFES_CODE || '',
+      employeur: apiData.EMP_CODE || '',
+      statutSalarie: apiData.STATSAL_CODE || '',
+      matricule: apiData.DEB_MATRIC || '',
+      sexe: apiData.DEB_SEXE || '',
+      dateDeces: apiData.DEB_DATDEC || '',
+      naturePieceIdentite: apiData.DEB_NATPIDENT || '',
+      numeroPieceIdentite: apiData.DEB_NUMPIDENT || '',
+      dateEtablie: apiData.DEB_DATETPIDENT || '',
+      lieuEtablie: apiData.DEB_LIEUETPIDENT || '',
+      statutMatrimonial: apiData.DEB_SITMATRI || '',
+      regimeMariage: apiData.REGMAT_CODE || '',
+      nombreEnfant: apiData.DEB_NBR_ENF?.toString() || '',
+      nomConjoint: apiData.DEB_CJ_NOM || '',
+      prenomsConjoint: apiData.DEB_CJ_PREN || '',
+      dateNaissanceConjoint: apiData.DEB_CJ_DATNAISS || '',
+      telConjoint: apiData.DEB_CJ_TEL || '',
+      numeroPieceConjoint: apiData.DEB_CJ_NUMPIDENT || '',
+      adresseConjoint: apiData.DEB_CJ_ADR || '',
+      nomPere: apiData.DEB_NPERE || '',
+      prenomsPere: apiData.DEB_PRPERE || '',
+      nomMere: apiData.DEB_NMERE || '',
+      prenomsMere: apiData.DEB_PRMERE || '',
+      rue: apiData.DEB_RUE || '',
+
+      // Étape 2: Personne morale (noms de colonnes réels de l'API)
+      registreCommerce: apiData.DEB_REGISTCOM || '',
+      raisonSociale: apiData.DEB_RAIS_SOCIALE || '',
+      capitalSocial: apiData.DEB_CAPITSOCIAL?.toString() || '',
+      formeJuridique: apiData.DEB_FORM_JURID || '',
+      domaineActivite: apiData.DEB_DOM_ACTIV || '',
+      siegeSocial: apiData.DEB_SIEG_SOCIAL || '',
+      nomGerant: apiData.DEB_NOM_GERANT || '',
+
+      // Étape 3: Domiciliation
+      type: apiData.TYPDOM_CODE || '',
+      numeroCompte: apiData.DOM_NUM_COMPTE || '',
+      libelle: apiData.DOM_LIB || '',
+      banque: apiData.BQ_CODE || apiData.BANQUE_CODE || '',
+      banqueLibelle: apiData.BANQUE_LIB || '',
+      banqueAgence: apiData.BQAG_CODE || '',
+      agenceLibelle: apiData.AGENCE_LIB || apiData.BQAG_LIB || ''
+    };
+  };
+
   React.useEffect(() => {
-    // Charger le débiteur depuis le localStorage
-    const loadDebiteur = () => {
+    const loadDebiteur = async () => {
+      if (!debiteurId) {
+        toast({
+          title: "Erreur",
+          description: "Aucun code débiteur fourni",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top",
+        });
+        router.push('/etude_creance/debiteur/views');
+        return;
+      }
+
+      setLoading(true);
+
       try {
-        const storedDebiteurs = localStorage.getItem('debiteurs');
-        
-        if (storedDebiteurs && debiteurId) {
-          const debiteurs = JSON.parse(storedDebiteurs);
-          const foundDebiteur = debiteurs.find((d: any) => d.id === debiteurId);
-          
-          if (foundDebiteur) {
-            console.log('📝 Débiteur chargé pour modification:', foundDebiteur);
-            setFormData(foundDebiteur);
-          } else {
-            // Si le débiteur n'est pas trouvé, utiliser les données de test
-            console.log('⚠️ Débiteur non trouvé, utilisation des données mock');
-            setFormData(mockDebiteurData);
-          }
-        } else {
-          // Si pas de localStorage, utiliser les données de test
-          console.log('⚠️ Pas de localStorage, utilisation des données mock');
-          setFormData(mockDebiteurData);
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('❌ Erreur lors du chargement du débiteur:', error);
-        // En cas d'erreur, utiliser les données de test
-        setFormData(mockDebiteurData);
+        console.log('Chargement du débiteur pour modification avec le code:', debiteurId);
+        const response = await DebiteurService.getByCode(apiClient, debiteurId);
+        console.log('Données du débiteur reçues:', response);
+
+        // Transformer les données API vers le format du formulaire
+        const transformedData = transformApiDataToFormData(response);
+        console.log('Données transformées pour le formulaire:', transformedData);
+
+        setFormData(transformedData);
+      } catch (error: any) {
+        console.error('Erreur lors du chargement du débiteur:', error);
+        toast({
+          title: "Erreur de chargement",
+          description: error.message || "Impossible de charger les données du débiteur",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "top",
+        });
+        router.push('/etude_creance/debiteur/views');
+      } finally {
         setLoading(false);
       }
     };
-    
-    if (debiteurId) {
-      loadDebiteur();
-    } else {
-      setLoading(false);
-    }
-  }, [debiteurId])
 
-  const handleSubmit = (data: any) => {
-    console.log("Données du débiteur modifié:", data);
-    
-    try {
-      // Récupérer les débiteurs existants du localStorage
-      const storedDebiteurs = localStorage.getItem('debiteurs');
-      
-      if (storedDebiteurs && debiteurId) {
-        const debiteurs = JSON.parse(storedDebiteurs);
-        
-        // Trouver l'index du débiteur à modifier
-        const index = debiteurs.findIndex((d: any) => d.id === debiteurId);
-        
-        if (index !== -1) {
-          // Mettre à jour le débiteur en conservant l'ID et les métadonnées
-          debiteurs[index] = {
-            ...debiteurs[index],
-            ...data,
-            id: debiteurId, // Garder l'ID original
-            dateModification: new Date().toISOString().split('T')[0]
-          };
-          
-          // Sauvegarder dans le localStorage
-          localStorage.setItem('debiteurs', JSON.stringify(debiteurs));
-          
-          // Afficher l'alerte de succès
-          toast({
-            title: "Débiteur modifié avec succès !",
-            description: `Le débiteur ${data.codeDebiteur || debiteurs[index].codeDebiteur} a été mis à jour.`,
-            status: "success",
-            duration: 5000,
-            isClosable: true,
-            position: "top",
-          });
-          
-          // Rediriger vers la liste après un court délai
-          setTimeout(() => {
-            window.location.href = "/etude_creance/debiteur/views";
-          }, 1500);
-        } else {
-          toast({
-            title: "Erreur",
-            description: "Débiteur non trouvé dans le localStorage",
-            status: "error",
-            duration: 3000,
-            isClosable: true,
-            position: "top",
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Erreur lors de la modification:', error);
+    loadDebiteur();
+  }, [debiteurId, apiClient, toast, router])
+
+  const handleSubmit = async (data: any) => {
+    console.log("Données du débiteur à modifier:", data);
+
+    if (!debiteurId) {
       toast({
         title: "Erreur",
-        description: "Une erreur s'est produite lors de la modification",
+        description: "Aucun code débiteur fourni",
         status: "error",
         duration: 3000,
+        isClosable: true,
+        position: "top",
+      });
+      return;
+    }
+
+    try {
+      console.log('Envoi de la mise à jour vers l\'API...');
+      const response = await DebiteurService.update(apiClient, debiteurId, data);
+      console.log('Réponse de l\'API:', response);
+
+      if (response.status === "SUCCESS") {
+        toast({
+          title: "Débiteur modifié avec succès !",
+          description: `Le débiteur ${data.codeDebiteur || debiteurId} a été mis à jour.`,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+          position: "top",
+        });
+
+        // Rediriger vers la liste après un court délai
+        setTimeout(() => {
+          router.push("/etude_creance/debiteur/views");
+        }, 1500);
+      } else {
+        throw new Error(response.message || "Erreur lors de la modification");
+      }
+    } catch (error: any) {
+      console.error('Erreur lors de la modification:', error);
+      toast({
+        title: "Erreur de modification",
+        description: error.message || "Une erreur s'est produite lors de la modification",
+        status: "error",
+        duration: 5000,
         isClosable: true,
         position: "top",
       });

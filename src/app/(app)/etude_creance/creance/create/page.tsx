@@ -3,16 +3,22 @@
 import { Suspense } from "react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useToast } from "@chakra-ui/react";
 import { Button } from "@/components/ui/button";
 import CreanceForm from "@/components/creance-form/creance-form";
+import { useApiClient } from "@/hooks/useApiClient";
+import { CreanceService } from "@/services/creance.service";
 
 const NouvelleCreancePageInner = () => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const totalSteps = 5;
   const formRef = useRef<any>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const apiClient = useApiClient();
+  const toast = useToast();
 
   const steps = [
     { id: 1, title: "Informations générales", description: "Débiteur, groupe créance, type d'objet, capital initial" },
@@ -47,10 +53,67 @@ const NouvelleCreancePageInner = () => {
     return formRef.current.validateStep();
   };
 
-  const handleSubmit = (data: any) => {
+  const handleSubmit = async (data: any) => {
     console.log("Données de la créance:", data);
-    // Ici vous pouvez ajouter la logique d'enregistrement
-    router.push("/etude_creance/creance/views");
+    setIsSubmitting(true);
+
+    try {
+      // Transformation des données du formulaire vers le format API
+      const creanceData = {
+        debiteur: data.debiteur,
+        groupeCreance: data.groupeCreance,
+        objetCreance: data.typeObjet,
+        objetDetail: data.objetCreance,
+        capitalInitial: data.capitalInitial,
+        montantDecaisse: data.montantDecaisse,
+        montantInteretConventionnel: data.montantIntConvPaye,
+        commissionBanque: data.commission,
+        numeroPrecedent: data.numeroPrecedent,
+        numeroAncien: data.numeroAncien,
+        montantDu: data.montantDu,
+        montantRembourse: data.montantDejaRembourse,
+        montantInteretRetard: data.intRetPourcentage,
+        frais: data.diversFrais,
+        encours: data.encours,
+        dateDeblocage: data.dateOctroi || new Date().toISOString().split('T')[0],
+        dateEcheance: data.dateDerniereEcheance || new Date().toISOString().split('T')[0],
+        periodicite: data.periodicite?.toUpperCase(),
+        duree: data.nbEch,
+        tauxInteretConventionnel: data.intConvPourcentage,
+        tauxInteretRetard: data.intRetPourcentage,
+        ordonnateur: data.ordonnateur || 'ORD001',
+        statut: 'EN_COURS',
+        observations: data.libelle
+      };
+
+      const response = await CreanceService.create(apiClient, creanceData);
+
+      if (response.success) {
+        toast({
+          title: "Créance créée",
+          description: "La créance a été créée avec succès",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+          position: "top",
+        });
+        router.push("/etude_creance/creance/views");
+      } else {
+        throw new Error(response.message || "Erreur lors de la création");
+      }
+    } catch (error: any) {
+      console.error("Erreur lors de la création:", error);
+      toast({
+        title: "Erreur de création",
+        description: error.message || "Impossible de créer la créance",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "top",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -135,12 +198,13 @@ const NouvelleCreancePageInner = () => {
                       Suivant
                     </Button>
                   ) : (
-                    <Button 
+                    <Button
                       onClick={() => handleSubmit(formData)}
+                      disabled={isSubmitting}
                       className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px]"
                       style={{ backgroundColor: '#f97316', color: 'white' }}
                     >
-                      Enregistrer
+                      {isSubmitting ? "Enregistrement..." : "Enregistrer"}
                     </Button>
                   )}
                 </div>

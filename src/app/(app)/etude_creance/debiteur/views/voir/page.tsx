@@ -2,17 +2,17 @@
 
 import { Suspense } from "react";
 import { useState, useEffect, useRef } from "react";
-import { 
-  Box, 
-  Button as ChakraButton, 
-  Card, 
-  CardBody, 
-  CardHeader, 
-  Heading, 
-  Text, 
-  VStack, 
-  HStack, 
-  Badge, 
+import {
+  Box,
+  Button as ChakraButton,
+  Card,
+  CardBody,
+  CardHeader,
+  Heading,
+  Text,
+  VStack,
+  HStack,
+  Badge,
   Divider,
   Grid,
   GridItem,
@@ -22,6 +22,8 @@ import { ArrowBackIcon, EditIcon } from "@chakra-ui/icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import DebiteurForm from "@/components/debiteur-form/debiteur-form";
 import { Button } from "@/components/ui/button";
+import { useApiClient } from "@/hooks/useApiClient";
+import { DebiteurService } from "@/services/debiteur.service";
 
 // Types pour les débiteurs
 interface Debiteur {
@@ -101,6 +103,7 @@ const VoirDebiteurPageInner = () => {
   const searchParams = useSearchParams();
   const debiteurId = searchParams.get('id');
   const toast = useToast();
+  const apiClient = useApiClient();
 
   const steps = [
     { id: 1, title: "Informations générales", description: "Code, catégorie, adresse, email et type de débiteur" },
@@ -108,175 +111,172 @@ const VoirDebiteurPageInner = () => {
     { id: 3, title: "Domiciliation", description: "Type, compte, banque et agence" }
   ];
 
-  // Données de test (en réalité, vous récupéreriez ces données depuis l'API)
-  const mockDebiteurPhysique: Debiteur = {
-    id: "1",
-    // Étape 1: Informations générales
-    codeDebiteur: "DEB-2024-001",
-    categorieDebiteur: "Particulier",
-    adressePostale: "Cocody, Angré 8ème Tranche, Abidjan",
-    email: "amadou.kone@example.com",
-    typeDebiteur: "physique",
-    
-    // Étape 2: Personne physique
-    nom: "Koné",
-    prenom: "Amadou",
-    civilite: "Monsieur",
-    dateNaissance: "15/06/1985",
-    lieuNaissance: "Abidjan",
-    nationalite: "Ivoirienne",
-    quartier: "Cocody",
-    numeroCellulaire: "+225 07 12 34 56 78",
-    numeroTelephone: "+225 20 30 40 50",
-    profession: "Fonctionnaire",
-    fonction: "Directeur",
-    employeur: "Ministère des Finances",
-    statutSalarie: "Actif",
-    matricule: "MAT123456",
-    sexe: "Masculin",
-    dateDeces: undefined,
-    naturePieceIdentite: "CNI",
-    numeroPieceIdentite: "123456789",
-    dateEtablie: "15/01/2020",
-    lieuEtablie: "Abidjan",
-    statutMatrimonial: "Marié",
-    regimeMariage: "Communauté",
-    nombreEnfant: "2",
-    nomConjoint: "Traoré",
-    prenomsConjoint: "Fatou",
-    dateNaissanceConjoint: "20/03/1987",
-    adresseConjoint: "Cocody, Angré 8ème Tranche",
-    telConjoint: "+225 07 98 76 54 32",
-    numeroPieceConjoint: "987654321",
-    nomPere: "Koné",
-    prenomsPere: "Mamadou",
-    nomMere: "Traoré",
-    prenomsMere: "Aminata",
-    rue: "Rue des Écoles, N°123",
-    
-    // Étape 3: Domiciliation
-    type: "Domicile",
-    numeroCompte: "1234567890123456",
-    libelle: "Compte principal",
-    banque: "Banque Populaire de Côte d'Ivoire",
-    banqueAgence: "Agence Plateau",
-    
-    // Métadonnées
-    dateCreation: "15/01/2024",
-    statut: "Actif"
-  };
+  // Transformer les données de l'API vers le format du formulaire
+  const transformApiDataToFormData = (apiData: any): any => {
+    return {
+      // Étape 1: Informations générales
+      codeDebiteur: apiData.DEB_CODE?.toString() || '',
+      categorieDebiteur: apiData.CATEG_DEB_CODE || '',
+      adressePostale: apiData.DEB_ADRPOST || '',
+      email: apiData.DEB_EMAIL || '',
+      telephone: apiData.DEB_TELBUR || '',
+      numeroCell: apiData.DEB_CEL || '',
+      typeDebiteur: apiData.TYPDEB_CODE || '',
 
-  // Deuxième débiteur - Personne morale
-  const mockDebiteurMoral: Debiteur = {
-    id: "2",
-    // Étape 1: Informations générales
-    codeDebiteur: "DEB-2024-002",
-    categorieDebiteur: "Entreprise",
-    adressePostale: "Plateau, Tour B, Abidjan",
-    email: "contact@societe-abc.com",
-    typeDebiteur: "moral",
-    
-    // Étape 2: Personne morale
-    nom: "Société ABC SARL",
-    registreCommerce: "CI-ABJ-2024-A-12345",
-    raisonSociale: "Société ABC SARL",
-    capitalSocial: "10 000 000 FCFA",
-    formeJuridique: "SARL",
-    domaineActivite: "Commerce",
-    siegeSocial: "Plateau, Tour B, Abidjan",
-    nomGerant: "Koné Amadou",
-    
-    // Étape 3: Domiciliation
-    type: "Bureau",
-    numeroCompte: "9876543210987654",
-    libelle: "Compte entreprise",
-    banque: "Ecobank",
-    banqueAgence: "Agence Plateau",
-    
-    // Métadonnées
-    dateCreation: "10/03/2024",
-    statut: "Actif"
-  };
+      // Étape 2: Personne physique
+      civilite: apiData.CIV_CODE || '',
+      nom: apiData.DEB_NOM || '',
+      prenom: apiData.DEB_PREN || '',
+      dateNaissance: apiData.DEB_DATNAISS || '',
+      lieuNaissance: apiData.DEB_LIEUNAISS || '',
+      quartier: apiData.QUART_CODE || '',
+      nationalite: apiData.NAT_CODE || '',
+      fonction: apiData.FONCT_CODE || '',
+      profession: apiData.PROFES_CODE || '',
+      employeur: apiData.EMP_CODE || '',
+      statutSalarie: apiData.STATSAL_CODE || '',
+      matricule: apiData.DEB_MATRIC || '',
+      sexe: apiData.DEB_SEXE || '',
+      dateDeces: apiData.DEB_DATDEC || '',
+      naturePieceIdentite: apiData.DEB_NATPIDENT || '',
+      numeroPieceIdentite: apiData.DEB_NUMPIDENT || '',
+      dateEtablie: apiData.DEB_DATETPIDENT || '',
+      lieuEtablie: apiData.DEB_LIEUETPIDENT || '',
+      statutMatrimonial: apiData.DEB_SITMATRI || '',
+      regimeMariage: apiData.REGMAT_CODE || '',
+      nombreEnfant: apiData.DEB_NBR_ENF?.toString() || '',
+      nomConjoint: apiData.DEB_CJ_NOM || '',
+      prenomsConjoint: apiData.DEB_CJ_PREN || '',
+      dateNaissanceConjoint: apiData.DEB_CJ_DATNAISS || '',
+      telConjoint: apiData.DEB_CJ_TEL || '',
+      numeroPieceConjoint: apiData.DEB_CJ_NUMPIDENT || '',
+      adresseConjoint: apiData.DEB_CJ_ADR || '',
+      nomPere: apiData.DEB_NPERE || '',
+      prenomsPere: apiData.DEB_PRPERE || '',
+      nomMere: apiData.DEB_NMERE || '',
+      prenomsMere: apiData.DEB_PRMERE || '',
+      rue: apiData.DEB_RUE || '',
 
-  // Troisième débiteur - Personne morale différente
-  const mockDebiteurMoral2: Debiteur = {
-    id: "4",
-    // Étape 1: Informations générales
-    codeDebiteur: "DEB-2024-004",
-    categorieDebiteur: "Entreprise",
-    adressePostale: "Cocody, Boulevard de la République, Abidjan",
-    email: "info@commerce-dia.com",
-    typeDebiteur: "moral",
-    
-    // Étape 2: Personne morale
-    nom: "Commerce Dia SARL",
-    registreCommerce: "CI-ABJ-2024-B-67890",
-    raisonSociale: "Commerce Dia SARL",
-    capitalSocial: "5 000 000 FCFA",
-    formeJuridique: "SARL",
-    domaineActivite: "Commerce",
-    siegeSocial: "Cocody, Boulevard de la République",
-    nomGerant: "Dia Aminata",
-    
-    // Étape 3: Domiciliation
-    type: "Bureau",
-    numeroCompte: "1111222233334444",
-    libelle: "Compte commercial",
-    banque: "SGBCI",
-    banqueAgence: "Agence Cocody",
-    
-    // Métadonnées
-    dateCreation: "05/04/2024",
-    statut: "Actif"
-  };
+      // Étape 2: Personne morale (noms de colonnes réels de l'API)
+      registreCommerce: apiData.DEB_REGISTCOM || '',
+      raisonSociale: apiData.DEB_RAIS_SOCIALE || '',
+      capitalSocial: apiData.DEB_CAPITSOCIAL?.toString() || '',
+      formeJuridique: apiData.DEB_FORM_JURID || '',
+      domaineActivite: apiData.DEB_DOM_ACTIV || '',
+      siegeSocial: apiData.DEB_SIEG_SOCIAL || '',
+      nomGerant: apiData.DEB_NOM_GERANT || '',
 
-  // Récupérer le débiteur selon l'ID
-  const getDebiteurById = (id: string | null): Debiteur => {
-    if (id === "1") return mockDebiteurPhysique; // Personne physique
-    if (id === "2") return mockDebiteurPhysique; // Personne physique aussi
-    if (id === "3") return mockDebiteurMoral; // Personne morale
-    if (id === "4") return mockDebiteurMoral2; // Personne morale différente
-    return mockDebiteurPhysique; // Par défaut, retourner le premier
+      // Étape 3: Domiciliation
+      type: apiData.TYPDOM_CODE || '',
+      numeroCompte: apiData.DOM_NUM_COMPTE || '',
+      libelle: apiData.DOM_LIB || '',
+      banque: apiData.BQ_CODE || apiData.BANQUE_CODE || '',
+      banqueLibelle: apiData.BANQUE_LIB || '',
+      banqueAgence: apiData.BQAG_CODE || '',
+      agenceLibelle: apiData.AGENCE_LIB || apiData.BQAG_LIB || ''
+    };
   };
-
-  const currentDebiteur = getDebiteurById(debiteurId);
 
   useEffect(() => {
-    // Charger le débiteur depuis le localStorage
-    const loadDebiteur = () => {
+    const loadDebiteur = async () => {
+      if (!debiteurId) {
+        toast({
+          title: "Erreur",
+          description: "Aucun code débiteur fourni",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top",
+        });
+        router.push('/etude_creance/debiteur/views');
+        return;
+      }
+
+      setLoading(true);
+
       try {
-        const storedDebiteurs = localStorage.getItem('debiteurs');
-        
-        if (storedDebiteurs && debiteurId) {
-          const debiteurs = JSON.parse(storedDebiteurs);
-          const foundDebiteur = debiteurs.find((d: Debiteur) => d.id === debiteurId);
-          
-          if (foundDebiteur) {
-            setDebiteur(foundDebiteur);
-            setFormData(foundDebiteur);
-          } else {
-            // Si le débiteur n'est pas trouvé, utiliser les données de test
-            setDebiteur(currentDebiteur);
-            setFormData(currentDebiteur);
-          }
-        } else {
-          // Si pas de localStorage, utiliser les données de test
-          setDebiteur(currentDebiteur);
-          setFormData(currentDebiteur);
-        }
-        
-        setLoading(false);
-      } catch (error) {
+        console.log('Chargement du débiteur avec le code:', debiteurId);
+        const response = await DebiteurService.getByCode(apiClient, debiteurId);
+        console.log('Données du débiteur reçues:', response);
+
+        // Transformer les données API vers le format du formulaire
+        const transformedData = transformApiDataToFormData(response);
+        console.log('Données transformées pour le formulaire:', transformedData);
+
+        setFormData(transformedData);
+        setDebiteur({
+          id: debiteurId,
+          codeDebiteur: transformedData.codeDebiteur,
+          categorieDebiteur: transformedData.categorieDebiteur,
+          adressePostale: transformedData.adressePostale,
+          email: transformedData.email,
+          typeDebiteur: transformedData.typeDebiteur === 'P' ? 'Physique' : transformedData.typeDebiteur === 'M' ? 'Morale' : transformedData.typeDebiteur,
+          nom: transformedData.nom || transformedData.raisonSociale,
+          prenom: transformedData.prenom,
+          civilite: transformedData.civilite,
+          dateNaissance: transformedData.dateNaissance,
+          lieuNaissance: transformedData.lieuNaissance,
+          quartier: transformedData.quartier,
+          nationalite: transformedData.nationalite,
+          numeroCellulaire: transformedData.numeroCell,
+          numeroTelephone: transformedData.telephone,
+          fonction: transformedData.fonction,
+          profession: transformedData.profession,
+          employeur: transformedData.employeur,
+          statutSalarie: transformedData.statutSalarie,
+          matricule: transformedData.matricule,
+          sexe: transformedData.sexe,
+          dateDeces: transformedData.dateDeces,
+          naturePieceIdentite: transformedData.naturePieceIdentite,
+          numeroPieceIdentite: transformedData.numeroPieceIdentite,
+          dateEtablie: transformedData.dateEtablie,
+          lieuEtablie: transformedData.lieuEtablie,
+          statutMatrimonial: transformedData.statutMatrimonial,
+          regimeMariage: transformedData.regimeMariage,
+          nombreEnfant: transformedData.nombreEnfant,
+          nomConjoint: transformedData.nomConjoint,
+          prenomsConjoint: transformedData.prenomsConjoint,
+          dateNaissanceConjoint: transformedData.dateNaissanceConjoint,
+          adresseConjoint: transformedData.adresseConjoint,
+          telConjoint: transformedData.telConjoint,
+          numeroPieceConjoint: transformedData.numeroPieceConjoint,
+          nomPere: transformedData.nomPere,
+          prenomsPere: transformedData.prenomsPere,
+          nomMere: transformedData.nomMere,
+          prenomsMere: transformedData.prenomsMere,
+          rue: transformedData.rue,
+          registreCommerce: transformedData.registreCommerce,
+          raisonSociale: transformedData.raisonSociale,
+          capitalSocial: transformedData.capitalSocial,
+          formeJuridique: transformedData.formeJuridique,
+          domaineActivite: transformedData.domaineActivite,
+          siegeSocial: transformedData.siegeSocial,
+          nomGerant: transformedData.nomGerant,
+          type: transformedData.type,
+          numeroCompte: transformedData.numeroCompte,
+          libelle: transformedData.libelle,
+          banque: transformedData.banque,
+          banqueAgence: transformedData.banqueAgence,
+          dateCreation: response.DEB_DATE_CTL || '',
+          statut: 'Actif'
+        });
+      } catch (error: any) {
         console.error('Erreur lors du chargement du débiteur:', error);
-        // En cas d'erreur, utiliser les données de test
-      setDebiteur(currentDebiteur);
-        setFormData(currentDebiteur);
-      setLoading(false);
+        toast({
+          title: "Erreur de chargement",
+          description: error.message || "Impossible de charger les données du débiteur",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "top",
+        });
+      } finally {
+        setLoading(false);
       }
     };
-    
+
     loadDebiteur();
-  }, [debiteurId, currentDebiteur]);
+  }, [debiteurId, apiClient, toast, router]);
 
   const handleNext = () => {
     if (currentStep < totalSteps) {

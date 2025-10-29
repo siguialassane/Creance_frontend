@@ -178,7 +178,7 @@ export function DataTable<TData, TValue>({
               {title}
             </h1>
             {description && (
-              <p className="text-base text-black">Programme de gestion des créances</p>
+              <p className="text-base text-black">Programme de  {title} </p>
             )}
           </div>
           
@@ -288,8 +288,10 @@ export function DataTable<TData, TValue>({
                   border: '2px solid #f97316',
                   padding: '5px 20px',
                   borderRadius: '6px',
+                  backgroundColor: '#f97316',
+                  color: '#ffffff',
                 }}
-                className="bg-secondary hover:bg-white text-white hover:text-black h-12 px-6 font-medium"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white hover:text-black h-12 px-6 font-medium"
               >
                 <Plus className="h-5 w-5 mr-2" />
                 {addButtonText}
