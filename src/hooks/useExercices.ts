@@ -20,7 +20,20 @@ export function useExercices() {
 
   return useQuery({
     queryKey: exerciceKeys.lists(),
-    queryFn: () => ExerciceService.getAll(apiClient).then((res) => res.data),
+    queryFn: async () => {
+      const res = await ExerciceService.getAll(apiClient);
+      // Extraire les données selon le format de réponse
+      // Format paginé: { data: { content: [...] } }
+      // Format direct: { data: [...] }
+      const data = Array.isArray(res.data) 
+        ? res.data 
+        : (typeof res.data === 'object' && res.data !== null && 'content' in res.data)
+          ? (res.data as any).content || []
+          : (typeof res.data === 'object' && res.data !== null && 'data' in res.data)
+            ? (res.data as any).data || []
+            : [];
+      return Array.isArray(data) ? data : [];
+    },
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {
@@ -29,6 +42,7 @@ export function useExercices() {
       return failureCount < 2;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 

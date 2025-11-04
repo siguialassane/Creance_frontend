@@ -1,10 +1,29 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Box, Stack, Text, Button, Input, Table, Thead, Tbody, Tr, Th, Td, IconButton, useToast, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, FormControl, FormLabel, useDisclosure } from '@chakra-ui/react'
-import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import colors from '../../lib/theme/colors'
 import { SubMenuItem } from '../../lib/types/menu'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
 
 interface ParameterViewProps {
     subMenu: SubMenuItem
@@ -24,8 +43,7 @@ export default function ParameterView({ subMenu, title }: ParameterViewProps) {
     const [searchTerm, setSearchTerm] = useState('')
     const [editingItem, setEditingItem] = useState<DataItem | null>(null)
     const [formData, setFormData] = useState({ code: '', libelle: '' })
-    const { isOpen, onOpen, onClose } = useDisclosure()
-    const toast = useToast()
+    const [isOpen, setIsOpen] = useState(false)
 
     // Données de démonstration basées sur le type de paramètre
     useEffect(() => {
@@ -50,23 +68,18 @@ export default function ParameterView({ subMenu, title }: ParameterViewProps) {
     const handleAdd = () => {
         setEditingItem(null)
         setFormData({ code: '', libelle: '' })
-        onOpen()
+        setIsOpen(true)
     }
 
     const handleEdit = (item: DataItem) => {
         setEditingItem(item)
         setFormData({ code: item.code, libelle: item.libelle })
-        onOpen()
+        setIsOpen(true)
     }
 
     const handleDelete = (id: string) => {
         setData(data.filter(item => item.id !== id))
-        toast({
-            title: 'Supprimé',
-            description: 'Élément supprimé avec succès',
-            status: 'success',
-            duration: 3000,
-        })
+        toast.success('Élément supprimé avec succès')
     }
 
     const handleSave = () => {
@@ -77,12 +90,7 @@ export default function ParameterView({ subMenu, title }: ParameterViewProps) {
                     ? { ...item, ...formData }
                     : item
             ))
-            toast({
-                title: 'Modifié',
-                description: 'Élément modifié avec succès',
-                status: 'success',
-                duration: 3000,
-            })
+            toast.success('Élément modifié avec succès')
         } else {
             // Ajout
             const newItem: DataItem = {
@@ -90,131 +98,129 @@ export default function ParameterView({ subMenu, title }: ParameterViewProps) {
                 ...formData
             }
             setData([...data, newItem])
-            toast({
-                title: 'Ajouté',
-                description: 'Élément ajouté avec succès',
-                status: 'success',
-                duration: 3000,
-            })
+            toast.success('Élément ajouté avec succès')
         }
-        onClose()
+        setIsOpen(false)
     }
 
     return (
-        <Box p={8} backgroundColor={colors.background} minH="100vh">
-            <Stack spacing={6}>
+        <div className="p-8 min-h-screen" style={{ backgroundColor: colors.background }}>
+            <div className="space-y-6">
                 {/* En-tête */}
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Text fontSize="2xl" fontWeight="bold" color={colors.darkGreen}>
+                <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold" style={{ color: colors.darkGreen }}>
                         {title}
-                    </Text>
+                    </h1>
                     <Button
-                        leftIcon={<AddIcon color="white" />}
-                        colorScheme="green"
                         onClick={handleAdd}
-                        _hover={{ transform: 'translateY(-2px)' }}
-                        transition="all 0.3s ease"
+                        className="transition-transform hover:translate-y-[-2px]"
+                        style={{ backgroundColor: colors.green }}
                     >
+                        <Plus className="mr-2 h-4 w-4" />
                         Ajouter
                     </Button>
-                </Stack>
+                </div>
 
                 {/* Barre de recherche */}
-                <Box>
+                <div>
                     <Input
                         placeholder={`Rechercher dans ${subMenu.name}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        backgroundColor="white"
-                        border={`2px solid ${colors.lightGray}`}
-                        _focus={{ borderColor: colors.green }}
-                        transition="all 0.3s ease"
+                        className="bg-white border-2 transition-colors"
+                        style={{ borderColor: colors.lightGray }}
                     />
-                </Box>
+                </div>
 
                 {/* Table */}
-                <Box backgroundColor="white" borderRadius="12px" overflow="hidden" boxShadow="0 4px 15px rgba(0,0,0,0.1)">
-                    <Table variant="simple">
-                        <Thead backgroundColor={colors.lightGreen}>
-                            <Tr>
-                                <Th color={colors.darkGreen}>Code</Th>
-                                <Th color={colors.darkGreen}>Libellé</Th>
-                                <Th color={colors.darkGreen} textAlign="center">Actions</Th>
-                            </Tr>
-                        </Thead>
-                        <Tbody>
+                <div className="bg-white rounded-xl overflow-hidden shadow-lg">
+                    <Table>
+                        <TableHeader style={{ backgroundColor: colors.lightGreen }}>
+                            <TableRow>
+                                <TableHead style={{ color: colors.darkGreen }}>Code</TableHead>
+                                <TableHead style={{ color: colors.darkGreen }}>Libellé</TableHead>
+                                <TableHead className="text-center" style={{ color: colors.darkGreen }}>Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {filteredData.map((item) => (
-                                <Tr key={item.id} _hover={{ backgroundColor: colors.lightGreen + '20' }}>
-                                    <Td fontWeight="500">{item.code}</Td>
-                                    <Td>{item.libelle}</Td>
-                                    <Td textAlign="center">
-                                        <Stack direction="row" spacing={2} justifyContent="center">
-                                            <IconButton
-                                                aria-label="Modifier"
-                                                icon={<EditIcon />}
+                                <TableRow
+                                    key={item.id}
+                                    className="hover:bg-opacity-20 transition-colors"
+                                    style={{ '--hover-bg': colors.lightGreen } as React.CSSProperties}
+                                >
+                                    <TableCell className="font-medium">{item.code}</TableCell>
+                                    <TableCell>{item.libelle}</TableCell>
+                                    <TableCell className="text-center">
+                                        <div className="flex gap-2 justify-center">
+                                            <Button
+                                                variant="outline"
                                                 size="sm"
-                                                colorScheme="blue"
                                                 onClick={() => handleEdit(item)}
-                                                _hover={{ transform: 'scale(1.1)' }}
-                                                transition="all 0.3s ease"
-                                            />
-                                            <IconButton
-                                                aria-label="Supprimer"
-                                                icon={<DeleteIcon />}
+                                                className="transition-transform hover:scale-110"
+                                            >
+                                                <Pencil className="h-4 w-4 text-blue-600" />
+                                            </Button>
+                                            <Button
+                                                variant="outline"
                                                 size="sm"
-                                                colorScheme="red"
                                                 onClick={() => handleDelete(item.id)}
-                                                _hover={{ transform: 'scale(1.1)' }}
-                                                transition="all 0.3s ease"
-                                            />
-                                        </Stack>
-                                    </Td>
-                                </Tr>
+                                                className="transition-transform hover:scale-110"
+                                            >
+                                                <Trash2 className="h-4 w-4 text-red-600" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </Tbody>
+                        </TableBody>
                     </Table>
-                </Box>
-            </Stack>
+                </div>
+            </div>
 
-            {/* Modal pour ajouter/modifier */}
-            <Modal isOpen={isOpen} onClose={onClose}>
-                <ModalOverlay />
-                <ModalContent>
-                    <ModalHeader color={colors.darkGreen}>
-                        {editingItem ? 'Modifier' : 'Ajouter'} {subMenu.name}
-                    </ModalHeader>
-                    <ModalBody>
-                        <Stack spacing={4}>
-                            <FormControl>
-                                <FormLabel>Code</FormLabel>
-                                <Input
-                                    value={formData.code}
-                                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                                    border={`2px solid ${colors.lightGray}`}
-                                    _focus={{ borderColor: colors.green }}
-                                />
-                            </FormControl>
-                            <FormControl>
-                                <FormLabel>Libellé</FormLabel>
-                                <Input
-                                    value={formData.libelle}
-                                    onChange={(e) => setFormData({ ...formData, libelle: e.target.value })}
-                                    border={`2px solid ${colors.lightGray}`}
-                                    _focus={{ borderColor: colors.green }}
-                                />
-                            </FormControl>
-                        </Stack>
-                    </ModalBody>
-                    <ModalFooter>
-                        <Button variant="ghost" mr={3} onClick={onClose}>
+            {/* Dialog pour ajouter/modifier */}
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle style={{ color: colors.darkGreen }}>
+                            {editingItem ? 'Modifier' : 'Ajouter'} {subMenu.name}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {editingItem ? 'Modifiez' : 'Ajoutez'} les informations ci-dessous.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="code">Code</Label>
+                            <Input
+                                id="code"
+                                value={formData.code}
+                                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                                className="border-2"
+                                style={{ borderColor: colors.lightGray }}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="libelle">Libellé</Label>
+                            <Input
+                                id="libelle"
+                                value={formData.libelle}
+                                onChange={(e) => setFormData({ ...formData, libelle: e.target.value })}
+                                className="border-2"
+                                style={{ borderColor: colors.lightGray }}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setIsOpen(false)}>
                             Annuler
                         </Button>
-                        <Button colorScheme="green" onClick={handleSave}>
+                        <Button onClick={handleSave} style={{ backgroundColor: colors.green }}>
                             {editingItem ? 'Modifier' : 'Ajouter'}
                         </Button>
-                    </ModalFooter>
-                </ModalContent>
-            </Modal>
-        </Box>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
     )
 }

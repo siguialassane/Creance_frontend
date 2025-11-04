@@ -5,7 +5,10 @@ import axios from "axios"
 const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api"
 
 export function useApiClient() {
-  const { data: session, status, update } = useSession()
+  const { data: session, status, update } = useSession({
+    refetchInterval: 0, // Désactiver le rafraîchissement automatique
+    refetchOnWindowFocus: false, // Ne pas rafraîchir lors du retour sur la fenêtre
+  })
   
   // Utiliser useRef pour maintenir une référence stable du client
   const clientRef = useRef<ReturnType<typeof axios.create> | null>(null)
@@ -15,20 +18,31 @@ export function useApiClient() {
     if (!clientRef.current) {
       const client = axios.create({
         baseURL,
-        timeout: 10000,
+        timeout: 30000, // 30 secondes pour les requêtes lentes (Oracle, grandes listes)
         headers: {
           "Content-Type": "application/json",
         },
       })
 
-      // Intercepteur pour les requêtes
+      // Intercepteur pour les requêtes - récupère toujours la session la plus récente
       client.interceptors.request.use(
-        (config) => {
-          // Ajouter le token d'authentification
-          const token = (session as any)?.accessToken as string | undefined
-          
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`
+        async (config) => {
+          // Récupérer la session à chaque requête pour avoir la version la plus récente
+          try {
+            const { getSession } = await import("next-auth/react");
+            const currentSession = await getSession();
+            const token = (currentSession as any)?.accessToken as string | undefined
+            
+            if (token) {
+              config.headers.Authorization = `Bearer ${token}`
+            } else {
+              // Si pas de token et que la session est en cours de chargement
+              if (status === 'loading') {
+                console.warn('⚠️ Session en cours de chargement, token non disponible');
+              }
+            }
+          } catch (error) {
+            console.warn('⚠️ Erreur lors de la récupération de la session:', error);
           }
           return config
         },
@@ -46,7 +60,20 @@ export function useApiClient() {
           if ((statusCode === 401 || statusCode === 403) && !originalRequest?._retry) {
             try {
               originalRequest._retry = true
-              const refreshToken = (session as any)?.refreshToken as string | undefined
+              
+              // Récupérer la session la plus récente pour le refresh token
+              const { getSession } = await import("next-auth/react");
+              let currentSession = await getSession();
+              
+              // Attendre un peu si la session n'est pas encore chargée
+              if (!currentSession) {
+                for (let i = 0; i < 3 && !currentSession; i++) {
+                  await new Promise(resolve => setTimeout(resolve, 100));
+                  currentSession = await getSession();
+                }
+              }
+              
+              const refreshToken = (currentSession as any)?.refreshToken as string | undefined
               if (!refreshToken) {
                 throw new Error('Missing refresh token')
               }
@@ -89,7 +116,18 @@ export function useApiClient() {
               return client(originalRequest)
             } catch (e) {
               // Refresh failed -> sign out
-              try { await signOut({ callbackUrl: '/login' } as any) } catch {}
+              // Ne pas rediriger si on est déjà sur la page de login pour éviter les boucles
+              if (typeof window !== 'undefined') {
+                const currentPath = window.location.pathname;
+                if (currentPath !== '/login' && !currentPath.startsWith('/login')) {
+                  try { 
+                    // Utiliser handleSignOut qui nettoie complètement la session
+                    const { handleSignOut } = await import("@/lib/auth-helpers");
+                    await handleSignOut('/login');
+                    // handleSignOut gère déjà la redirection
+                  } catch {}
+                }
+              }
             }
           }
 

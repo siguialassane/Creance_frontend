@@ -186,10 +186,7 @@ const menuItemsData = [
       {
         name: "Zone",
       },
-      {
-        name: "Test Pagination",
-        path: "test-pagination",
-      },
+      
     ],
     columns: [
       {

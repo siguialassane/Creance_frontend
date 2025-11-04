@@ -20,7 +20,22 @@ export function usePostesComptables() {
 
   return useQuery({
     queryKey: posteComptableKeys.lists(),
-    queryFn: () => PosteComptableService.getAll(apiClient).then((res) => res.data),
+    queryFn: async () => {
+      try {
+        const res = await PosteComptableService.getAll(apiClient);
+        console.log('📦 Réponse brute postes comptables:', res);
+        
+        // Structure réelle de l'API: { data: { content: [...], totalElements, ... } }
+        // Le service retourne response.data, donc res = { data: { content: [...] }, ... }
+        const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || [];
+        
+        console.log('✅ Données postes comptables transformées:', data);
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('❌ Erreur chargement postes comptables:', error);
+        return [];
+      }
+    },
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {

@@ -2,102 +2,79 @@
 
 import { Suspense } from "react";
 import { useState, useRef, useEffect } from "react";
-import { Box, Button as ChakraButton, Card, CardBody, CardHeader, Heading, Text, VStack, HStack, Progress, useToast } from "@chakra-ui/react";
-import { ChevronLeftIcon, ChevronRightIcon, ArrowBackIcon, EditIcon } from "@chakra-ui/icons";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import CreanceForm from "@/components/creance-form/creance-form";
 import { Button } from "@/components/ui/button";
 import { useApiClient } from "@/hooks/useApiClient";
 import { CreanceService } from "@/services/creance.service";
 import { CreanceResponse } from "@/types/creance";
+import { getStatutRecouvrementLibelle } from "@/lib/constants/statut-recouvrement";
+import { ArrowLeft, Pencil } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const VoirCreancePageInner = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<any>({});
+  const [creanceData, setCreanceData] = useState<CreanceResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const totalSteps = 5;
+  const totalSteps = 4; // Mis à jour selon la nouvelle structure
   const formRef = useRef<any>(null);
-  const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const creanceId = searchParams.get('id');
   const apiClient = useApiClient();
 
   const steps = [
-    { id: 1, title: "Informations générales", description: "Débiteur, groupe créance, type d'objet, capital initial" },
-    { id: 2, title: "Informations générales 2", description: "Numéro, entité, objet, dates et échéances" },
-    { id: 3, title: "Détails financiers", description: "Montants, intérêts, commissions et totaux" },
-    { id: 4, title: "Pièces", description: "Type, référence, libellé et dates" },
-    { id: 5, title: "Garanties", description: "Garanties personnelles ou réelles" }
+    { id: 1, title: "Informations générales", description: "Débiteur, groupe créance, objet, capital initial, dates et conditions" },
+    { id: 2, title: "Détails financiers", description: "Montants, intérêts, commissions et totaux (calculés automatiquement)" },
+    { id: 3, title: "Pièces jointes", description: "Documents justificatifs de la créance" },
+    { id: 4, title: "Garanties", description: "Garanties personnelles ou réelles" }
   ];
 
-  // Transformation des données API vers le format du formulaire
+  // Transformation des données API vers le format du formulaire selon la documentation
   const transformApiDataToForm = (apiData: CreanceResponse) => {
     return {
-      // Étape 1: Informations générales
+      // Étape 1: Informations générales (fusion step1 + step2)
       debiteur: apiData.DEB_CODE,
-      groupeCreance: apiData.GC_CODE,
-      typeObjet: apiData.OC_CODE,
+      groupeCreance: apiData.GRP_CREAN_CODE || apiData.GC_CODE || '',
+      objetCreance: apiData.OBJ_CREAN_CODE || apiData.OC_CODE || '',
       capitalInitial: apiData.CREAN_CAPIT_INIT,
       montantDecaisse: apiData.CREAN_MONT_DECAISSE || 0,
-      steCaution: '',
-      statutRecouvrement: '',
-      numeroPrecedent: apiData.CREAN_NUM_PREC || '',
-      numeroAncien: apiData.CREAN_NUM_ANC || '',
-      typeStructure: '',
-      classeCreance: '',
+      numeroPrecedent: apiData.CREAN_CODE_PREC || apiData.CREAN_NUM_PREC || '',
+      numeroAncien: apiData.CREAN_CODE_ANC || apiData.CREAN_NUM_ANC || '',
+      dateDeblocage: apiData.CREAN_DATEFT || apiData.CREAN_DATE_DEBLOCAGE || '',
+      dateEcheance: apiData.CREAN_DATECH || apiData.CREAN_DATE_ECHEANCE || '',
+      periodicite: apiData.CREAN_PERIODICITE || '',
+      duree: apiData.CREAN_NBECH || apiData.CREAN_DUREE || 0,
+      tauxInteretConventionnel: apiData.CREAN_TAUXIC || apiData.CREAN_TAUX_IC || 0,
+      tauxInteretRetard: apiData.CREAN_TAUXIR || apiData.CREAN_TAUX_IR || 0,
+      ordonnateur: apiData.ORDO_CODE || '',
+      statut: apiData.CREAN_STATRECOUV || apiData.CREAN_STATUT || '',
+      objetDetail: apiData.CREAN_OBJET || '',
 
-      // Étape 2: Informations générales 2
-      numeroCreance: apiData.CREAN_CODE,
-      entite: '',
-      objetCreance: apiData.CREAN_OBJET || '',
-      periodicite: apiData.CREAN_PERIODICITE?.toLowerCase() || '',
-      nbEch: apiData.CREAN_DUREE || 0,
-      dateReconnaissance: '',
-      datePremiereEcheance: '',
-      dateDerniereEcheance: apiData.CREAN_DATE_ECHEANCE || '',
-      dateOctroi: apiData.CREAN_DATE_DEBLOCAGE || '',
-      datePremierPrecept: '',
-      creanceSoldeAvantLid: '',
-      ordonnateur: apiData.ORDO_CODE,
-
-      // Étape 3: Détails financiers
-      montantRembourse: apiData.CREAN_MONT_A_REMB || 0,
+      // Étape 2: Détails financiers
+      montantInteretConventionnel: apiData.CREAN_MONT_IC || 0,
+      commissionBanque: apiData.CREAN_COMM_BANQ || 0,
       montantDu: apiData.CREAN_MONT_DU || 0,
-      montantDejaRembourse: apiData.CREAN_MONT_REMB || 0,
-      montantImpaye: apiData.CREAN_MONT_IMPAYE || 0,
-      diversFrais: apiData.CREAN_FRAIS || 0,
-      commission: apiData.CREAN_COMM_BANQ || 0,
-      montantAss: 0,
-      intConvPourcentage: apiData.CREAN_TAUX_IC || 0,
-      montantIntConvPaye: apiData.CREAN_MONT_IC || 0,
-      intRetPourcentage: apiData.CREAN_TAUX_IR || 0,
+      montantRembourse: apiData.CREAN_MONT_REMB || apiData.CREAN_DEJ_REMB || 0,
+      montantInteretRetard: apiData.CREAN_MONT_IR || 0,
+      frais: apiData.CREAN_FRAIS || 0,
       encours: apiData.CREAN_ENCOURS || 0,
+      montantARembourser: apiData.CREAN_MONT_A_REMB || 0,
+      montantImpaye: apiData.CREAN_MONT_IMPAYE || 0,
       totalDu: apiData.CREAN_TOTAL_DU || 0,
-      penalite1Pourcent: apiData.CREAN_PENALITE || 0,
-      totalARecouvrer: apiData.CREAN_TOT_SOLDE || 0,
+      penalite: apiData.CREAN_PENALITE || 0,
+      totalSolde: apiData.CREAN_TOT_SOLDE || 0,
 
-      // Étape 4: Pièces
-      typePiece: '',
-      reference: '',
-      libelle: apiData.CREAN_OBS || '',
-      dateEmission: '',
-      dateReception: '',
+      // Étape 3: Pièces jointes (gérées par state dans CreanceForm)
+      pieces: apiData.pieces || [],
 
-      // Étape 5: Garanties
-      typeGarantie: '',
-      type: '',
-      employeur: '',
-      statutSal: '',
-      quartier: '',
-      priorite: '',
-      nom: '',
-      prenoms: '',
-      dateInscription: '',
-      fonction: '',
-      profession: '',
-      adressePostale: ''
+      // Étape 4: Garanties (gérées par state dans CreanceForm)
+      garantiesReelles: apiData.garantiesReelles || [],
+      garantiesPersonnelles: apiData.garantiesPersonnelles || [],
     };
   };
 
@@ -116,26 +93,22 @@ const VoirCreancePageInner = () => {
         const apiData = await CreanceService.getByCode(apiClient, creanceId);
         console.log('Données créance reçues:', apiData);
 
+        // Conserver les données complètes pour l'affichage des garanties et pièces
+        setCreanceData(apiData);
+        
         const transformedData = transformApiDataToForm(apiData);
         setFormData(transformedData);
       } catch (error: any) {
         console.error('Erreur lors du chargement de la créance:', error);
         setError(error.message || "Impossible de charger la créance");
-        toast({
-          title: "Erreur de chargement",
-          description: error.message || "Impossible de charger la créance",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-          position: "top",
-        });
+        toast.error(error.message || "Impossible de charger la créance");
       } finally {
         setLoading(false);
       }
     };
 
     loadCreance();
-  }, [creanceId, apiClient, toast]);
+  }, [creanceId, apiClient]);
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -161,24 +134,24 @@ const VoirCreancePageInner = () => {
 
   if (loading) {
     return (
-      <Box p={6} maxW="1200px" mx="auto">
-        <Text>Chargement de la créance...</Text>
-      </Box>
+      <div className="p-6 max-w-7xl mx-auto">
+        <p className="text-gray-600">Chargement de la créance...</p>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box p={6} maxW="1200px" mx="auto">
-        <Text color="red.500">Erreur: {error}</Text>
-        <ChakraButton mt={4} onClick={handleBack}>Retour à la liste</ChakraButton>
-      </Box>
+      <div className="p-6 max-w-7xl mx-auto">
+        <p className="text-red-500">Erreur: {error}</p>
+        <Button onClick={handleBack} className="mt-4">Retour à la liste</Button>
+      </div>
     );
   }
 
   return (
-    <Box p={6} maxW="1200px" mx="auto">
-      <VStack spacing={6} align="stretch">
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="space-y-6">
         {/* En-tête avec design moderne */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -188,25 +161,22 @@ const VoirCreancePageInner = () => {
                 Consultez les détails de la créance {formData.numeroCreance || creanceId}
               </p>
             </div>
-            <HStack spacing={3}>
-              <ChakraButton
-                leftIcon={<EditIcon />}
+            <div className="flex items-center gap-3">
+              <Button
                 onClick={handleEdit}
-                colorScheme="green"
-                bg="#28A325"
-                _hover={{ bg: "#047857" }}
+                className="bg-[#28A325] hover:bg-[#047857] text-white"
               >
+                <Pencil className="w-4 h-4 mr-2" />
                 Modifier
-              </ChakraButton>
-              <ChakraButton
-                leftIcon={<ArrowBackIcon />}
+              </Button>
+              <Button
                 onClick={handleBack}
                 variant="outline"
-                colorScheme="gray"
               >
+                <ArrowLeft className="w-4 h-4 mr-2" />
                 Retour à la liste
-              </ChakraButton>
-            </HStack>
+              </Button>
+            </div>
           </div>
           
           {/* Indicateurs des étapes */}
@@ -216,15 +186,12 @@ const VoirCreancePageInner = () => {
                 Informations générales
               </div>
               <div className={`text-sm font-medium ${currentStep >= 2 ? 'text-orange-600' : 'text-gray-500'}`}>
-                Informations générales 2
-              </div>
-              <div className={`text-sm font-medium ${currentStep >= 3 ? 'text-orange-600' : 'text-gray-500'}`}>
                 Détails financiers
               </div>
-              <div className={`text-sm font-medium ${currentStep >= 4 ? 'text-orange-600' : 'text-gray-500'}`}>
-                Pièces
+              <div className={`text-sm font-medium ${currentStep >= 3 ? 'text-orange-600' : 'text-gray-500'}`}>
+                Pièces jointes
               </div>
-              <div className={`text-sm font-medium ${currentStep >= 5 ? 'text-orange-600' : 'text-gray-500'}`}>
+              <div className={`text-sm font-medium ${currentStep >= 4 ? 'text-orange-600' : 'text-gray-500'}`}>
                 Garanties
               </div>
             </div>
@@ -260,6 +227,131 @@ const VoirCreancePageInner = () => {
               readOnly={true} // Mode lecture seule
             />
           </div>
+
+          {/* Affichage des garanties et pièces en mode détail (si step 3 ou 4) */}
+          {currentStep === 3 && creanceData?.pieces && creanceData.pieces.length > 0 && (
+            <div className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pièces jointes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Numéro</TableHead>
+                        <TableHead>Date de dépôt</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {creanceData.pieces.map((piece, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{piece.PIECE_TYPE || '-'}</TableCell>
+                          <TableCell>{piece.PIECE_NUM || '-'}</TableCell>
+                          <TableCell>
+                            {piece.PIECE_DATEDEP 
+                              ? new Date(piece.PIECE_DATEDEP).toLocaleDateString('fr-FR')
+                              : '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {currentStep === 4 && (
+            <div className="mt-6 space-y-6">
+              {/* Garanties réelles */}
+              {creanceData?.garantiesReelles && creanceData.garantiesReelles.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Garanties réelles</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Référence</TableHead>
+                          <TableHead>Valeur estimée</TableHead>
+                          <TableHead>Date de valorisation</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {creanceData.garantiesReelles.map((garantie, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{garantie.GAREEL_TYPGAR || '-'}</TableCell>
+                            <TableCell>{garantie.GAREEL_REFGAR || '-'}</TableCell>
+                            <TableCell>
+                              {garantie.GAREEL_VALEST 
+                                ? new Intl.NumberFormat('fr-FR', {
+                                    style: 'currency',
+                                    currency: 'XOF',
+                                    minimumFractionDigits: 0
+                                  }).format(garantie.GAREEL_VALEST)
+                                : '-'}
+                            </TableCell>
+                            <TableCell>
+                              {garantie.GAREEL_DATEVAL 
+                                ? new Date(garantie.GAREEL_DATEVAL).toLocaleDateString('fr-FR')
+                                : '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Garanties personnelles */}
+              {creanceData?.garantiesPersonnelles && creanceData.garantiesPersonnelles.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Garanties personnelles</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Code débiteur</TableHead>
+                          <TableHead>Nom</TableHead>
+                          <TableHead>Prénom</TableHead>
+                          <TableHead>Raison sociale</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {creanceData.garantiesPersonnelles.map((garantie, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{garantie.GARPHYS_TYPGAR || '-'}</TableCell>
+                            <TableCell>{garantie.DEB_CODE || '-'}</TableCell>
+                            <TableCell>{garantie.DEB_NOM || '-'}</TableCell>
+                            <TableCell>{garantie.DEB_PREN || '-'}</TableCell>
+                            <TableCell>{garantie.DEB_RAIS_SOCIALE || '-'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Message si aucune garantie */}
+              {(!creanceData?.garantiesReelles || creanceData.garantiesReelles.length === 0) &&
+               (!creanceData?.garantiesPersonnelles || creanceData.garantiesPersonnelles.length === 0) && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-gray-500 text-center">Aucune garantie enregistrée</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -290,8 +382,8 @@ const VoirCreancePageInner = () => {
             </div>
           </div>
         </div>
-      </VStack>
-    </Box>
+      </div>
+    </div>
   );
 };
 

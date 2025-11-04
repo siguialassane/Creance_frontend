@@ -1,48 +1,66 @@
 "use client"
 
 import { createContext, useContext, ReactNode } from "react";
-import { useDebiteurFormData, DebiteurFormData } from "@/hooks/useDebiteurFormData";
-import { Spinner, Center, Alert, AlertIcon, AlertTitle, AlertDescription, VStack } from "@chakra-ui/react";
+import { useDebiteurFormDataProgressive, DebiteurFormData } from "@/hooks/useDebiteurFormDataStep";
 
 type DebiteurFormContextType = {
   formData: DebiteurFormData;
   isLoading: boolean;
   error: any;
+  // États de chargement par étape
+  isLoadingStep1: boolean;
+  isLoadingStep2: boolean;
+  isLoadingStep3: boolean;
 };
 
 const DebiteurFormContext = createContext<DebiteurFormContextType | null>(null);
 
-export function DebiteurFormProvider({ children }: { children: ReactNode }) {
-  const { data, isLoading, error } = useDebiteurFormData();
+type DebiteurFormProviderProps = {
+  children: ReactNode;
+  currentStep?: number;
+};
 
-  // Afficher un loader pendant le chargement initial
-  if (isLoading) {
-    return (
-      <Center minH="400px">
-        <VStack spacing={4}>
-          <Spinner size="xl" color="orange.500" thickness="4px" />
-          <p style={{ color: '#666' }}>Chargement des données du formulaire...</p>
-        </VStack>
-      </Center>
-    );
-  }
+export function DebiteurFormProvider({ children, currentStep = 1 }: DebiteurFormProviderProps) {
+  const { 
+    data, 
+    isLoading, 
+    error,
+    step1,
+    step2,
+    step3,
+  } = useDebiteurFormDataProgressive(currentStep);
 
-  // Afficher une erreur si le chargement échoue
-  if (error) {
-    return (
-      <Alert status="error" borderRadius="md">
-        <AlertIcon />
-        <AlertTitle>Erreur de chargement</AlertTitle>
-        <AlertDescription>
-          Impossible de charger les données du formulaire. Veuillez rafraîchir la page.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  // Créer un objet formData par défaut avec des tableaux vides pour éviter les erreurs
+  const defaultFormData: DebiteurFormData = {
+    categoriesDebiteur: [],
+    typesDebiteur: [],
+    civilites: [],
+    quartiers: [],
+    nationalites: [],
+    fonctions: [],
+    professions: [],
+    employeurs: [],
+    statutsSalarie: [],
+    typesDomicil: [],
+    banques: [],
+    agencesBanque: [],
+  };
 
-  // Les données sont prêtes, on peut rendre les enfants
+  const formData = data || defaultFormData;
+
+  // Les données sont toujours disponibles (même si certaines sont en cours de chargement)
+  // On ne bloque plus le rendu, les selects afficheront leurs propres indicateurs de chargement
   return (
-    <DebiteurFormContext.Provider value={{ formData: data!, isLoading, error }}>
+    <DebiteurFormContext.Provider 
+      value={{ 
+        formData,
+        isLoading,
+        error,
+        isLoadingStep1: step1.isLoading,
+        isLoadingStep2: step2.isLoading,
+        isLoadingStep3: step3.isLoading,
+      }}
+    >
       {children}
     </DebiteurFormContext.Provider>
   );

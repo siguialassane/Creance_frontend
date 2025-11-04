@@ -6,7 +6,7 @@ import { useCivilites } from "@/hooks/useCivilites";
 import { useNationalites } from "@/hooks/useNationalites";
 import { useProfessions } from "@/hooks/useProfessions";
 import { useQuartiers } from "@/hooks/useQuartiers";
-import { useVilles } from "@/hooks/useVilles";
+import { useVilles, useVillesPaginated } from "@/hooks/useVilles";
 import { useZones } from "@/hooks/useZones";
 import { useTypesOperation } from "@/hooks/useTypesOperation";
 import { useTypesActe } from "@/hooks/useTypesActe";
@@ -33,6 +33,15 @@ import { useEtapes } from "@/hooks/useEtapes";
 import { useExercices } from "@/hooks/useExercices";
 import { useFonctions } from "@/hooks/useFonctions";
 import { useGroupeCreances } from "@/hooks/useGroupeCreances";
+import { useJournaux } from "@/hooks/useJournaux";
+import { useMessages } from "@/hooks/useMessages";
+import { useModesAcquisition } from "@/hooks/useModesAcquisition";
+import { useObjetsCreance } from "@/hooks/useObjetsCreance";
+import { useOperations } from "@/hooks/useOperations";
+import { usePeriodicites } from "@/hooks/usePeriodicites";
+import { usePostesComptables } from "@/hooks/usePostesComptables";
+import { useStatutsCreance } from "@/hooks/useStatutsCreance";
+import { useStatutsSalarie } from "@/hooks/useStatutsSalarie";
 import { AgenceBanque } from "@/types/agence-banque";
 import { Banque } from "@/types/banque";
 import { Classe } from "@/types/classe";
@@ -384,7 +393,7 @@ export const PARAMETER_CONFIG = {
     const configs: Record<string, any> = {
     banque: {
       hook: useBanques,
-      dataKey: "content", // Les données sont déjà extraites dans le hook
+      dataKey: null, // Les données sont déjà extraites dans le hook (tableau direct)
       mapper: (item: Banque) => ({
         id: item.BQ_CODE,
         code: item.BQ_CODE,
@@ -403,7 +412,7 @@ export const PARAMETER_CONFIG = {
     },
     classe: {
       hook: useClasses,
-      dataKey: null, // Les données sont déjà extraites dans le hook
+      dataKey: null, // Les données sont déjà extraites dans le hook (tableau direct)
       mapper: (item: Classe) => ({
         id: item.CLAS_CODE,
         code: item.CLAS_CODE,
@@ -445,8 +454,15 @@ export const PARAMETER_CONFIG = {
     },
     ville: {
       hook: useVilles,
+      hookPaginated: (params: any) => useVillesPaginated(params),
       dataKey: null,
-      mapper: (item: Ville) => ({ id: item.V_CODE, code: item.V_CODE, libelle: item.V_LIB })
+      mapper: (item: any) => ({ 
+        id: item.VILLE_CODE || item.V_CODE, 
+        code: item.VILLE_CODE || item.V_CODE, 
+        libelle: item.VILLE_LIB || item.V_LIB,
+        // Préserver les données originales pour l'affichage dans les colonnes
+        ...item
+      })
     },
     zone: {
       hook: useZones,
@@ -551,7 +567,34 @@ export const PARAMETER_CONFIG = {
     compte_operation: {
       hook: useCompteOperations,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.CO_CODE, code: item.CO_CODE, libelle: item.CO_LIB })
+      mapper: (item: any) => {
+        // Utiliser CPT_OPER_NUM comme code (number)
+        const code = item.CPT_OPER_NUM !== undefined ? String(item.CPT_OPER_NUM) : (item.CO_CODE || '');
+        // Construire un libellé descriptif à partir des informations disponibles
+        // L'API ne retourne pas CO_LIB, donc on construit toujours le libellé
+        const parts: string[] = [];
+        if (item.CPT_OPER_NUM !== undefined) {
+          parts.push(`N°${item.CPT_OPER_NUM}`);
+        }
+        if (item.CODE_JOURNAL) {
+          parts.push(`Journal: ${item.CODE_JOURNAL}`);
+        }
+        if (item.TYPOPER_CODE) {
+          parts.push(`Type: ${item.TYPOPER_CODE}`);
+        }
+        if (item.CPT_OPER_SENS) {
+          parts.push(`Sens: ${item.CPT_OPER_SENS}`);
+        }
+        const libelle = parts.length > 0 ? parts.join(' - ') : code || 'Compte opération';
+        
+        return { 
+          id: code, 
+          code: code, 
+          libelle: libelle,
+          // Préserver les données originales pour l'affichage dans les colonnes
+          ...item
+        };
+      }
     },
     entite: {
       hook: useEntites,
@@ -566,17 +609,74 @@ export const PARAMETER_CONFIG = {
     exercice: {
       hook: useExercices,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.EXO_CODE, code: item.EXO_CODE, libelle: item.EXO_LIB })
+      mapper: (item: any) => ({ 
+        id: item.NUM_EXE || item.EXO_CODE, 
+        code: item.NUM_EXE || item.EXO_CODE, 
+        libelle: item.EXO_LIB,
+        // Préserver les données originales pour l'affichage dans les colonnes
+        ...item
+      })
     },
     fonction: {
       hook: useFonctions,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.FON_CODE, code: item.FON_CODE, libelle: item.FON_LIB })
+      mapper: (item: any) => ({ 
+        id: item.FONCT_CODE || item.FON_CODE, 
+        code: item.FONCT_CODE || item.FON_CODE, 
+        libelle: item.FONCT_LIB || item.FON_LIB,
+        // Préserver les données originales pour l'affichage dans les colonnes
+        ...item
+      })
     },
     groupe_creance: {
       hook: useGroupeCreances,
       dataKey: null,
       mapper: (item: any) => ({ id: item.GC_CODE, code: item.GC_CODE, libelle: item.GC_LIB })
+    },
+    journal: {
+      hook: useJournaux,
+      dataKey: null,
+      mapper: (item: any) => ({ id: item.J_CODE, code: item.J_CODE, libelle: item.J_LIB })
+    },
+    message: {
+      hook: useMessages,
+      dataKey: null,
+      mapper: (item: any) => ({ id: item.MSG_CODE, code: item.MSG_CODE, libelle: item.MSG_LIB })
+    },
+    mode_acquisition: {
+      hook: useModesAcquisition,
+      dataKey: null,
+      mapper: (item: any) => ({ id: item.MA_CODE, code: item.MA_CODE, libelle: item.MA_LIB })
+    },
+    objet_creance: {
+      hook: useObjetsCreance,
+      dataKey: null,
+      mapper: (item: any) => ({ id: item.OC_CODE, code: item.OC_CODE, libelle: item.OC_LIB })
+    },
+    operation: {
+      hook: useOperations,
+      dataKey: null,
+      mapper: (item: any) => ({ id: item.OP_CODE, code: item.OP_CODE, libelle: item.OP_LIB })
+    },
+    periodicite: {
+      hook: usePeriodicites,
+      dataKey: null,
+      mapper: (item: any) => ({ id: item.PER_CODE, code: item.PER_CODE, libelle: item.PER_LIB })
+    },
+    poste_comptable: {
+      hook: usePostesComptables,
+      dataKey: null,
+      mapper: (item: any) => ({ id: item.PC_CODE, code: item.PC_CODE, libelle: item.PC_LIB })
+    },
+    statut_creance: {
+      hook: useStatutsCreance,
+      dataKey: null,
+      mapper: (item: any) => ({ id: item.SC_CODE, code: item.SC_CODE, libelle: item.SC_LIB })
+    },
+    statut_salarie: {
+      hook: useStatutsSalarie,
+      dataKey: null,
+      mapper: (item: any) => ({ id: item.SS_CODE, code: item.SS_CODE, libelle: item.SS_LIB })
     }
     }
     return configs[type] || null
@@ -585,9 +685,9 @@ export const PARAMETER_CONFIG = {
   getServiceUpdate: (type: string) => {
     switch (type) {
       case 'banque':
-        return import('@/services/banque.service').then(m => m.BanqueService.update)
+        return import('@/services/banque.service').then(m => (apiClient: any, code: string, data: any) => m.BanqueService.update(apiClient, code, data))
       case 'agence_de_banque':
-        return import('@/services/agence-banque.service').then(m => m.AgenceBanqueService.update)
+        return import('@/services/agence-banque.service').then(m => (apiClient: any, code: string, data: any) => m.AgenceBanqueService.update(apiClient, code, data))
       case 'classe':
         return import('@/services/classe.service').then(m => m.ClasseService.update)
       case 'categorie_debiteur':
@@ -662,9 +762,9 @@ export const PARAMETER_CONFIG = {
   getServiceCreate: (type: string) => {
     switch (type) {
       case 'banque':
-        return import('@/services/banque.service').then(m => m.BanqueService.create)
+        return import('@/services/banque.service').then(m => (apiClient: any, data: any) => m.BanqueService.create(apiClient, data))
       case 'agence_de_banque':
-        return import('@/services/agence-banque.service').then(m => m.AgenceBanqueService.create)
+        return import('@/services/agence-banque.service').then(m => (apiClient: any, data: any) => m.AgenceBanqueService.create(apiClient, data))
       case 'classe':
         return import('@/services/classe.service').then(m => m.ClasseService.create)
       case 'categorie_debiteur':

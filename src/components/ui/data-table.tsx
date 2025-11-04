@@ -11,10 +11,16 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ChevronDown, ChevronUp, Search, Plus, X } from "lucide-react"
+import { ChevronDown, ChevronUp, Search, Plus, X, RefreshCw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import {
   Table,
   TableBody,
@@ -51,6 +57,7 @@ interface DataTableProps<TData, TValue> {
   onSearchValueChange?: (value: string) => void
   onSearchSubmit?: () => void
   onSearchReset?: () => void
+  onRefresh?: () => void
   sectionTitle?: string
   listTitle?: string
 }
@@ -77,6 +84,7 @@ export function DataTable<TData, TValue>({
   onSearchValueChange,
   onSearchSubmit,
   onSearchReset,
+  onRefresh,
   sectionTitle = "CRÉANCES",
   listTitle = "LISTE DES CRÉANCES",
 }: DataTableProps<TData, TValue>) {
@@ -163,155 +171,139 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="h-full flex flex-col bg-white">
-      {/* Header avec titre et actions */}
-      <div className="py-6 border-b border-gray-200 bg-white">
-        <div className="flex items-center justify-between mb-4">
-          <div className="space-y-2 mb-5 w-full px-8">
-            <h1 
-              className="text-3xl font-extrabold tracking-tight text-black"
-              style={{
-                fontSize: '2rem',
-                fontWeight: '900',
-                color: '#000000'
+      {/* Barre verte avec titre */}
+      <div 
+        className="px-8 py-4"
+        style={{
+          backgroundColor: '#28A325',
+          color: 'white',
+        }}
+      >
+        <h1 className="text-xl font-semibold text-white">
+          {title || sectionTitle}
+        </h1>
+      </div>
+
+      {/* Stats section */}
+      {statsSlot && (
+        <div className="px-8 py-4 border-b border-gray-200">
+          {statsSlot}
+        </div>
+      )}
+
+      {/* Barre de recherche à gauche et bouton ajout à droite */}
+      <div className="flex items-center justify-between gap-4 px-8 py-4 border-b border-gray-200 bg-gray-50">
+        {/* Recherche avec bouton de validation - à gauche */}
+        <div className="relative flex items-center gap-2">
+          <div className="relative">
+            <Input
+              placeholder={searchPlaceholder}
+              value={onSearchValueChange ? localQuery : query}
+              onChange={(e) => {
+                const newValue = e.target.value
+                if (onSearchValueChange) {
+                  setLocalQuery(newValue)
+                } else {
+                  setQuery(newValue)
+                }
               }}
-            >
-              {title}
-            </h1>
-            {description && (
-              <p className="text-base text-black">Programme de  {title} </p>
-            )}
-          </div>
-          
-        </div>
-
-        {/* Stats section */}
-        {statsSlot && (
-          <div className="mb-4">
-            {statsSlot}
-          </div>
-        )}
-
-        {/* Barre verte avec titre de section */}
-        <div 
-          className="px-8 py-2"
-          style={{
-            backgroundColor: '#28A325',
-            color: 'white',
-          }}
-        >
-          <span className="font-semibold text-lg flex items-center">
-            <span style={{ 
-              fontSize: '2rem', 
-              marginRight: '6px', 
-              transform: 'translateY(-10px)',
-              fontWeight: 'normal',
-              display: 'inline-block',
-              lineHeight: '1'
-            }}>⌄</span>{sectionTitle}
-          </span>
-        </div>
-
-        {/* Section Liste */}
-        <div className="pt-4 pb-2" style={{ paddingLeft: '5rem' }}>
-          <div className="flex items-center gap-2 text-gray-700 font-bold text-sm">
-            <span>{listTitle}</span>
-          </div>
-        </div>
-
-        {/* Barre de recherche */}
-        <div className="flex items-center justify-between gap-6 pb-4" style={{ paddingLeft: '5rem', paddingRight: '2rem' }}>
-          <div className="relative flex-1 max-w-lg flex items-center gap-2">
-            <div className="relative">
-              <Input
-                placeholder={searchPlaceholder}
-                value={onSearchValueChange ? localQuery : query}
-                onChange={(e) => {
-                  const newValue = e.target.value
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && onSearchSubmit) {
+                  onSearchSubmit()
+                }
+              }}
+              className="h-10 text-sm border-gray-300 focus:border-[#28A325] focus:ring-[#28A325] pr-10"
+              style={{ width: '280px' }}
+            />
+            {/* Petite croix pour effacer */}
+            {onSearchValueChange && localQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setLocalQuery('')
                   if (onSearchValueChange) {
-                    setLocalQuery(newValue)
-                  } else {
-                    setQuery(newValue)
+                    onSearchValueChange('')
+                  }
+                  if (onSearchReset) {
+                    onSearchReset()
                   }
                 }}
-                style={{
-                  border: '1px solid #000',
-                  padding: '0px 8px',
-                  borderRadius: '6px',
-                  paddingRight: '40px', // Laisser de l'espace pour la croix
-                }}
-                className="h-12 text-base border-gray-300 focus:border-emerald-500 focus:ring-emerald-200"
-              />
-              {/* Petite croix pour effacer */}
-              {(onSearchValueChange && localQuery) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLocalQuery('')
-                    if (onSearchValueChange) {
-                      onSearchValueChange('')
-                    }
-                    // Si on a un callback de reset, l'utiliser
-                    if (onSearchReset) {
-                      onSearchReset()
-                    }
-                  }}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-                  title="Effacer la recherche"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            {onSearchValueChange && onSearchSubmit && (
-              <Button
-                onClick={onSearchSubmit}
-                style={{
-                  border: '2px solid #f97316',
-                  padding: '5px 15px',
-                  borderRadius: '6px',
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 h-12 px-4 text-white font-medium"
-                disabled={isTableLoading}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10"
+                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                title="Effacer la recherche"
               >
-                <Search className="h-5 w-5 mr-2" />
-                Rechercher
-              </Button>
+                <X className="h-4 w-4" />
+              </button>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            {extraActionsSlot}
-            {onAdd && (
-              <Button
-                onClick={onAdd}
-                style={{
-                  border: '2px solid #f97316',
-                  padding: '5px 20px',
-                  borderRadius: '6px',
-                  backgroundColor: '#f97316',
-                  color: '#ffffff',
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white hover:text-black h-12 px-6 font-medium"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                {addButtonText}
-              </Button>
-            )}
-          </div>
+          {/* Bouton de validation pour recherche serveur */}
+          {onSearchValueChange && onSearchSubmit && (
+            <Button
+              onClick={onSearchSubmit}
+              size="sm"
+              className="bg-[#28A325] hover:bg-[#22911f] text-white h-10 px-3"
+              disabled={isTableLoading}
+              type="button"
+              title="Lancer la recherche"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          )}
         </div>
+
+        {/* Bouton d'ajout et rafraîchissement - à droite */}
+        <TooltipProvider>
+          <div className="flex items-center gap-2">
+            {extraActionsSlot}
+            {onRefresh && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={onRefresh}
+                    variant="outline"
+                    className="border-gray-300 hover:bg-gray-50 text-gray-700 h-10 px-4 font-medium cursor-pointer"
+                    disabled={isTableLoading}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isTableLoading ? 'animate-spin' : ''}`} />
+                    Actualiser
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Actualiser les données</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {onAdd && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={onAdd}
+                    className="bg-[#28A325] hover:bg-[#22911f] text-white h-10 px-4 font-medium cursor-pointer"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {addButtonText}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Ajouter un nouvel élément</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        </TooltipProvider>
       </div>
 
       {/* Table avec scroll contrôlé (hauteur réduite) */}
       <div className="flex-1 px-8 py-4">
         {/* Loader global du tableau */}
-        {isTableLoading && (
+        {/* {isTableLoading && (
           <div className="flex items-center justify-center py-8">
             <div className="flex items-center gap-3">
               <Icon icon="line-md:loading-twotone-loop" className="h-6 w-6 text-emerald-600" />
               <span className="text-gray-600 font-medium">Chargement des données...</span>
             </div>
           </div>
-        )}
+        )} */}
 
         <div className={`rounded-lg border border-gray-200 bg-white shadow-sm overflow-auto max-h-[60vh] ${isTableLoading ? 'opacity-50' : ''}`}>
           <Table>
@@ -401,21 +393,56 @@ export function DataTable<TData, TValue>({
                       <p className="text-gray-500 mb-6 text-base">
                         Aucune donnée disponible pour le moment
                       </p>
-                      {onAdd && (
-                        <Button 
-                          onClick={onAdd}
-                          size="lg"
-                          style={{
-                            border: '2px solid #f97316',
-                            padding: '5px 8px',
-                            borderRadius: '6px',
-                          }}
-                          className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 text-base font-medium"
-                        >
-                          <Plus className="h-5 w-5 mr-2" />
-                          {addButtonText}
-                        </Button>
-                      )}
+                      <TooltipProvider>
+                        <div className="flex items-center gap-3">
+                          {onRefresh && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  onClick={onRefresh}
+                                  variant="outline"
+                                  size="lg"
+                                  style={{
+                                    border: '2px solid #6b7280',
+                                    padding: '5px 8px',
+                                    borderRadius: '6px',
+                                  }}
+                                  className="bg-white hover:bg-gray-50 text-gray-700 px-6 py-3 text-base font-medium"
+                                  disabled={isTableLoading}
+                                >
+                                  <RefreshCw className={`h-5 w-5 mr-2 ${isTableLoading ? 'animate-spin' : ''}`} />
+                                  Actualiser
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Actualiser les données</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {onAdd && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  onClick={onAdd}
+                                  size="lg"
+                                  style={{
+                                    border: '2px solid #f97316',
+                                    padding: '5px 8px',
+                                    borderRadius: '6px',
+                                  }}
+                                  className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 text-base font-medium"
+                                >
+                                  <Plus className="h-5 w-5 mr-2" />
+                                  {addButtonText}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Ajouter un nouvel élément</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TooltipProvider>
                     </div>
                     )}
                   </TableCell>

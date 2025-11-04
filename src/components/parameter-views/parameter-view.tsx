@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useApiClient } from '@/hooks/useApiClient'
 import { toast } from 'sonner'
@@ -11,6 +11,10 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { PARAMETER_CONFIG } from '@/lib/parameter-config'
 import { PaginationInfo, PaginationParams, normalizePaginationParams } from '@/types/pagination'
+import { getFormFieldsForType, validateFormField, type FormFieldConfig } from '@/lib/form-field-config'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchableSelect } from '@/components/ui/searchable-select'
+import { useBanquesSearchable } from '@/hooks/useBanquesSearchable'
 
 interface PaginationData {
   totalElements?: number
@@ -96,45 +100,61 @@ export default function ParameterView({
 
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<SimpleItem | null>(null)
-  const [formData, setFormData] = useState({ code: '', libelle: '' })
+  const [formData, setFormData] = useState<Record<string, any>>({})
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  
+  // Obtenir la configuration des champs pour ce type
+  const formFields = useMemo(() => {
+    return type ? getFormFieldsForType(type) : []
+  }, [type])
+
+  // Hook pour les banques - toujours appelé pour respecter les règles des hooks
+  // Mais seulement utilisé si le type est agence_de_banque
+  const banquesSearchable = useBanquesSearchable()
+  
+  // Initialiser formData avec les champs requis (seulement au montage ou changement de type)
+  useEffect(() => {
+    if (formFields.length > 0 && Object.keys(formData).length === 0) {
+      const initialData: Record<string, any> = {}
+      formFields.forEach(field => {
+        initialData[field.key] = ''
+      })
+      setFormData(initialData)
+      setFormErrors({})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]) // Ne dépendre que de type, pas de formFields qui est un tableau qui change de référence
 
   // Hooks pour l'API et le cache
   const apiClient = useApiClient()
   const queryClient = useQueryClient()
 
-  // Configuration du paramètre actuel
-  const currentConfig = type ? PARAMETER_CONFIG.getConfig(type) : null
+  // Configuration du paramètre actuel (mémoïsée pour éviter les re-créations)
+  const currentConfig = useMemo(() => {
+    return type ? PARAMETER_CONFIG.getConfig(type) : null
+  }, [type])
   
   // Hook dynamique basé sur le type
-  // Vérifier si le hook accepte des paramètres de pagination
+  // IMPORTANT: Toujours appeler exactement un hook pour respecter les règles des hooks React
   const hookFunction = currentConfig?.hook
+  const hookPaginatedFunction = currentConfig?.hookPaginated
 
-  // Utiliser le hook avec ou sans paramètres selon sa signature
-  let hookData
-
-  if (useServerPagination && hookFunction) {
-    // Vérifier si le hook supporte les paramètres (c'est le cas pour les hooks paginés)
-    if (hookFunction.name.includes('Paginated') || hookFunction.name.includes('paginated')) {
-      // Hook avec paramètres (pagination)
-      hookData = hookFunction(paginationParams)
-    } else {
-      // Hook qui ne supporte pas la pagination mais on force useServerPagination
-      // Dans ce cas, on ne peut pas faire de vraie pagination serveur
-      // On utilise le hook normal et on simule la pagination
-      hookData = hookFunction()
-    }
-  } else if (hookFunction) {
-    // Hook sans paramètres
-    hookData = hookFunction()
-  } else {
-    // Fallback
-    hookData = { data: null, error: null, isLoading: false, refetch: () => {} }
-  }
+  // Appeler exactement un hook selon les conditions
+  // Si on utilise la pagination serveur ET qu'on a un hook paginé, l'utiliser
+  // Sinon, utiliser le hook normal
+  // Le ternaire garantit qu'on appelle toujours exactement un hook
+  const hookData = (useServerPagination && hookPaginatedFunction)
+    ? hookPaginatedFunction(paginationParams)
+    : (hookFunction 
+        ? hookFunction()
+        : { data: null, error: null, isLoading: false, refetch: () => {} })
 
   const { data: apiData, error, isLoading, refetch } = hookData
 
-  // Dépendance pour le useEffect basée sur la pagination
-  const paginationDependency = useServerPagination ? JSON.stringify(paginationParams) : undefined
+  // Dépendance pour le useEffect basée sur la pagination (mémoïsée)
+  const paginationDependency = useMemo(() => {
+    return useServerPagination ? JSON.stringify(paginationParams) : undefined
+  }, [useServerPagination, paginationParams.page, paginationParams.size, paginationParams.search, paginationParams.sortBy, paginationParams.sortDirection])
 
   useEffect(() => {
     if (type && currentConfig && apiData) {
@@ -143,7 +163,13 @@ export default function ParameterView({
       // Mapper les données selon la configuration
       let dataArray: unknown[]
 
-      if (currentConfig?.dataKey === null) {
+      if (useServerPagination && apiData && typeof apiData === 'object' && !Array.isArray(apiData) && 'data' in apiData) {
+        // Pour la pagination côté serveur, extraire depuis apiData.data.content
+        const paginatedResponse = apiData as { data?: { content?: unknown[] } }
+        dataArray = Array.isArray(paginatedResponse.data?.content) 
+          ? paginatedResponse.data.content 
+          : []
+      } else if (currentConfig?.dataKey === null) {
         // Les données sont déjà extraites dans le hook
         dataArray = Array.isArray(apiData) ? apiData : []
       } else {
@@ -165,7 +191,8 @@ export default function ParameterView({
       // Désactiver le chargement
       setIsTableLoading(false)
     }
-  }, [type, apiData, initData, paginationDependency])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, apiData, initData, paginationDependency, useServerPagination])
   
 
 
@@ -174,18 +201,51 @@ export default function ParameterView({
     console.log("Type de paramètre:", type)
     console.log("Configuration:", currentConfig)
     setEditingItem(null)
-    setFormData({ code: '', libelle: '' })
+    // Réinitialiser avec les champs de la configuration
+    const initialData: Record<string, any> = {}
+    formFields.forEach(field => {
+      initialData[field.key] = ''
+    })
+    setFormData(initialData)
+    setFormErrors({})
+    setFormError(null)
     setShowForm(true)
-  }, [type, currentConfig])
+  }, [type, currentConfig, formFields])
 
   const handleEdit = useCallback((item: SimpleItem) => {
     setEditingItem(item)
-    setFormData({
-      code: String(item.code || ''),
-      libelle: String(item.libelle || '')
+    // Remplir le formulaire avec les données de l'item
+    const itemData: Record<string, any> = {}
+    formFields.forEach(field => {
+      // Mapper depuis l'item vers le formulaire
+      const apiKey = field.apiKey || field.key
+      // Essayer plusieurs clés possibles
+      // Pour agence_de_banque, banqueCode peut être dans banqueCode ou BQ_CODE
+      if (field.key === 'banqueCode' && type === 'agence_de_banque') {
+        itemData[field.key] = item.banqueCode || item.BQ_CODE || ''
+      } else {
+        itemData[field.key] = item[field.key] || item[apiKey] || 
+                             (field.key === 'code' ? item.code : '') ||
+                             (field.key === 'libelle' ? item.libelle : '') || ''
+      }
+      
+      // Pour les dates, convertir en format YYYY-MM-DD
+      if (field.type === 'date' && itemData[field.key]) {
+        try {
+          const date = new Date(itemData[field.key])
+          if (!isNaN(date.getTime())) {
+            itemData[field.key] = date.toISOString().split('T')[0]
+          }
+        } catch {
+          // Si la conversion échoue, garder la valeur originale
+        }
+      }
     })
+    setFormData(itemData)
+    setFormErrors({})
+    setFormError(null)
     setShowForm(true)
-  }, [])
+  }, [formFields, type])
 
   const handleDelete = useCallback(async (item: SimpleItem) => {
     if (!confirm(`Êtes-vous sûr de vouloir supprimer ${item.libelle} ?`)) {
@@ -280,46 +340,79 @@ export default function ParameterView({
     const searchTerm = currentSearchValue
 
     // Déclencher la recherche quand on clique sur le bouton
-    const newParams = normalizePaginationParams({
-      ...paginationParams,
-      search: searchTerm,
-      page: 0 // Remettre à la page 0 lors d'une recherche
-    })
+    setPaginationParams(prev => {
+      const newParams = normalizePaginationParams({
+        ...prev,
+        search: searchTerm,
+        page: 0 // Remettre à la page 0 lors d'une recherche
+      })
 
-    console.log("onSearchSubmit called - searchTerm:", searchTerm)
-    console.log("onSearchSubmit called - paginationParams:", newParams)
+      console.log("onSearchSubmit called - searchTerm:", searchTerm)
+      console.log("onSearchSubmit called - paginationParams:", newParams)
 
-    // Mettre à jour les paramètres
-    setPaginationParams(newParams)
+      // Indiquer le chargement lors d'une recherche
+      setIsTableLoading(true)
+      setIsPaginationLoading(true)
 
-    // Indiquer le chargement lors d'une recherche
-    setIsTableLoading(true)
-    setIsPaginationLoading(true)
-
-    // Déclencher le refetch
-    const refetchResult = refetch()
-    if (refetchResult && typeof refetchResult.finally === 'function') {
-      refetchResult.finally(() => {
+      // Déclencher le refetch
+      const refetchResult = refetch()
+      if (refetchResult && typeof refetchResult.finally === 'function') {
+        refetchResult.finally(() => {
+          setIsTableLoading(false)
+          setIsPaginationLoading(false)
+        })
+      } else {
         setIsTableLoading(false)
         setIsPaginationLoading(false)
-      })
-    } else {
-      setIsTableLoading(false)
-      setIsPaginationLoading(false)
-    }
-  }, [currentSearchValue, paginationParams, refetch])
+      }
+
+      return newParams
+    })
+  }, [currentSearchValue, refetch])
+
+  // Fonction de validation qui ne met pas à jour l'état (pour éviter les re-renders infinis)
+  const isValidForm = useMemo((): boolean => {
+    let isValid = true
+    
+    formFields.forEach(field => {
+      const value = formData[field.key]
+      const error = validateFormField(value, field)
+      if (error) {
+        isValid = false
+      }
+    })
+    
+    return isValid
+  }, [formData, formFields])
+
+  // Fonction de validation qui met à jour les erreurs (appelée lors de la soumission)
+  const validateForm = useCallback((): boolean => {
+    const errors: Record<string, string> = {}
+    
+    formFields.forEach(field => {
+      const value = formData[field.key]
+      const error = validateFormField(value, field)
+      if (error) {
+        errors[field.key] = error
+      }
+    })
+    
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }, [formData, formFields])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.code.trim() || !formData.libelle.trim()) {
-      alert('Veuillez remplir tous les champs')
+    // Valider le formulaire
+    if (!validateForm()) {
+      setFormError('Veuillez corriger les erreurs dans le formulaire')
       return
     }
 
     // Vérifier si on a un type de paramètre et une configuration
     if (!type || !currentConfig) {
-      alert('Type de paramètre non défini')
+      setFormError('Type de paramètre non défini')
       return
     }
 
@@ -352,19 +445,19 @@ export default function ParameterView({
     setIsFormLoading(true)
 
     try {
-      // Créer l'objet brut selon le type
-      const rawItem = createRawItem(type, formData.code, formData.libelle)
+      // Créer l'objet brut selon les champs du formulaire
+      const rawItem = createRawItemFromForm(type, formData, formFields)
 
       // Utiliser le mapper approprié pour créer l'objet à insérer
       const mappedItem = currentConfig?.mapper(rawItem)
 
-      console.log(`Ajout d'un nouvel élément de type: ${type}`, mappedItem)
+      console.log(`Ajout d'un nouvel élément de type: ${type}`, { rawItem, mappedItem })
 
       // Ajouter temporairement l'élément côté client pour une meilleure UX
+      const timestamp = typeof window !== 'undefined' ? Date.now() : 0
       const newItem: SimpleItem = {
-        id: `temp_${Date.now()}`,
-        code: formData.code,
-        libelle: formData.libelle
+        id: `temp_${timestamp}_${Math.random().toString(36).substring(2, 9)}`,
+        ...formData
       }
 
       setData(prev => [...prev, newItem])
@@ -374,7 +467,12 @@ export default function ParameterView({
 
       // Fermer le formulaire et réinitialiser les données
       setShowForm(false)
-      setFormData({ code: '', libelle: '' })
+      const initialData: Record<string, any> = {}
+      formFields.forEach(field => {
+        initialData[field.key] = ''
+      })
+      setFormData(initialData)
+      setFormErrors({})
 
     } catch (error) {
       console.error('Erreur lors de la création:', error)
@@ -400,8 +498,8 @@ export default function ParameterView({
     setIsFormLoading(true)
 
     try {
-      // Créer l'objet brut selon le type
-      const rawItem = createRawItem(type, formData.code, formData.libelle)
+      // Créer l'objet brut selon les champs du formulaire
+      const rawItem = createRawItemFromForm(type, formData, formFields)
 
       console.log(`Mise à jour de l'élément de type: ${type}`, rawItem)
 
@@ -411,8 +509,11 @@ export default function ParameterView({
         throw new Error('Service de mise à jour non trouvé pour le type: ' + type)
       }
 
+      // Obtenir le code de l'élément à mettre à jour
+      const itemCode = String(editingItem.code || editingItem.id || '')
+
       // Appeler le service directement avec l'objet brut
-      await updateService(apiClient, String(editingItem.code), rawItem)
+      await updateService(apiClient, itemCode, rawItem)
 
       // Invalider le cache et afficher un message de succès
       queryClient.invalidateQueries({ queryKey: [type] })
@@ -423,7 +524,12 @@ export default function ParameterView({
 
       // Fermer le formulaire
       setShowForm(false)
-      setFormData({ code: '', libelle: '' })
+      const initialData: Record<string, any> = {}
+      formFields.forEach(field => {
+        initialData[field.key] = ''
+      })
+      setFormData(initialData)
+      setFormErrors({})
       setEditingItem(null)
     } catch (error) {
       console.error('Erreur lors de la mise à jour:', error)
@@ -439,82 +545,28 @@ export default function ParameterView({
     }
   }
 
+  // Créer l'objet brut à partir des données du formulaire
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const createRawItem = (type: string, code: string, libelle: string): any => {
-    switch (type) {
-      case 'banque':
-        return { BQ_CODE: code, BQ_LIB: libelle }
-      case 'agence_de_banque':
-        return { BQAG_NUM: code, BQAG_LIB: libelle }
-      case 'classe':
-        return { CLAS_CODE: code, CLAS_LIB: libelle }
-      case 'categorie_debiteur':
-        return { CATEG_DEB_CODE: code, CATEG_DEB_LIB: libelle }
-      case 'civilite':
-        return { CIV_CODE: code, CIV_LIB: libelle }
-      case 'nationalite':
-        return { NAT_CODE: code, NAT_LIB: libelle }
-      case 'profession':
-        return { PROF_CODE: code, PROF_LIB: libelle }
-      case 'quartier':
-        return { Q_CODE: code, Q_LIB: libelle }
-      case 'ville':
-        return { V_CODE: code, V_LIB: libelle }
-      case 'zone':
-        return { ZONE_CODE: code, ZONE_LIB: libelle }
-      case 'type_operation':
-        return { TYPOPER_CODE: code, TYPOPER_LIB: libelle }
-      case 'type_acte':
-        return { TYPACTE_CODE: code, TYPACTE_LIB: libelle }
-      case 'type_auxiliaire':
-        return { TYPAUXI_CODE: code, TYPAUXI_LIB: libelle }
-      case 'mode_paiement':
-        return { TYP_PAIE_CODE: code, TYP_PAIE_LIB: libelle }
-      case 'type_charge':
-        return { TYPCHARG_CODE: code, TYPCHARG_LIB: libelle }
-      case 'type_contrat':
-        return { TYPCONT_CODE: code, TYPCONT_LIB: libelle }
-      case 'type_compte':
-        return { TYPCPT_CODE: code, TYPCPT_LIB: libelle }
-      case 'type_domiciliation':
-        return { TYPDOM_CODE: code, TYPDOM_LIB: libelle }
-      case 'type_echeancier':
-        return { TYPECH_CODE: code, TYPECH_LIB: libelle }
-      case 'type_effet':
-        return { TYPEFT_CODE: code, TYPEFT_LIB: libelle }
-      case 'type_employeur':
-        return { TYPEMP_CODE: code, TYPEMP_LIB: libelle }
-      case 'type_frais':
-        return { TYPFRAIS_CODE: code, TYPFRAIS_LIB: libelle }
-      case 'type_logement':
-        return { TYPE_LOGE_CODE: code, TYPE_LOGE_LIB: libelle }
-      case 'type_ovp':
-        return { TYPOVP_CODE: code, TYPOVP_LIB: libelle }
-      case 'type_piece':
-        return { TYPE_PIECE_CODE: code, TYPE_PIECE_LIB: libelle }
-      case 'type_regularisation':
-        return { REGUL_TYPE_CODE: code, REGUL_TYPE_LIB: libelle }
-      case 'type_saisie':
-        return { TYPSAIS_CODE: code, TYPSAIS_LIB: libelle }
-      case 'type_garantie_personnelle':
-        return { TYPGAR_PHYS_CODE: code, TYPGAR_PHYS_LIB: libelle }
-      case 'type_garantie_reelle':
-        return { TYPGAR_REEL_CODE: code, TYPGAR_REEL_LIB: libelle }
-      case 'compte_operation':
-        return { CO_CODE: code, CO_LIB: libelle }
-      case 'entite':
-        return { ENTITE_CODE: code, ENTITE_LIB: libelle }
-      case 'etape':
-        return { ETAP_CODE: code, ETAP_LIB: libelle }
-      case 'exercice':
-        return { EXO_CODE: code, EXO_LIB: libelle }
-      case 'fonction':
-        return { FON_CODE: code, FON_LIB: libelle }
-      case 'groupe_creance':
-        return { GC_CODE: code, GC_LIB: libelle }
-      default:
-        return { code, libelle }
-    }
+  const createRawItemFromForm = (type: string, formData: Record<string, any>, fields: FormFieldConfig[]): any => {
+    const rawItem: Record<string, any> = {}
+    
+    fields.forEach(field => {
+      const value = formData[field.key]
+      const apiKey = field.apiKey || field.key
+      
+      if (value !== undefined && value !== null && value !== '') {
+        if (field.type === 'number') {
+          rawItem[apiKey] = Number(value)
+        } else if (field.type === 'date') {
+          // Les dates sont déjà au format YYYY-MM-DD depuis l'input date
+          rawItem[apiKey] = value
+        } else {
+          rawItem[apiKey] = String(value).trim()
+        }
+      }
+    })
+    
+    return rawItem
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -550,8 +602,126 @@ export default function ParameterView({
   const handleCancel = () => {
     setShowForm(false)
     setEditingItem(null)
-    setFormData({ code: '', libelle: '' })
+    const initialData: Record<string, any> = {}
+    formFields.forEach(field => {
+      initialData[field.key] = ''
+    })
+    setFormData(initialData)
+    setFormErrors({})
+    setFormError(null)
   }
+
+  const handleFieldChange = (fieldKey: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [fieldKey]: value
+    }))
+    
+    // Effacer l'erreur pour ce champ s'il existe
+    if (formErrors[fieldKey]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[fieldKey]
+        return newErrors
+      })
+    }
+  }
+
+  // Tous les hooks doivent être appelés AVANT tout early return
+  // Calculer la pagination (hook qui doit être appelé toujours)
+  const pagination = useMemo(() => {
+    // Pour la pagination côté serveur, extraire depuis apiData.data
+    if (useServerPagination && apiData && typeof apiData === 'object' && !Array.isArray(apiData) && 'data' in apiData) {
+      const paginatedResponse = apiData as { data?: PaginationData }
+      const paginationData = paginatedResponse.data
+      if (paginationData && typeof paginationData === 'object') {
+        return {
+          totalElements: paginationData.totalElements || 0,
+          totalPages: paginationData.totalPages || 0,
+          size: paginationData.size || 50,
+          number: paginationData.number || 0,
+          first: paginationData.first || false,
+          last: paginationData.last || false,
+          numberOfElements: paginationData.numberOfElements || 0,
+          hasNext: paginationData.hasNext || false,
+          hasPrevious: paginationData.hasPrevious || false,
+        } as PaginationInfo
+      }
+    }
+    // Vérifier si apiData contient les informations de pagination (format direct)
+    if (apiData && typeof apiData === 'object' && !Array.isArray(apiData) && 'totalElements' in apiData) {
+      const paginationData = apiData as PaginationData
+      return {
+        totalElements: paginationData.totalElements || 0,
+        totalPages: paginationData.totalPages || 0,
+        size: paginationData.size || 50,
+        number: paginationData.number || 0,
+        first: paginationData.first || false,
+        last: paginationData.last || false,
+        numberOfElements: paginationData.numberOfElements || 0,
+        hasNext: paginationData.hasNext || false,
+        hasPrevious: paginationData.hasPrevious || false,
+      } as PaginationInfo
+    }
+    // Priorité 3: Fallback pour les hooks sans pagination ou quand apiData est un tableau
+    return {
+      totalElements: Array.isArray(apiData) ? apiData.length : 0,
+      totalPages: 1,
+      size: paginationParams.size || 50,
+      number: paginationParams.page || 0,
+      first: (paginationParams.page || 0) === 0,
+      last: true, // On ne peut pas déterminer sans les données du serveur
+      numberOfElements: Array.isArray(apiData) ? apiData.length : 0,
+      hasNext: false, // On ne peut pas déterminer sans les données du serveur
+      hasPrevious: (paginationParams.page || 0) > 0,
+    } as PaginationInfo
+  }, [useServerPagination, apiData, paginationParams.size, paginationParams.page])
+
+  // Hook onPaginationChange (doit être appelé toujours)
+  const handlePaginationChange = useCallback((params: { page?: number; size?: number; search?: string }) => {
+    // Mettre à jour les paramètres de pagination
+    setPaginationParams(prev => {
+      const newParams = normalizePaginationParams({
+        ...prev,
+        ...params
+      })
+
+      // Comparer les paramètres de manière plus stable
+      const prevKey = `${prev.page || 0}-${prev.size || 50}-${prev.search || ''}`
+      const newKey = `${newParams.page || 0}-${newParams.size || 50}-${newParams.search || ''}`
+      
+      // Si les paramètres n'ont pas vraiment changé, ne rien faire
+      if (prevKey === newKey) {
+        return prev
+      }
+
+      setIsTableLoading(true)
+
+      if (params.page !== undefined && params.search === undefined) {
+        setIsPaginationLoading(true)
+      }
+
+      if (params.search !== undefined) {
+        setSearchQuery(params.search)
+        if (params.search !== prev.search) {
+          setIsPaginationLoading(true)
+        }
+      }
+
+      const refetchResult = refetch()
+      if (refetchResult && typeof refetchResult.finally === 'function') {
+        refetchResult.finally(() => {
+          setIsTableLoading(false)
+          setIsPaginationLoading(false)
+        })
+      } else {
+        setIsTableLoading(false)
+        setIsPaginationLoading(false)
+      }
+
+      return newParams
+    })
+  }, [refetch])
 
   // Gestion de l'état de chargement et d'erreur
   // if (type && isLoading) {
@@ -595,87 +765,15 @@ export default function ParameterView({
         onSearchValueChange={handleSearchValueChange}
         onSearchReset={handleSearchReset}
         onSearchSubmit={currentConfig?.hook?.name.includes('Paginated') ? handleSearchSubmit : undefined}
+        onRefresh={refetch}
         onEdit={handleEdit}
         onDelete={handleDelete}
         status={isLoading}
-        useServerPagination={useServerPagination && currentConfig?.hook?.name.includes('Paginated')}
+        useServerPagination={useServerPagination && (!!currentConfig?.hookPaginated || currentConfig?.hook?.name.includes('Paginated'))}
         isPaginationLoading={isPaginationLoading}
         isTableLoading={isTableLoading}
-        pagination={(() => {
-          // Vérifier si apiData contient les informations de pagination
-          if (apiData && typeof apiData === 'object' && !Array.isArray(apiData) && 'totalElements' in apiData) {
-            const paginationData = apiData as PaginationData
-            return {
-              totalElements: paginationData.totalElements || 0,
-              totalPages: paginationData.totalPages || 0,
-              size: paginationData.size || 50,
-              number: paginationData.number || 0,
-              first: paginationData.first || false,
-              last: paginationData.last || false,
-              numberOfElements: paginationData.numberOfElements || 0,
-              hasNext: paginationData.hasNext || false,
-              hasPrevious: paginationData.hasPrevious || false,
-            } as PaginationInfo
-          }
-          // Priorité 3: Fallback pour les hooks sans pagination ou quand apiData est un tableau
-          else {
-            return {
-              totalElements: Array.isArray(apiData) ? apiData.length : 0,
-              totalPages: 1,
-              size: paginationParams.size || 50,
-              number: paginationParams.page || 0,
-              first: (paginationParams.page || 0) === 0,
-              last: true, // On ne peut pas déterminer sans les données du serveur
-              numberOfElements: Array.isArray(apiData) ? apiData.length : 0,
-              hasNext: false, // On ne peut pas déterminer sans les données du serveur
-              hasPrevious: (paginationParams.page || 0) > 0,
-        } as PaginationInfo
-          }
-        })()
-        }
-        onPaginationChange={(params: { page?: number; size?: number; search?: string }) => {
-          // Mettre à jour les paramètres de pagination
-          setPaginationParams(prev => {
-            const newParams = normalizePaginationParams({
-              ...prev,
-              ...params
-            })
-
-            // Indiquer le chargement global
-            setIsTableLoading(true)
-
-            // Si seulement la page change, on indique le chargement
-            if (params.page !== undefined && params.search === undefined) {
-              setIsPaginationLoading(true)
-            }
-
-            // Mettre à jour la recherche si elle a changé
-            if (params.search !== undefined) {
-              setSearchQuery(params.search)
-              // Indiquer le chargement lors d'une recherche
-              if (params.search !== prev.search) {
-                setIsPaginationLoading(true)
-              }
-            }
-
-            // Si les paramètres ont changé, on déclenche un refetch
-            if (JSON.stringify(prev) !== JSON.stringify(newParams)) {
-              const refetchResult = refetch()
-              if (refetchResult && typeof refetchResult.finally === 'function') {
-                refetchResult.finally(() => {
-                  setIsTableLoading(false)
-                  setIsPaginationLoading(false)
-                })
-              } else {
-                setIsTableLoading(false)
-                setIsPaginationLoading(false)
-              }
-            }
-
-            return newParams
-          })
-        }}
-        // addButtonText={`Nouveau ${title.toLowerCase().slice(0, -1)}`}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
       />
 
       {/* Formulaire modal */}
@@ -712,45 +810,97 @@ export default function ParameterView({
             )}
 
             <div className="space-y-4 mb-5">
-              <div className="space-y-2">
-                <Label htmlFor="code" className="text-base font-medium text-gray-800">
-                  Code *
-                </Label>
-                <Input
-                  id="code"
-                  type="text"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  placeholder="Saisir le code..."
-                  required
-                  style={{
-                    border: '1px solid #000',
-                    padding: '5px 15px',
-                    borderRadius: '6px',
-                  }}
-                  className="h-10 border-gray-300 focus-visible:ring-emerald-200 focus-visible:border-emerald-500"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="libelle" className="text-base font-medium text-gray-800">
-                  Libellé *
-                </Label>
-                <Input
-                  id="libelle"
-                  type="text"
-                  value={formData.libelle}
-                  onChange={(e) => setFormData({ ...formData, libelle: e.target.value })}
-                  placeholder="Saisir le libellé..."
-                  required
-                  style={{
-                    border: '1px solid #000',
-                    padding: '5px 15px',
-                    borderRadius: '6px',
-                  }}
-                  className="h-10 border-[gray-300] focus-visible:ring-emerald-200 focus-visible:border-emerald-500"
-                />
-              </div>
+              {formFields.map((field) => (
+                <div key={field.key} className="space-y-2">
+                  <Label 
+                    htmlFor={field.key} 
+                    className="text-base font-medium text-gray-800"
+                  >
+                    {field.label} {field.required && '*'}
+                  </Label>
+                  
+                  {field.type === 'searchable-select' && field.searchableHook === 'useBanquesSearchable' ? (
+                    <SearchableSelect
+                      value={formData[field.key] || ''}
+                      onValueChange={(value) => handleFieldChange(field.key, value)}
+                      items={banquesSearchable.items}
+                      placeholder={banquesSearchable.isLoading ? 'Chargement...' : (field.placeholder || `Sélectionner ${field.label.toLowerCase()}...`)}
+                      searchPlaceholder={`Rechercher ${field.label.toLowerCase()}...`}
+                      emptyMessage={`Aucune ${field.label.toLowerCase()} trouvée`}
+                      disabled={banquesSearchable.isLoading || isFormLoading}
+                      isLoading={banquesSearchable.isLoading}
+                      hasMore={banquesSearchable.hasMore}
+                      onLoadMore={banquesSearchable.loadMore}
+                      isFetchingMore={banquesSearchable.isFetchingMore}
+                      onSearchChange={banquesSearchable.setSearch}
+                      className={formErrors[field.key] ? 'border-red-500' : formData[field.key] ? 'border-[#28A325]' : ''}
+                    />
+                  ) : field.type === 'select' && field.options ? (
+                    <Select
+                      value={formData[field.key] || ''}
+                      onValueChange={(value) => handleFieldChange(field.key, value)}
+                    >
+                      <SelectTrigger
+                        className="h-10 border-gray-300 focus:ring-emerald-200 focus:border-emerald-500"
+                        style={{
+                          border: '1px solid #000',
+                          padding: '5px 15px',
+                          borderRadius: '6px',
+                        }}
+                      >
+                        <SelectValue placeholder={field.placeholder || `Sélectionner ${field.label.toLowerCase()}...`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.options.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : field.type === 'textarea' ? (
+                    <textarea
+                      id={field.key}
+                      value={formData[field.key] || ''}
+                      onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                      placeholder={field.placeholder || `Saisir ${field.label.toLowerCase()}...`}
+                      required={field.required}
+                      maxLength={field.maxLength}
+                      rows={4}
+                      style={{
+                        border: '1px solid #000',
+                        padding: '5px 15px',
+                        borderRadius: '6px',
+                        width: '100%',
+                        resize: 'vertical',
+                      }}
+                      className="border-gray-300 focus:ring-emerald-200 focus:border-emerald-500"
+                    />
+                  ) : (
+                    <Input
+                      id={field.key}
+                      type={field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'}
+                      value={formData[field.key] || ''}
+                      onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                      placeholder={field.placeholder || `Saisir ${field.label.toLowerCase()}...`}
+                      required={field.required}
+                      maxLength={field.maxLength}
+                      min={field.min}
+                      max={field.max}
+                      style={{
+                        border: '1px solid #000',
+                        padding: '5px 15px',
+                        borderRadius: '6px',
+                      }}
+                      className="h-10 border-gray-300 focus-visible:ring-emerald-200 focus-visible:border-emerald-500"
+                    />
+                  )}
+                  
+                  {formErrors[field.key] && (
+                    <p className="text-sm text-red-600 mt-1">{formErrors[field.key]}</p>
+                  )}
+                </div>
+              ))}
             </div>
 
             {/* Footer */}
@@ -777,7 +927,7 @@ export default function ParameterView({
                   borderRadius: '6px',
                 }}
                 className="bg-emerald-600 hover:bg-emerald-700! px-8! h-10 hover:text-white!"
-                disabled={isFormLoading || !formData.code.trim() || !formData.libelle.trim()}
+                disabled={isFormLoading || !isValidForm}
               >
                 {isFormLoading ? (
                   <>

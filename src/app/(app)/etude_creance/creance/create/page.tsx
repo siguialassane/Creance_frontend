@@ -1,216 +1,428 @@
-"use client"
+"use client";
 
 import { Suspense } from "react";
-import { useState, useRef, useEffect } from "react";
+import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useToast } from "@chakra-ui/react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import CreanceForm from "@/components/creance-form/creance-form";
 import { useApiClient } from "@/hooks/useApiClient";
 import { CreanceService } from "@/services/creance.service";
+import { MultiStepForm, StepConfig } from "@/components/multi-step/MultiStepForm";
+import { useCreanceMultiStepForm } from "@/hooks/useCreanceMultiStepForm";
+import CreanceForm from "@/components/creance-form/creance-form";
+import { ArrowLeft } from "lucide-react";
 
+/**
+ * Page de création d'une nouvelle créance
+ * Utilise un formulaire multi-step professionnel et modulaire
+ */
 const NouvelleCreancePageInner = () => {
-  const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const totalSteps = 5;
-  const formRef = useRef<any>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const apiClient = useApiClient();
-  const toast = useToast();
-
-  const steps = [
-    { id: 1, title: "Informations générales", description: "Débiteur, groupe créance, type d'objet, capital initial" },
-    { id: 2, title: "Informations générales 2", description: "Numéro, entité, objet, dates et échéances" },
-    { id: 3, title: "Détails financiers", description: "Montants, intérêts, commissions et totaux" },
-    { id: 4, title: "Pièces", description: "Type, référence, libellé et dates" },
-    { id: 5, title: "Garanties", description: "Garanties personnelles ou réelles" }
-  ];
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const creanceFormRef = React.useRef<any>(null);
 
   // Récupérer les paramètres du débiteur depuis l'URL
-  const debiteurId = searchParams.get('debiteurId');
-  const debiteurCode = searchParams.get('debiteurCode');
-  const debiteurNom = searchParams.get('debiteurNom');
-  const debiteurPrenom = searchParams.get('debiteurPrenom');
+  const debiteurId = searchParams.get("debiteurId");
+  const debiteurCode = searchParams.get("debiteurCode");
+  const debiteurNom = searchParams.get("debiteurNom");
+  const debiteurPrenom = searchParams.get("debiteurPrenom");
 
-  useEffect(() => {
-    // Pré-remplir les données du débiteur si elles sont fournies
-    if (debiteurId && debiteurCode && debiteurNom && debiteurPrenom) {
-      setFormData(prev => ({
-        ...prev,
-        debiteurCode: debiteurCode,
-        debiteurNom: debiteurNom,
-        debiteurPrenom: debiteurPrenom
-      }));
+  // État local pour stocker toutes les données du formulaire en temps réel
+  const [allFormData, setAllFormData] = React.useState<Record<string, any>>({});
+
+  // Hook personnalisé pour gérer le formulaire multi-step
+  const {
+    currentStep,
+    formData,
+    form,
+    validateCurrentStep,
+    goToStep,
+  } = useCreanceMultiStepForm({
+    initialData: React.useMemo(() => {
+      const initial: Record<string, any> = {};
+      // Pré-remplir les données du débiteur si elles sont fournies
+      if (debiteurId && debiteurCode && debiteurNom && debiteurPrenom) {
+        initial.debiteurCode = debiteurCode;
+        initial.debiteurNom = debiteurNom;
+        initial.debiteurPrenom = debiteurPrenom;
+      }
+      return initial;
+    }, [debiteurId, debiteurCode, debiteurNom, debiteurPrenom]),
+    onDataChange: (data) => {
+      // Synchroniser toutes les données dans l'état local
+      setAllFormData(data);
+      console.log("🔄 Données mises à jour via onDataChange:", data);
+    },
+  });
+
+  // Configuration des étapes
+  const steps: StepConfig[] = React.useMemo(
+    () => [
+      {
+        id: 1,
+        title: "Informations générales",
+        description: "Les champs marqués d'un astérisque orange sont obligatoires",
+        validate: async () => {
+          // Utiliser la validation depuis le composant CreanceForm qui a accès au vrai formulaire
+          if (creanceFormRef.current?.validateStep) {
+            return await creanceFormRef.current.validateStep();
+          }
+          // Fallback sur la validation du hook si le ref n'est pas disponible
+          return await validateCurrentStep();
+        },
+      },
+      {
+        id: 2,
+        title: "Détails financiers",
+        description: "Montants, intérêts, commissions et totaux (calculés automatiquement)",
+        validate: async () => {
+          // Utiliser la validation depuis le composant CreanceForm qui a accès au vrai formulaire
+          if (creanceFormRef.current?.validateStep) {
+            return await creanceFormRef.current.validateStep();
+          }
+          // Fallback sur la validation du hook si le ref n'est pas disponible
+          return await validateCurrentStep();
+        },
+      },
+      {
+        id: 3,
+        title: "Pièces jointes",
+        description: "Ajouter les pièces jointes nécessaires",
+        validate: async () => {
+          // Validation optionnelle pour les pièces
+          return true;
+        },
+      },
+      {
+        id: 4,
+        title: "Garanties",
+        description: "Garanties personnelles ou réelles (optionnel)",
+        validate: async () => {
+          // Utiliser la validation depuis le composant CreanceForm qui a accès au vrai formulaire
+          if (creanceFormRef.current?.validateStep) {
+            return await creanceFormRef.current.validateStep();
+          }
+          // Fallback sur la validation du hook si le ref n'est pas disponible
+          return await validateCurrentStep();
+        },
+      },
+    ],
+    [validateCurrentStep]
+  );
+
+  // Gestion de la soumission finale
+  const handleSubmit = React.useCallback(async () => {
+    // Valider la dernière étape
+    const isValid = await validateCurrentStep();
+    if (!isValid) {
+      toast.error("Veuillez corriger les erreurs avant de continuer");
+      return;
     }
-  }, [debiteurId, debiteurCode, debiteurNom, debiteurPrenom]);
 
-  const validateCurrentStep = () => {
-    if (!formRef.current) return false;
-    
-    // Déclencher la validation du formulaire
-    return formRef.current.validateStep();
-  };
-
-  const handleSubmit = async (data: any) => {
-    console.log("Données de la créance:", data);
     setIsSubmitting(true);
 
     try {
-      // Transformation des données du formulaire vers le format API
-      const creanceData = {
-        debiteur: data.debiteur,
-        groupeCreance: data.groupeCreance,
-        objetCreance: data.typeObjet,
-        objetDetail: data.objetCreance,
-        capitalInitial: data.capitalInitial,
-        montantDecaisse: data.montantDecaisse,
-        montantInteretConventionnel: data.montantIntConvPaye,
-        commissionBanque: data.commission,
-        numeroPrecedent: data.numeroPrecedent,
-        numeroAncien: data.numeroAncien,
-        montantDu: data.montantDu,
-        montantRembourse: data.montantDejaRembourse,
-        montantInteretRetard: data.intRetPourcentage,
-        frais: data.diversFrais,
-        encours: data.encours,
-        dateDeblocage: data.dateOctroi || new Date().toISOString().split('T')[0],
-        dateEcheance: data.dateDerniereEcheance || new Date().toISOString().split('T')[0],
-        periodicite: data.periodicite?.toUpperCase(),
-        duree: data.nbEch,
-        tauxInteretConventionnel: data.intConvPourcentage,
-        tauxInteretRetard: data.intRetPourcentage,
-        ordonnateur: data.ordonnateur || 'ORD001',
-        statut: 'EN_COURS',
-        observations: data.libelle
-      };
+      // Récupérer toutes les valeurs depuis le formulaire CreanceForm (source la plus fiable car c'est le vrai formulaire)
+      const formValues = creanceFormRef.current?.getFormValues ? creanceFormRef.current.getFormValues() : {};
+      
+      // Utiliser allFormData qui est mis à jour en temps réel via onDataChange depuis CreanceForm
+      // Combiner toutes les sources pour être sûr d'avoir toutes les données (priorité: CreanceForm > allFormData > formData)
+      const allFormValues = { ...formData, ...allFormData, ...formValues };
+      
+      console.log("📋 Valeurs depuis CreanceForm.getFormValues():", formValues);
+      console.log("📋 allFormData (mis à jour via onDataChange):", allFormData);
+      console.log("📋 formData du hook:", formData);
+      console.log("📋 Toutes les valeurs combinées:", allFormValues);
+      console.log("📋 Nombre total de champs:", Object.keys(allFormValues).length);
+      console.log("📋 Exemples de champs clés:", {
+        debiteur: allFormValues.debiteur,
+        groupeCreance: allFormValues.groupeCreance,
+        objetCreance: allFormValues.objetCreance,
+        capitalInitial: allFormValues.capitalInitial,
+        ordonnateur: allFormValues.ordonnateur,
+        statut: allFormValues.statut,
+        dateDeblocage: allFormValues.dateDeblocage,
+        dateEcheance: allFormValues.dateEcheance,
+      });
+      
+      // Construire le payload avec TOUS les champs selon la documentation API
+      // INCLURE TOUS LES CHAMPS même s'ils sont vides (sauf undefined/null)
+      const creanceData: any = {};
+      
+      // Champs requis (8 champs obligatoires selon la doc) - TOUJOURS inclure avec leurs vraies valeurs
+      // Inclure même les chaînes vides car ce sont des champs obligatoires
+      if (allFormValues.debiteur !== undefined) {
+        creanceData.debiteur = allFormValues.debiteur || '';
+      }
+      if (allFormValues.groupeCreance !== undefined) {
+        creanceData.groupeCreance = allFormValues.groupeCreance || '';
+      }
+      if (allFormValues.objetCreance !== undefined) {
+        creanceData.objetCreance = allFormValues.objetCreance || '';
+      }
+      if (allFormValues.capitalInitial !== undefined) {
+        creanceData.capitalInitial = allFormValues.capitalInitial ?? 0;
+      }
+      if (allFormValues.dateDeblocage) {
+        creanceData.dateDeblocage = allFormValues.dateDeblocage;
+      } else {
+        creanceData.dateDeblocage = new Date().toISOString().split("T")[0];
+      }
+      if (allFormValues.dateEcheance) {
+        creanceData.dateEcheance = allFormValues.dateEcheance;
+      } else {
+        creanceData.dateEcheance = new Date().toISOString().split("T")[0];
+      }
+      if (allFormValues.ordonnateur !== undefined) {
+        creanceData.ordonnateur = allFormValues.ordonnateur || '';
+      }
+      // Le statut est déjà en initiale (A, C, S) dans le formulaire, l'envoyer tel quel
+      creanceData.statut = allFormValues.statut || "A";
+      
+      // Champs optionnels - Step 1 (inclure seulement s'ils existent)
+      if (allFormValues.objetDetail !== undefined && allFormValues.objetDetail) {
+        creanceData.objetDetail = allFormValues.objetDetail;
+      }
+      if (allFormValues.montantDecaisse !== undefined && allFormValues.montantDecaisse !== null) {
+        creanceData.montantDecaisse = allFormValues.montantDecaisse;
+      }
+      if (allFormValues.numeroPrecedent !== undefined && allFormValues.numeroPrecedent) {
+        creanceData.numeroPrecedent = allFormValues.numeroPrecedent;
+      }
+      if (allFormValues.numeroAncien !== undefined && allFormValues.numeroAncien) {
+        creanceData.numeroAncien = allFormValues.numeroAncien;
+      }
+      
+      // Champs optionnels - Step 2
+      if (allFormValues.periodicite !== undefined && allFormValues.periodicite) {
+        creanceData.periodicite = allFormValues.periodicite;
+      }
+      if (allFormValues.duree !== undefined && allFormValues.duree !== null) {
+        creanceData.duree = allFormValues.duree;
+      }
+      if (allFormValues.tauxInteretConventionnel !== undefined && allFormValues.tauxInteretConventionnel !== null) {
+        creanceData.tauxInteretConventionnel = allFormValues.tauxInteretConventionnel;
+      }
+      if (allFormValues.tauxInteretRetard !== undefined && allFormValues.tauxInteretRetard !== null) {
+        creanceData.tauxInteretRetard = allFormValues.tauxInteretRetard;
+      }
+      
+      // Champs optionnels - Step 3 (montants)
+      if (allFormValues.montantInteretConventionnel !== undefined && allFormValues.montantInteretConventionnel !== null) {
+        creanceData.montantInteretConventionnel = allFormValues.montantInteretConventionnel;
+      }
+      if (allFormValues.commissionBanque !== undefined && allFormValues.commissionBanque !== null) {
+        creanceData.commissionBanque = allFormValues.commissionBanque;
+      }
+      if (allFormValues.montantDu !== undefined && allFormValues.montantDu !== null) {
+        creanceData.montantDu = allFormValues.montantDu;
+      }
+      if (allFormValues.montantRembourse !== undefined && allFormValues.montantRembourse !== null) {
+        creanceData.montantRembourse = allFormValues.montantRembourse;
+      }
+      if (allFormValues.montantInteretRetard !== undefined && allFormValues.montantInteretRetard !== null) {
+        creanceData.montantInteretRetard = allFormValues.montantInteretRetard;
+      }
+      if (allFormValues.frais !== undefined && allFormValues.frais !== null) {
+        creanceData.frais = allFormValues.frais;
+      }
+      if (allFormValues.encours !== undefined && allFormValues.encours !== null) {
+        creanceData.encours = allFormValues.encours;
+      }
+      
+      // Champs calculés (inclure si calculés)
+      if (allFormValues.montantARembourser !== undefined && allFormValues.montantARembourser !== null) {
+        creanceData.montantARembourser = allFormValues.montantARembourser;
+      }
+      if (allFormValues.montantImpaye !== undefined && allFormValues.montantImpaye !== null) {
+        creanceData.montantImpaye = allFormValues.montantImpaye;
+      }
+      if (allFormValues.totalDu !== undefined && allFormValues.totalDu !== null) {
+        creanceData.totalDu = allFormValues.totalDu;
+      }
+      if (allFormValues.penalite !== undefined && allFormValues.penalite !== null) {
+        creanceData.penalite = allFormValues.penalite;
+      }
+      if (allFormValues.totalSolde !== undefined && allFormValues.totalSolde !== null) {
+        creanceData.totalSolde = allFormValues.totalSolde;
+      }
+      
+      // Champs optionnels - Step 4
+      if (allFormValues.observations !== undefined && allFormValues.observations) {
+        creanceData.observations = allFormValues.observations;
+      }
+      
+      // Récupérer les garanties et pièces depuis CreanceForm
+      const garanties = creanceFormRef.current?.getGaranties ? creanceFormRef.current.getGaranties() : [];
+      const pieces = creanceFormRef.current?.getPieces ? creanceFormRef.current.getPieces() : [];
+      const watchedTypeGarantie = allFormValues.typeGarantie || '';
+      
+      // Séparer les garanties personnelles et réelles selon le type
+      const garantiesPersonnelles: any[] = [];
+      const garantiesReelles: any[] = [];
+      
+      garanties.forEach((garantie: any) => {
+        if (watchedTypeGarantie === 'personnelles' || garantie.type === 'personnelles') {
+          // Mapper vers le format API pour garanties personnelles
+          garantiesPersonnelles.push({
+            TYPGAR_PHYS_CODE: garantie.type || '',
+            GARPHYS_CODE: garantie.numeroGarantie || garantie.code || '',
+            GARPHYS_NOM: garantie.nom || '',
+            GARPHYS_PREN: garantie.prenoms || '',
+            GARPHYS_TEL: garantie.tel || '',
+            GARPHYS_ADR: garantie.adressePostale || garantie.adresse || '',
+            GARPHYS_PROFESSION: garantie.profession || '',
+            GARPHYS_EMPLOYEUR: garantie.employeur || '',
+            GARPHYS_REVENU: garantie.revenu || undefined,
+            CIV_CODE: garantie.civCode || '',
+            QUART_CODE: garantie.quartier || '',
+            VILLE_CODE: garantie.ville || '',
+            DEB_CODE: garantie.debCode || null,
+          });
+        } else if (watchedTypeGarantie === 'reelles' || garantie.type === 'reelles') {
+          // Mapper vers le format API pour garanties réelles
+          garantiesReelles.push({
+            TYPGAR_REEL_CODE: garantie.type || '',
+            GAR_REEL_DESCRIPTION: garantie.description || garantie.objetMontant || '',
+            GAR_REEL_VALEUR: garantie.valeur || garantie.objetMontant ? parseFloat(String(garantie.objetMontant)) : undefined,
+            GAR_REEL_ADRESSE: garantie.adresse || garantie.adressePostale || '',
+            GAR_REEL_SURFACE: garantie.surface ? parseFloat(String(garantie.surface)) : undefined,
+            CIRCONSCRIPTION_CODE: garantie.circonscription || '',
+            TITRE_FONCIER_NUM: garantie.titreFoncier || '',
+            TERRAIN_CODE: garantie.terrain || null,
+            LOGEMENT_CODE: garantie.logement || null,
+          });
+        }
+      });
+      
+      // Ajouter les garanties seulement si elles existent
+      if (garantiesPersonnelles.length > 0) {
+        creanceData.garantiesPersonnelles = garantiesPersonnelles;
+      }
+      if (garantiesReelles.length > 0) {
+        creanceData.garantiesReelles = garantiesReelles;
+      }
+      
+      // Mapper les pièces jointes vers le format API
+      const piecesMapped = pieces
+        .filter((p: any) => p.typePieceCode || p.numero || p.fichier) // Ne garder que les pièces avec au moins un champ rempli
+        .map((piece: any) => ({
+          TYPE_PIECE_CODE: piece.typePieceCode || '',
+          PIECE_NUM: piece.numero || '',
+          PIECE_DATE: piece.date || '',
+          PIECE_DESCRIPTION: piece.description || '',
+          PIECE_FICHIER: piece.fichier || (piece.file ? piece.file.name : ''),
+        }));
+      
+      if (piecesMapped.length > 0) {
+        creanceData.pieces = piecesMapped;
+      }
+      
+      console.log("📤 Payload final envoyé au backend:", JSON.stringify(creanceData, null, 2));
+      console.log("📎 Garanties personnelles:", garantiesPersonnelles);
+      console.log("📎 Garanties réelles:", garantiesReelles);
+      console.log("📎 Pièces jointes:", piecesMapped);
 
       const response = await CreanceService.create(apiClient, creanceData);
 
-      if (response.success) {
-        toast({
-          title: "Créance créée",
-          description: "La créance a été créée avec succès",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-          position: "top",
-        });
+      console.log("📥 Réponse du backend:", response);
+
+      // Le backend retourne status: "SUCCESS" ou status: "ERROR"
+      const responseData = response as any;
+      if (responseData.status === "SUCCESS" || response.success === true) {
+        // Utiliser le message de data.message si disponible, sinon celui de response.message
+        const successMessage = responseData.data?.message || responseData.message || "La créance a été créée avec succès";
+        toast.success(successMessage);
         router.push("/etude_creance/creance/views");
       } else {
-        throw new Error(response.message || "Erreur lors de la création");
+        // Gérer les erreurs métier retournées par le backend
+        const errorMessage = responseData.data?.message || responseData.message || "Erreur lors de la création de la créance";
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
       console.error("Erreur lors de la création:", error);
-      toast({
-        title: "Erreur de création",
-        description: error.message || "Impossible de créer la créance",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-        position: "top",
-      });
+      
+      // Gérer les erreurs HTTP et les erreurs métier
+      let errorMessage = "Impossible de créer la créance";
+      
+      if (error.response?.data) {
+        // Erreur avec réponse du backend
+        const backendError = error.response.data;
+        console.log("📥 Erreur backend:", backendError);
+        
+        if (backendError.status === "ERROR" || backendError.status === "FAILED") {
+          errorMessage = backendError.data?.message || backendError.message || errorMessage;
+        } else if (backendError.message) {
+          errorMessage = backendError.message;
+        } else if (backendError.error?.message) {
+          errorMessage = backendError.error.message;
+        }
+      } else if (error.message) {
+        // Erreur avec message personnalisé
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [formData, apiClient, router, validateCurrentStep]);
+
+  // Gestion des erreurs de validation
+  const handleValidationError = React.useCallback((message: string) => {
+    toast.error(message);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* Contenu principal */}
-          <div className="lg:col-span-12">
-            
-        {/* En-tête comme dans l'image */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold mb-2" style={{ color: '#28A325' }}>Ajouter une créance</h1>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center justify-between w-full">
-              <div className={`text-sm font-medium ${step >= 1 ? 'text-orange-600' : 'text-gray-500'}`}>
-                Informations générales
-              </div>
-              <div className={`text-sm font-medium ${step >= 2 ? 'text-orange-600' : 'text-gray-500'}`}>
-                Informations générales 2
-              </div>
-              <div className={`text-sm font-medium ${step >= 3 ? 'text-orange-600' : 'text-gray-500'}`}>
-                Détails financiers
-              </div>
-              <div className={`text-sm font-medium ${step >= 4 ? 'text-orange-600' : 'text-gray-500'}`}>
-                Pièces
-              </div>
-              <div className={`text-sm font-medium ${step >= 5 ? 'text-orange-600' : 'text-gray-500'}`}>
-                Garanties
-              </div>
-            </div>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-1">
-            <div 
-              className="bg-orange-500 h-1 rounded-full transition-all duration-300" 
-              style={{ width: `${(step / totalSteps) * 100}%` }}
-            ></div>
+      <div className="mx-auto">
+        {/* Barre verte avec titre (même style que les listing) */}
+        <div 
+          className="px-8 py-4"
+          style={{
+            backgroundColor: '#28A325',
+            color: 'white',
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => router.push("/etude_creance/creance/views")}
+              className="hover:bg-white/10 text-white border-white/20 flex items-center"
+            >
+              <ArrowLeft className="h-4 w-4 mt-0.5" />
+              RETOUR
+            </Button>
+            <h1 className="text-xl font-semibold text-white">
+              AJOUTER UNE CRÉANCE
+            </h1>
           </div>
         </div>
 
-            {/* Contenu du formulaire */}
-            <div className="bg-white rounded-lg border p-6 shadow-sm">
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-orange-600 mb-2">
-                  {steps[step - 1].title}
-                </h2>
-                <p className="text-sm text-gray-600">
-                  {steps[step - 1].description}
-                </p>
-              </div>
-
-              <CreanceForm
-                ref={formRef}
-                currentStep={step}
-                formData={formData}
-                onDataChange={setFormData}
-                onSubmit={handleSubmit}
-              />
-            </div>
-
-            {/* Navigation comme dans l'image - pied de page */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="flex justify-between items-center">
-                <div>
-                  {step > 1 && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setStep(step - 1)}
-                      className="text-gray-600 border-gray-300 hover:bg-gray-50 bg-white px-24 py-4 text-base min-w-[120px]"
-                    >
-                      Précédent
-                    </Button>
-                  )}
-                </div>
-                <div>
-                  {step < totalSteps ? (
-                    <Button 
-                      onClick={() => setStep(step + 1)}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px]"
-                      style={{ backgroundColor: '#f97316', color: 'white' }}
-                    >
-                      Suivant
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => handleSubmit(formData)}
-                      disabled={isSubmitting}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px]"
-                      style={{ backgroundColor: '#f97316', color: 'white' }}
-                    >
-                      {isSubmitting ? "Enregistrement..." : "Enregistrer"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Formulaire multi-step avec mêmes marges que le tableau */}
+        <div className="bg-white px-8 py-6 mt-9">
+          <MultiStepForm
+            steps={steps}
+            currentStep={currentStep}
+            onStepChange={goToStep}
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+            onValidationError={handleValidationError}
+          >
+                  <CreanceForm
+                    ref={creanceFormRef}
+                    currentStep={currentStep}
+                    formData={allFormData || formData}
+                    onDataChange={(data) => {
+                      // Synchroniser les données en temps réel
+                      setAllFormData(data);
+                      console.log("🔄 CreanceForm onDataChange appelé avec:", Object.keys(data).length, "champs");
+                    }}
+                    onSubmit={handleSubmit}
+                  />
+          </MultiStepForm>
         </div>
       </div>
     </div>

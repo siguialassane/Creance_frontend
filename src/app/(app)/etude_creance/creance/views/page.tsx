@@ -1,149 +1,159 @@
-"use client"
+"use client";
 
 import { Suspense } from "react";
+import * as React from "react";
 import { useState, useEffect } from "react";
-import {
-  Box,
-  Button,
-  Text,
-  VStack,
-  HStack,
-  Input,
-  Select,
-  Badge,
-  IconButton,
-  useToast
-} from "@chakra-ui/react";
-import { EditIcon, DeleteIcon, ViewIcon } from "@chakra-ui/icons";
+import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useApiClient } from "@/hooks/useApiClient";
 import { CreanceService } from "@/services/creance.service";
 import { CreanceResponse } from "@/types/creance";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Eye, Pencil, Trash2, Plus } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { PaginationParams, PaginationInfo } from "@/types/pagination";
+import { getStatutRecouvrementLibelle, getStatutRecouvrementVariant } from "@/lib/constants/statut-recouvrement";
 
 // Types pour les créances (mapping de CreanceResponse à l'interface locale)
 interface Creance {
   id: string;
   numeroCreance: string;
+  debiteurCode: string; // Code du débiteur selon la doc
   objetCreance: string;
   groupeCreance: string;
   debiteurNom: string;
   debiteurPrenom: string;
   raisonSociale: string;
+  typeDebiteur: string; // 'P' ou 'M'
   capitalInitial: number;
+  soldeInit: number; // CREAN_SOLDE_INIT selon la doc
   montantARembourser: number;
   montantImpaye: number;
   totalSolde: number;
   statutCreance: string;
+  statutRecouvrement: string; // CREAN_STATRECOUV selon la doc
   dateCreation: string;
+  dateDeblocage: string;
+  dateEcheance: string;
   periodicite: string;
   garantiePersonnelle: boolean;
   garantieReelle: boolean;
 }
 
+// Fonction pour afficher le débiteur selon la documentation
+function getDebiteurDisplay(row: Creance): string {
+  if (row.typeDebiteur === 'M') {
+    // Débiteur moral (entreprise)
+    return row.raisonSociale || `${row.debiteurNom || ''} ${row.debiteurPrenom || ''}`.trim();
+  } else {
+    // Débiteur physique (personne)
+    return `${row.debiteurNom || ''} ${row.debiteurPrenom || ''}`.trim();
+  }
+}
+
 const CreancePageInner = () => {
   const [creances, setCreances] = useState<Creance[]>([]);
-  const [filteredCreances, setFilteredCreances] = useState<Creance[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [groupeFilter, setGroupeFilter] = useState("");
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    totalElements: 0,
+    totalPages: 0,
+    size: 20,
+    number: 0,
+    first: true,
+    last: false,
+    hasNext: false,
+    hasPrevious: false,
+    numberOfElements: 0,
+  });
+  const [paginationParams, setPaginationParams] = useState<PaginationParams>({
+    page: 0,
+    size: 20,
+    search: undefined,
+  });
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const toast = useToast();
-  const searchParams = useSearchParams();
   const apiClient = useApiClient();
 
-  // Récupérer les paramètres de filtrage depuis l'URL
-  const debiteurId = searchParams.get('debiteurId');
-  const debiteurCode = searchParams.get('debiteurCode');
-
-  // Transformation des données de l'API vers l'interface locale
-  const transformApiDataToCreance = (apiData: CreanceResponse): Creance => {
+  // Transformation des données de l'API vers l'interface locale selon la documentation
+  const transformApiDataToCreance = (apiData: any): Creance => {
     return {
       id: apiData.CREAN_CODE,
       numeroCreance: apiData.CREAN_CODE,
-      objetCreance: apiData.OBJET_CREANCE_LIB || apiData.CREAN_OBJET || '',
+      debiteurCode: apiData.DEB_CODE || '', // Code du débiteur
+      objetCreance: apiData.CREAN_OBJET || apiData.OBJET_CREANCE_LIB || '',
       groupeCreance: apiData.GROUPE_CREANCE_LIB || '',
       debiteurNom: apiData.DEB_NOM || '',
       debiteurPrenom: apiData.DEB_PREN || '',
       raisonSociale: apiData.DEB_RAIS_SOCIALE || '',
+      typeDebiteur: apiData.TYPDEB_CODE || 'P', // 'P' pour personne physique, 'M' pour personne morale
       capitalInitial: apiData.CREAN_CAPIT_INIT || 0,
+      soldeInit: apiData.CREAN_SOLDE_INIT || apiData.CREAN_TOT_SOLDE || 0, // Solde à recouvrer selon la doc
       montantARembourser: apiData.CREAN_MONT_A_REMB || 0,
       montantImpaye: apiData.CREAN_MONT_IMPAYE || 0,
       totalSolde: apiData.CREAN_TOT_SOLDE || 0,
       statutCreance: apiData.CREAN_STATUT || '',
-      dateCreation: apiData.CREAN_DATE_CREAT || '',
+      statutRecouvrement: apiData.CREAN_STATRECOUV || '', // Statut de recouvrement (VARCHAR2(2))
+      dateCreation: apiData.CREAN_DATECREA || apiData.CREAN_DATE_CREAT || '',
+      dateDeblocage: apiData.CREAN_DATEFT || apiData.CREAN_DATE_DEBLOCAGE || '',
+      dateEcheance: apiData.CREAN_DATECH || apiData.CREAN_DATE_ECHEANCE || '',
       periodicite: apiData.CREAN_PERIODICITE || '',
-      garantiePersonnelle: false, // À déterminer par requête séparée si nécessaire
-      garantieReelle: false // À déterminer par requête séparée si nécessaire
+      garantiePersonnelle: (apiData.garantiesPersonnelles && apiData.garantiesPersonnelles.length > 0) || false,
+      garantieReelle: (apiData.garantiesReelles && apiData.garantiesReelles.length > 0) || false
     };
   };
 
-  useEffect(() => {
-    const loadCreances = async () => {
-      setLoading(true);
-      try {
-        const response = await CreanceService.getAll(apiClient);
-        console.log('Données créances reçues:', response);
+  // Fonction pour charger les créances avec pagination
+  const loadCreances = async (params: PaginationParams = paginationParams) => {
+    setLoading(true);
+    try {
+      const response = await CreanceService.getAll(apiClient, params);
+      console.log("Données créances reçues:", response);
 
-        if (response.success && Array.isArray(response.data.items)) {
-          const transformedCreances = response.data.items.map(transformApiDataToCreance);
-          setCreances(transformedCreances);
-          setFilteredCreances(transformedCreances);
-        } else if (response.success && Array.isArray(response.data)) {
-          const transformedCreances = response.data.map(transformApiDataToCreance);
-          setCreances(transformedCreances);
-          setFilteredCreances(transformedCreances);
-        }
-      } catch (error: any) {
-        console.error('Erreur lors du chargement des créances:', error);
-        toast({
-          title: "Erreur de chargement",
-          description: error.message || "Impossible de charger les créances",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-          position: "top",
+      if (response.status === "SUCCESS" && response.data) {
+        // Extraire le contenu paginé (peut être content ou items selon l'API)
+        const creancesList = response.data.content || response.data.items || [];
+        const transformedCreances = Array.isArray(creancesList)
+          ? creancesList.map(transformApiDataToCreance)
+          : [];
+
+        setCreances(transformedCreances);
+        
+        // Mettre à jour les infos de pagination
+        setPagination({
+          totalElements: response.data.totalElements || 0,
+          totalPages: response.data.totalPages || 0,
+          size: response.data.size || 20,
+          number: response.data.number || 0,
+          first: response.data.first ?? true,
+          last: response.data.last ?? false,
+          hasNext: response.data.hasNext ?? false,
+          hasPrevious: response.data.hasPrevious ?? false,
+          numberOfElements: response.data.numberOfElements || 0,
         });
-      } finally {
-        setLoading(false);
+      } else {
+        throw new Error(response.message || 'Erreur lors du chargement des créances');
       }
-    };
+    } catch (error: any) {
+      console.error("Erreur lors du chargement des créances:", error);
+      toast.error(error.message || "Impossible de charger les créances");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadCreances();
-  }, [apiClient, toast]);
-
+  // Charger les données au montage et quand les paramètres de pagination changent
   useEffect(() => {
-    // Filtrage des créances
-    let filtered = creances;
+    loadCreances(paginationParams);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paginationParams.page, paginationParams.size, paginationParams.search]);
 
-    if (searchTerm) {
-      filtered = filtered.filter(creance =>
-        creance.numeroCreance.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        creance.objetCreance.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        `${creance.debiteurNom} ${creance.debiteurPrenom}`.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (statusFilter) {
-      filtered = filtered.filter(creance => creance.statutCreance === statusFilter);
-    }
-
-    if (groupeFilter) {
-      filtered = filtered.filter(creance => creance.groupeCreance === groupeFilter);
-    }
-
-    // Filtrage par débiteur si spécifié dans l'URL
-    if (debiteurId || debiteurCode) {
-      filtered = filtered.filter(creance => 
-        creance.debiteurNom.toLowerCase().includes(debiteurCode?.toLowerCase() || '') ||
-        `${creance.debiteurNom} ${creance.debiteurPrenom}`.toLowerCase().includes(debiteurCode?.toLowerCase() || '')
-      );
-    }
-
-    setFilteredCreances(filtered);
-  }, [creances, searchTerm, statusFilter, groupeFilter, debiteurId, debiteurCode]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -153,14 +163,7 @@ const CreancePageInner = () => {
     }).format(amount);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "En cours": return "green";
-      case "En retard": return "red";
-      case "Remboursé": return "blue";
-      default: return "gray";
-    }
-  };
+  // Les fonctions getStatusColor et getStatusVariant sont remplacées par les fonctions du fichier statut-recouvrement.ts
 
   const handleViewCreance = (creance: Creance) => {
     router.push(`/etude_creance/creance/views/voir?id=${creance.id}`);
@@ -176,27 +179,13 @@ const CreancePageInner = () => {
         const response = await CreanceService.delete(apiClient, creance.id);
         if (response.success) {
           setCreances(creances.filter(c => c.id !== creance.id));
-          toast({
-            title: "Créance supprimée",
-            description: `La créance ${creance.numeroCreance} a été supprimée avec succès.`,
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-            position: "top",
-          });
+          toast.success(`La créance ${creance.numeroCreance} a été supprimée avec succès.`);
         } else {
           throw new Error(response.message || "Erreur lors de la suppression");
         }
       } catch (error: any) {
         console.error('Erreur lors de la suppression:', error);
-        toast({
-          title: "Erreur de suppression",
-          description: error.message || "Impossible de supprimer la créance",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-          position: "top",
-        });
+        toast.error(error.message || "Impossible de supprimer la créance");
       }
     }
   };
@@ -205,135 +194,200 @@ const CreancePageInner = () => {
     router.push("/etude_creance/creance/create");
   };
 
-  // Configuration des colonnes pour DataTable
+  // Configuration des colonnes pour DataTable - Design sobre et professionnel
   const columns: ColumnDef<Creance>[] = [
     {
       accessorKey: "numeroCreance",
-      header: "Numéro",
+      header: "Code",
       cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("numeroCreance")}</div>
-      ),
-    },
-    {
-      accessorKey: "objetCreance",
-      header: "Objet",
-      cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("objetCreance")}</div>
+        <div className="font-semibold text-gray-900">
+          {row.getValue("numeroCreance")}
+        </div>
       ),
     },
     {
       accessorKey: "debiteurNom",
       header: "Débiteur",
       cell: ({ row }) => {
-        const debiteurNom = row.getValue("debiteurNom") as string;
-        const debiteurPrenom = row.original.debiteurPrenom;
-        const raisonSociale = row.original.raisonSociale;
-
-        // Afficher raison sociale si personne morale, sinon nom prénom
-        const displayName = raisonSociale
-          ? raisonSociale
-          : `${debiteurNom} ${debiteurPrenom}`.trim() || "Non disponible";
-
+        const debiteurCode = row.original.debiteurCode || '';
+        const displayName = getDebiteurDisplay(row.original) || "Non disponible";
+        // Afficher le code débiteur à côté du nom séparé par "-"
+        const displayText = debiteurCode ? `${debiteurCode} - ${displayName}` : displayName;
         return (
-          <div className="font-medium">{displayName}</div>
+          <div className="font-medium text-gray-900">{displayText}</div>
         );
       },
     },
     {
+      accessorKey: "objetCreance",
+      header: "Objet",
+      cell: ({ row }) => (
+        <div className="font-medium text-gray-900 max-w-md truncate">
+          {row.getValue("objetCreance") || "-"}
+        </div>
+      ),
+    },
+    {
       accessorKey: "capitalInitial",
-      header: "Capital initial",
+      header: "Capital",
       cell: ({ row }) => (
-        <div className="font-medium">{formatCurrency(row.getValue("capitalInitial") as number)}</div>
+        <div className="text-sm text-gray-900">
+          {formatCurrency(row.getValue("capitalInitial") as number)}
+        </div>
       ),
     },
     {
-      accessorKey: "montantImpaye",
-      header: "Montant impayé",
-      cell: ({ row }) => (
-        <div className="font-medium">{formatCurrency(row.getValue("montantImpaye") as number)}</div>
-      ),
-    },
-    {
-      accessorKey: "totalSolde",
-      header: "Total solde",
+      accessorKey: "soldeInit",
+      header: "Solde",
       cell: ({ row }) => {
-        const totalSolde = row.getValue("totalSolde") as number;
+        const solde = row.getValue("soldeInit") as number;
         return (
-          <div className={`font-bold ${totalSolde > 0 ? 'text-red-500' : 'text-green-500'}`}>
-            {formatCurrency(totalSolde)}
+          <div className={`text-sm font-medium ${solde > 0 ? "text-orange-600" : "text-gray-600"}`}>
+            {formatCurrency(solde)}
           </div>
         );
       },
     },
     {
-      accessorKey: "statutCreance",
+      accessorKey: "statutRecouvrement",
       header: "Statut",
-      cell: ({ row }) => (
-        <Badge colorScheme={getStatusColor(row.getValue("statutCreance") as string)}>
-          {row.getValue("statutCreance")}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const statutCode = row.getValue("statutRecouvrement") as string;
+        const statutLibelle = getStatutRecouvrementLibelle(statutCode);
+        return (
+          <Badge variant={getStatutRecouvrementVariant(statutCode)} className="font-medium">
+            {statutLibelle}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "dateCreation",
       header: "Date création",
       cell: ({ row }) => (
-        <div className="font-medium">
-          {new Date(row.getValue("dateCreation") as string).toLocaleDateString('fr-FR')}
+        <div className="text-sm text-gray-600">
+          {row.getValue("dateCreation")
+            ? new Date(row.getValue("dateCreation") as string).toLocaleDateString("fr-FR")
+            : "-"}
         </div>
       ),
     },
     {
       id: "actions",
-      header: "Actions",
+      header: "",
       cell: ({ row }) => {
         const creance = row.original;
         return (
-          <div className="flex items-center gap-2">
-            <IconButton
-              aria-label="Voir"
-              icon={<ViewIcon />}
-              size="sm"
-              variant="ghost"
-              colorScheme="blue"
-              onClick={() => handleViewCreance(creance)}
-            />
-            <IconButton
-              aria-label="Modifier"
-              icon={<EditIcon />}
-              size="sm"
-              variant="ghost"
-              colorScheme="green"
-              onClick={() => handleEditCreance(creance)}
-            />
-            <IconButton
-              aria-label="Supprimer"
-              icon={<DeleteIcon />}
-              size="sm"
-              variant="ghost"
-              colorScheme="red"
-              onClick={() => handleDeleteCreance(creance)}
-            />
-          </div>
+          <TooltipProvider>
+            <div className="flex items-center justify-end gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleViewCreance(creance)}
+                    className="h-8 w-8 p-0 hover:bg-blue-50"
+                  >
+                    <Eye className="h-4 w-4 text-blue-600" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Consulter</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditCreance(creance)}
+                    className="h-8 w-8 p-0 hover:bg-green-50"
+                  >
+                    <Pencil className="h-4 w-4 text-green-600" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Modifier</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteCreance(creance)}
+                    className="h-8 w-8 p-0 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Supprimer</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         );
       },
     },
   ];
 
+  // Gestion de la recherche serveur
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleSearchSubmit = async () => {
+    // Réinitialiser à la page 0 et déclencher le chargement avec la recherche
+    setPaginationParams({
+      ...paginationParams,
+      page: 0,
+      search: searchValue || undefined,
+    });
+  };
+
+  const handleSearchReset = () => {
+    setSearchValue("");
+    // Réinitialiser la pagination et recharger toutes les données
+    setPaginationParams({
+      page: 0,
+      size: paginationParams.size || 20,
+      search: undefined,
+    });
+  };
+
+  // Gestion du changement de pagination
+  const handlePaginationChange = (params: { page?: number; size?: number; search?: string }) => {
+    setPaginationParams({
+      ...paginationParams,
+      ...(params.page !== undefined && { page: params.page }),
+      ...(params.size !== undefined && { size: params.size }),
+      ...(params.search !== undefined && { search: params.search }),
+    });
+  };
+
   return (
     <div className="h-full flex flex-col bg-white">
       <DataTable
-        title="Gestion des Créances"
-        description={debiteurCode ? `Créances du débiteur: ${debiteurCode}` : "Consultez et gérez toutes vos créances"}
+        title="CRÉANCES"
+        description=""
         columns={columns}
-        data={filteredCreances}
+        data={creances}
         searchKey="numeroCreance"
-        searchPlaceholder="Rechercher par numéro, objet ou débiteur..."
+        searchPlaceholder="Rechercher par numéro, objet, débiteur..."
         onAdd={handleCreateCreance}
         addButtonText="Nouvelle créance"
-        status={loading ? 'pending' : undefined}
-        useServerPagination={false}
+        status={loading ? "pending" : undefined}
+        useServerPagination={true}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        isPaginationLoading={loading}
         isTableLoading={loading}
+        sectionTitle=""
+        listTitle=""
+        searchValue={searchValue}
+        onSearchValueChange={setSearchValue}
+        onSearchSubmit={handleSearchSubmit}
+        onSearchReset={handleSearchReset}
+        onRefresh={() => loadCreances(paginationParams)}
       />
     </div>
   );

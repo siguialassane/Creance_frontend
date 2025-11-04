@@ -66,10 +66,17 @@ export class AgenceBanqueService {
   }
 
   /**
-   * Récupère les agences d'une banque spécifique
+   * Récupère les agences d'une banque spécifique (paginé avec recherche)
    */
-  static async getByBanque(apiClient: ApiClient, banqueCode: string): Promise<AgenceBanqueApiResponse> {
-    const response = await apiClient.get<AgenceBanqueApiResponse>(`${this.BASE_URL}/banque/${banqueCode}`);
+  static async getByBanque(apiClient: ApiClient, banqueCode: string, params: PaginationParams = {}): Promise<ApiResponse<AgenceBanque>> {
+    return await fetchPaginatedData<AgenceBanque>(`${this.BASE_URL}/banque/${banqueCode}`, params);
+  }
+
+  /**
+   * Récupère toutes les agences d'une banque spécifique (sans pagination - méthode legacy)
+   */
+  static async getByBanqueAll(apiClient: ApiClient, banqueCode: string): Promise<AgenceBanqueApiResponse> {
+    const response = await apiClient.get<AgenceBanqueApiResponse>(`${this.BASE_URL}/banque/${banqueCode}/all`);
     return response.data;
   }
 }

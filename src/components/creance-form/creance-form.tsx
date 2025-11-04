@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle, FC } from "react";
-import { Box, VStack, HStack, FormControl, FormLabel, Input, Select, Textarea, Text, Divider, Grid, GridItem, Checkbox, Stack, InputProps, Button, IconButton } from "@chakra-ui/react";
+import { useState, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle, FC, useRef } from "react";
 import { useForm, Controller, ControllerRenderProps } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,9 +9,26 @@ import { useObjetsCreance } from "@/hooks/useObjetsCreance";
 import { useEntites } from "@/hooks/useEntites";
 import { useClasses } from "@/hooks/useClasses";
 import { useQuartiers } from "@/hooks/useQuartiers";
+import { useGroupesCreanceSearchable } from "@/hooks/useGroupesCreanceSearchable";
+import { useObjetsCreanceSearchable } from "@/hooks/useObjetsCreanceSearchable";
+import { useEntitesSearchable } from "@/hooks/useEntitesSearchable";
+import { useQuartiersSearchable } from "@/hooks/useQuartiersSearchable";
+import { useDebiteursSearchable } from "@/hooks/useDebiteursSearchable";
+import { useOrdonnateursSearchable } from "@/hooks/useOrdonnateursSearchable";
+import { useTypeGarantieReellesSearchable } from "@/hooks/useTypeGarantieReellesSearchable";
+import { useTypeGarantiePersonnellesSearchable } from "@/hooks/useTypeGarantiePersonnellesSearchable";
+import { useTypePiecesSearchable } from "@/hooks/useTypePiecesSearchable";
+import { useCivilitesSearchable } from "@/hooks/useCivilitesSearchable";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { step1Schema, step2Schema, step3Schema, step4Schema, step5Schema, getSchemaForStep as getSchemaForStepFromLib } from "@/lib/validations/creance-schemas";
 
 // Composant NumberInput personnalisé pour gérer la saisie de nombres avec formatage
-interface NumberInputFieldProps extends Omit<InputProps, 'value' | 'onChange'> {
+interface NumberInputFieldProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
   value: number | undefined | null;
   onChange: (value: number | undefined) => void;
 }
@@ -21,15 +37,15 @@ const NumberInputField: FC<NumberInputFieldProps> = ({ value, onChange, ...props
   // Fonction pour formater un nombre pour l'affichage
   const formatNumberForDisplay = useCallback((num: number | undefined | null): string => {
     if (num === undefined || num === null || isNaN(num)) return '';
-    
+
     const strValue = num.toString();
     const parts = strValue.split('.');
     const integerPart = parts[0];
     const decimalPart = parts[1] || '';
-    
+
     // Formater avec séparateurs de milliers (espaces)
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-    
+
     if (decimalPart) {
       return formattedInteger + ',' + decimalPart;
     }
@@ -45,12 +61,12 @@ const NumberInputField: FC<NumberInputFieldProps> = ({ value, onChange, ...props
     const parts = str.split(',');
     const integerPart = parts[0].replace(/\D/g, '');
     const decimalPart = parts[1] ? parts[1].replace(/\D/g, '') : '';
-    
+
     if (!integerPart) return '';
-    
+
     // Ajouter les séparateurs de milliers (espaces)
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-    
+
     // Retourner avec la virgule si il y a une partie décimale
     if (parts.length > 1) {
       return formattedInteger + ',' + decimalPart;
@@ -67,20 +83,20 @@ const NumberInputField: FC<NumberInputFieldProps> = ({ value, onChange, ...props
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
-    
+
     // Supprimer tout sauf les chiffres et la virgule
     let cleaned = inputValue.replace(/[^\d,]/g, '');
-    
+
     // S'assurer qu'il n'y a qu'une seule virgule
     const parts = cleaned.split(',');
     if (parts.length > 2) {
       cleaned = parts[0] + ',' + parts.slice(1).join('');
     }
-    
+
     // Appliquer le formatage en temps réel
     const formatted = formatWithThousandsSeparator(cleaned);
     setLocalValue(formatted);
-    
+
     // Parser et envoyer la valeur
     const numericStr = cleaned.replace(/\s/g, '').replace(/,/g, '.');
     if (numericStr === '' || numericStr === '.') {
@@ -113,82 +129,14 @@ const NumberInputField: FC<NumberInputFieldProps> = ({ value, onChange, ...props
   );
 };
 
-// Schémas de validation pour chaque étape
-const step1Schema = z.object({
-  debiteur: z.string().optional(),
-  groupeCreance: z.string().optional(),
-  typeObjet: z.string().optional(),
-  capitalInitial: z.number().optional(),
-  montantDecaisse: z.number().optional(),
-  steCaution: z.string().optional(),
-  statutRecouvrement: z.string().optional(),
-  numeroPrecedent: z.string().optional(),
-  numeroAncien: z.string().optional(),
-  typeStructure: z.string().optional(),
-  classeCreance: z.string().optional(),
-});
+// Fonction helper pour obtenir la date du jour au format YYYY-MM-DD (utilisée dans les validations)
+const getToday = () => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+};
 
-const step2Schema = z.object({
-  numeroCreance: z.string().optional(),
-  entite: z.string().optional(),
-  objetCreance: z.string().optional(),
-  periodicite: z.string().optional(),
-  nbEch: z.number().optional(),
-  dateReconnaissance: z.string().optional(),
-  datePremiereEcheance: z.string().optional(),
-  dateDerniereEcheance: z.string().optional(),
-  dateOctroi: z.string().optional(),
-  datePremierPrecept: z.string().optional(),
-  creanceSoldeAvantLid: z.string().optional(),
-});
-
-const step3Schema = z.object({
-  ordonnateur: z.string().optional(),
-  montantRembourse: z.number().optional(),
-  montantDu: z.number().optional(),
-  montantDejaRembourse: z.number().optional(),
-  montantImpaye: z.number().optional(),
-  diversFrais: z.number().optional(),
-  commission: z.number().optional(),
-  montantAss: z.number().optional(),
-  intConvPourcentage: z.number().optional(),
-  montantIntConvPaye: z.number().optional(),
-  intRetPourcentage: z.number().optional(),
-  encours: z.number().optional(),
-  totalDu: z.number().optional(),
-  penalite1Pourcent: z.number().optional(),
-  totalARecouvrer: z.number().optional(),
-});
-
-const step4Schema = z.object({
-  typePiece: z.string().optional(),
-  reference: z.string().optional(),
-  libelle: z.string().optional(),
-  dateEmission: z.string().optional(),
-  dateReception: z.string().optional(),
-});
-
-const step5Schema = z.object({
-  typeGarantie: z.string().optional(),
-  // Garanties personnelles
-  employeur: z.string().optional(),
-  statutSal: z.string().optional(),
-  quartier: z.string().optional(),
-  priorite: z.string().optional(),
-  nom: z.string().optional(),
-  prenoms: z.string().optional(),
-  dateInscription: z.string().optional(),
-  fonction: z.string().optional(),
-  profession: z.string().optional(),
-  adressePostale: z.string().optional(),
-  // Garanties réelles
-  numeroGarantie: z.string().optional(),
-  objetMontant: z.string().optional(),
-  libelle: z.string().optional(),
-  terrain: z.string().optional(),
-  logement: z.string().optional(),
-  code: z.string().optional(),
-});
+// Les schémas de validation sont importés depuis @/lib/validations/creance-schemas
+// Ils incluent déjà les validations pour les 8 champs obligatoires
 
 interface CreanceFormProps {
   currentStep: number;
@@ -204,74 +152,156 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
   const [garanties, setGaranties] = useState<any[]>(() => {
     // Initialiser avec les garanties existantes ou une garantie vide
     if (formData?.garanties && Array.isArray(formData.garanties) && formData.garanties.length > 0) {
-      return formData.garanties.map((g: any, idx: number) => ({ ...g, id: idx + 1 }));
+      return formData.garanties.map((g: any, idx: number) => ({ 
+        id: idx + 1,
+        type: g.type || '',
+        employeur: g.employeur || '',
+        statutSal: g.statutSal || '',
+        quartier: g.quartier || '',
+        priorite: g.priorite || '',
+        nom: g.nom || '',
+        prenoms: g.prenoms || '',
+        dateInscription: g.dateInscription || '',
+        fonction: g.fonction || '',
+        profession: g.profession || '',
+        adressePostale: g.adressePostale || '',
+        numeroGarantie: g.numeroGarantie || '',
+        objetMontant: g.objetMontant || '',
+        terrain: g.terrain || '',
+        logement: g.logement || '',
+        code: g.code || '',
+        tel: g.tel || '',
+        ville: g.ville || '',
+        civCode: g.civCode || '',
+        debCode: g.debCode || '',
+        revenu: g.revenu || '',
+        description: g.description || '',
+        valeur: g.valeur || '',
+        adresse: g.adresse || '',
+        surface: g.surface || '',
+        circonscription: g.circonscription || '',
+        titreFoncier: g.titreFoncier || '',
+        ...g 
+      }));
     }
-    return [{ id: 1 }];
+    return [{ 
+      id: 1,
+      type: '',
+      employeur: '',
+      statutSal: '',
+      quartier: '',
+      priorite: '',
+      nom: '',
+      prenoms: '',
+      dateInscription: '',
+      fonction: '',
+      profession: '',
+      adressePostale: '',
+      numeroGarantie: '',
+      objetMontant: '',
+      terrain: '',
+      logement: '',
+      code: '',
+      tel: '',
+      ville: '',
+      civCode: '',
+      debCode: '',
+      revenu: '',
+      description: '',
+      valeur: '',
+      adresse: '',
+      surface: '',
+      circonscription: '',
+      titreFoncier: '',
+    }];
+  });
+  
+  // État pour les pièces jointes - initialiser avec une pièce vide par défaut
+  const [pieces, setPieces] = useState<any[]>(() => {
+    if (formData?.pieces && Array.isArray(formData.pieces) && formData.pieces.length > 0) {
+      return formData.pieces.map((p: any, idx: number) => ({
+        id: idx + 1,
+        typePieceCode: p.typePieceCode || '',
+        numero: p.numero || '',
+        date: p.date || '',
+        description: p.description || '',
+        fichier: p.fichier || null,
+        file: p.file || null, // File object pour upload
+        ...p
+      }));
+    }
+    // Par défaut, afficher un formulaire de pièce vide
+    return [{
+      id: 1,
+      typePieceCode: '',
+      numero: '',
+      date: '',
+      description: '',
+      fichier: null,
+      file: null
+    }];
   });
 
-  // Hooks pour les données dynamiques
-  const { data: groupesCreance, isLoading: loadingGroupesCreance } = useGroupesCreance();
-  const { data: objetsCreance, isLoading: loadingObjetsCreance } = useObjetsCreance();
-  const { data: entites } = useEntites();
-  const { data: classes } = useClasses();
-  const { data: quartiers } = useQuartiers();
+  // Hooks pour les données dynamiques - chargés seulement sur les steps appropriés
+  // Step 1: débiteurs, groupes créance, objets créance
+  const debiteursSearchable = useDebiteursSearchable();
+  const groupesCreanceSearchable = useGroupesCreanceSearchable();
+  const objetsCreanceSearchable = useObjetsCreanceSearchable();
+  
+  // Step 2: ordonnateurs
+  const ordonnateursSearchable = useOrdonnateursSearchable();
+  
+  // Step 5: entités, quartiers, types de garanties, types de pièces, civilités (pour garanties)
+  const entitesSearchable = useEntitesSearchable();
+  const quartiersSearchable = useQuartiersSearchable();
+  const typeGarantieReellesSearchable = useTypeGarantieReellesSearchable();
+  const typeGarantiePersonnellesSearchable = useTypeGarantiePersonnellesSearchable();
+  const typePiecesSearchable = useTypePiecesSearchable();
+  const civilitesSearchable = useCivilitesSearchable();
 
-  const getSchemaForStep = (step: number) => {
-    switch (step) {
-      case 1: return step1Schema;
-      case 2: return step2Schema;
-      case 3: return step3Schema;
-      case 4: return step4Schema;
-      case 5: return step5Schema;
-      default: return z.object({});
-    }
-  };
+  // Utiliser les schémas depuis le fichier de validation centralisé
+  const getSchemaForStep = useCallback((step: number) => {
+    return getSchemaForStepFromLib(step);
+  }, []);
 
-  const { control, handleSubmit, formState: { errors }, watch, setValue, reset, trigger } = useForm({
-    resolver: zodResolver(getSchemaForStep(currentStep)),
+  const { control, handleSubmit, formState: { errors }, watch, setValue, reset, trigger, getValues } = useForm({
+    resolver: zodResolver(getSchemaForStep(currentStep) as any),
+    mode: "onChange",
     defaultValues: {
+      // Step 1 - Informations principales
       debiteur: '',
       groupeCreance: '',
-      typeObjet: '',
+      objetCreance: '',
+      objetDetail: '',
       capitalInitial: undefined,
       montantDecaisse: undefined,
-      steCaution: '',
-      statutRecouvrement: '',
       numeroPrecedent: '',
       numeroAncien: '',
-      typeStructure: '',
-      classeCreance: '',
-      numeroCreance: '',
-      entite: '',
-      objetCreance: '',
+      // Step 1 - Dates et conditions (déplacées depuis step2)
+      dateDeblocage: '',
+      dateEcheance: '',
       periodicite: '',
-      nbEch: undefined,
-      dateReconnaissance: '',
-      datePremiereEcheance: '',
-      dateDerniereEcheance: '',
-      dateOctroi: '',
-      datePremierPrecept: '',
-      creanceSoldeAvantLid: '',
+      duree: undefined,
+      tauxInteretConventionnel: undefined,
+      tauxInteretRetard: undefined,
       ordonnateur: '',
-      montantRembourse: undefined,
+      statut: 'A', // Par défaut "A" pour Actif (initiale)
+      // Step 2 - Montants (Détails financiers)
+      montantInteretConventionnel: undefined,
+      commissionBanque: undefined,
       montantDu: undefined,
-      montantDejaRembourse: undefined,
-      montantImpaye: undefined,
-      diversFrais: undefined,
-      commission: undefined,
-      montantAss: undefined,
-      intConvPourcentage: undefined,
-      montantIntConvPaye: undefined,
-      intRetPourcentage: undefined,
+      montantRembourse: undefined,
+      montantInteretRetard: undefined,
+      frais: undefined,
       encours: undefined,
+      // Champs calculés (lecture seule)
+      montantARembourser: undefined,
+      montantImpaye: undefined,
       totalDu: undefined,
-      penalite1Pourcent: undefined,
-      totalARecouvrer: undefined,
-      typePiece: '',
-      reference: '',
-      libelle: '',
-      dateEmission: '',
-      dateReception: '',
+      penalite: undefined,
+      totalSolde: undefined,
+      // Step 3 - Pièces jointes (géré par state)
+      // Step 4 - Garanties (géré par state)
       typeGarantie: '',
       employeur: '',
       statutSal: '',
@@ -295,73 +325,108 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
 
   // Utiliser useCallback pour éviter la boucle infinie
   const handleDataChange = useCallback((newData: any) => {
-    onDataChange({ ...newData, garanties });
-  }, [onDataChange, garanties]);
+    onDataChange({ ...newData, garanties, pieces });
+  }, [onDataChange, garanties, pieces]);
 
-  // Souscription aux changements du formulaire pour éviter les boucles infinies
+  // Calculs automatiques des montants selon la documentation
+  // Formule principale : MONTANT A REMBOURSER = CAPITAL INITIAL + MONTANT INTERÊT CONVENTIONNEL + MONTANT COMMISSION BANQUE
+  // (CREAN_CAPIT_INIT + crean_mont_ic + CREAN_COMM_BANQ)
+  // Les autres calculs dépendent du step 3 mais le montant à rembourser doit être calculé dès que les champs sont disponibles
+  // Utiliser un debounce pour éviter les calculs trop fréquents pendant la saisie
+  const calculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    const subscription = watch((value) => {
+      // Annuler le timeout précédent si l'utilisateur saisit encore
+      if (calculationTimeoutRef.current) {
+        clearTimeout(calculationTimeoutRef.current);
+      }
+      
+      // Attendre un court délai après la dernière modification avant de calculer
+      calculationTimeoutRef.current = setTimeout(() => {
+        // Récupérer et convertir en nombres les champs sources
+        const capitalInitial = parseFloat(String(value.capitalInitial || "0")) || 0;
+        const montantInteretConventionnel = parseFloat(String(value.montantInteretConventionnel || "0")) || 0;
+        const commissionBanque = parseFloat(String(value.commissionBanque || "0")) || 0;
+        
+        // CALCUL PRINCIPAL : MONTANT A REMBOURSER = CAPITAL INITIAL + MONTANT INTERÊT CONVENTIONNEL + MONTANT COMMISSION BANQUE
+        // Ce calcul doit être fait dès que les champs sont disponibles (pas seulement step 3)
+        const montantARembourser = capitalInitial + montantInteretConventionnel + commissionBanque;
+        
+        // Récupérer la valeur actuelle pour comparer
+        const currentMontantARembourser = parseFloat(String(value.montantARembourser || "0")) || 0;
+        
+        // Mettre à jour le montant à rembourser si différent (tolérance 0.01)
+        if (Math.abs(currentMontantARembourser - montantARembourser) > 0.01) {
+          setValue("montantARembourser", montantARembourser, { shouldValidate: false, shouldDirty: false, shouldTouch: false });
+        }
+        
+        // Les calculs suivants sont uniquement pour le step 3
+        if (currentStep === 3) {
+          const montantDu = parseFloat(String(value.montantDu || "0")) || 0;
+          // 2. MONTANT DÉJÀ REMBOURSÉ : CREAN_MONT_REMB (saisi manuellement par l'utilisateur)
+          const montantRembourse = parseFloat(String(value.montantRembourse || "0")) || 0; // CREAN_MONT_REMB
+          
+          // 3. MONTANT IMPAYÉ (CREAN_MONT_IMPAYE) = MONTANT DU - MONTANT DÉJÀ REMBOURSÉ
+          // Formule : crean_mont_du - crean_dej_remb (CREAN_MONT_DU - CREAN_MONT_REMB)
+          const montantImpaye = Math.max(montantDu - montantRembourse, 0);
+          
+          const montantInteretRetard = parseFloat(String(value.montantInteretRetard || "0")) || 0; // crean_mont_ir
+          const frais = parseFloat(String(value.frais || "0")) || 0; // crean_frais
+          const encours = parseFloat(String(value.encours || "0")) || 0;
+          
+          // 4. TOTAL DÛ (CREAN_TOTAL_DU) = MONTANT IMPAYÉ + MONTANT INTÉRÊT DE RETARD + FRAIS
+          // Formule : crean_mont_impaye + crean_mont_ir + crean_frais
+          const totalDu = montantImpaye + montantInteretRetard + frais;
+          
+          // 5. PÉNALITÉ (CREAN_PENALITE) = TOTAL DÛ / 100 (1%)
+          const penalite = totalDu / 100;
+          
+          // 7. TOTAL SOLDE À RECOUVRER (CREAN_TOT_SOLDE) = TOTAL DÛ + ENCOURS + PÉNALITÉ
+          // Formule : total_du + crean_encours + crean_penalite
+          const totalSolde = totalDu + encours + penalite;
+          
+          // Récupérer les valeurs actuelles pour comparer
+          const currentMontantImpaye = parseFloat(String(value.montantImpaye || "0")) || 0;
+          const currentTotalDu = parseFloat(String(value.totalDu || "0")) || 0;
+          const currentPenalite = parseFloat(String(value.penalite || "0")) || 0;
+          const currentTotalSolde = parseFloat(String(value.totalSolde || "0")) || 0;
+          
+          // Mettre à jour seulement si les valeurs ont changé (tolérance 0.01)
+          if (Math.abs(currentMontantImpaye - montantImpaye) > 0.01) {
+            setValue("montantImpaye", montantImpaye, { shouldValidate: false, shouldDirty: false, shouldTouch: false });
+          }
+          if (Math.abs(currentTotalDu - totalDu) > 0.01) {
+            setValue("totalDu", totalDu, { shouldValidate: false, shouldDirty: false, shouldTouch: false });
+          }
+          if (Math.abs(currentPenalite - penalite) > 0.01) {
+            setValue("penalite", penalite, { shouldValidate: false, shouldDirty: false, shouldTouch: false });
+          }
+          if (Math.abs(currentTotalSolde - totalSolde) > 0.01) {
+            setValue("totalSolde", totalSolde, { shouldValidate: false, shouldDirty: false, shouldTouch: false });
+          }
+        }
+      }, 300); // Attendre 300ms après la dernière modification
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (calculationTimeoutRef.current) {
+        clearTimeout(calculationTimeoutRef.current);
+      }
+    };
+  }, [currentStep, watch, setValue]);
+
+  // Souscription aux changements du formulaire pour synchroniser les données (SANS calculs - déjà gérés dans le useEffect précédent)
   useEffect(() => {
     const subscription = watch((value) => {
       setStepData(value as any);
-      handleDataChange(value);
-
-      // Calculs automatiques des montants dérivés (étape 3)
-      const v: any = value || {}
-      
-      // Variables de base
-      const capitalInitial = Number(v.capitalInitial || 0) // CREAN_CAPIT_INIT
-      const pourcentageIntConv = Number(v.intConvPourcentage || 0) // Pourcentage d'intérêt conventionnel
-      const commissionBanque = Number(v.commission || 0) // CREAN_COMM_BANQ
-      const montantDejaRembourse = Number(v.montantDejaRembourse || 0) // crean_dej_remb
-      const pourcentageIntRetard = Number(v.intRetPourcentage || 0) // Pourcentage d'intérêt de retard
-      const frais = Number(v.diversFrais || 0) // CREAN_FRAIS
-      const encours = Number(v.encours || 0) // crean_encours
-
-      // Conversion des pourcentages en montants
-      const montantIntConv = Math.round((capitalInitial * pourcentageIntConv) / 100) // crean_mont_ic
-      const montantIntRetard = Math.round((capitalInitial * pourcentageIntRetard) / 100) // crean_mont_ir
-
-      // 1) MONTANT À REMBOURSER : CAPITAL INITIAL + MONTANT INTERÊT CONVENTIONNEL + MONTANT COMMISSION BANQUE
-      const calcMontantARembourser = capitalInitial + montantIntConv + commissionBanque
-
-      // 2) MONTANT DÉJÀ REMBOURSÉ : CREAN_MONT_REMB (saisi manuellement)
-
-      // 3) MONTANT IMPAYÉ : MONTANT DU - MONTANT DÉJÀ REMBOURSÉ
-      const montantDu = Number(v.montantDu || 0) // Montant dû saisi manuellement
-      const calcMontantImpaye = Math.max(montantDu - montantDejaRembourse, 0)
-
-      // 4) FRAIS : CREAN_FRAIS (saisi manuellement)
-
-      // 5) TOTAL DÛ : MONTANT IMPAYÉ + MONTANT INTÉRÊT DE RETARD + FRAIS
-      const calcTotalDu = calcMontantImpaye + montantIntRetard + frais
-
-      // 6) PÉNALITÉ : CREAN_PENALITE (1/100) - calculée automatiquement
-      const calcPenalite = Math.round(calcTotalDu * 0.01) // 1% du total dû
-
-      // 7) TOTAL SOLDE (À RECOUVRER) : TOTAL DÛ + ENCOURS + PÉNALITÉ
-      const calcTotalSolde = calcTotalDu + encours + calcPenalite
-
-      // Appliquer les valeurs calculées si différentes pour éviter les boucles
-      if (typeof v.montantIntConvPaye !== 'number' || v.montantIntConvPaye !== montantIntConv) {
-        setValue('montantIntConvPaye', montantIntConv, { shouldValidate: false, shouldDirty: false, shouldTouch: false })
-      }
-      if (typeof v.montantRembourse !== 'number' || v.montantRembourse !== calcMontantARembourser) {
-        setValue('montantRembourse', calcMontantARembourser, { shouldValidate: false, shouldDirty: false, shouldTouch: false })
-      }
-      if (typeof v.montantImpaye !== 'number' || v.montantImpaye !== calcMontantImpaye) {
-        setValue('montantImpaye', calcMontantImpaye, { shouldValidate: false, shouldDirty: false, shouldTouch: false })
-      }
-      if (typeof v.totalDu !== 'number' || v.totalDu !== calcTotalDu) {
-        setValue('totalDu', calcTotalDu, { shouldValidate: false, shouldDirty: false, shouldTouch: false })
-      }
-      if (typeof v.penalite1Pourcent !== 'number' || v.penalite1Pourcent !== calcPenalite) {
-        setValue('penalite1Pourcent', calcPenalite, { shouldValidate: false, shouldDirty: false, shouldTouch: false })
-      }
-      if (typeof v.totalARecouvrer !== 'number' || v.totalARecouvrer !== calcTotalSolde) {
-        setValue('totalARecouvrer', calcTotalSolde, { shouldValidate: false, shouldDirty: false, shouldTouch: false })
-      }
+      // Passer toutes les valeurs avec les garanties et pièces pour la synchronisation
+      handleDataChange({ ...value, garanties, pieces });
     });
+
     return () => subscription.unsubscribe();
-  }, [watch, handleDataChange]);
+  }, [watch, handleDataChange, garanties, pieces]);
 
   // Mémoriser les données formData pour éviter les re-renders inutiles
   const memoizedFormData = useMemo(() => formData, [
@@ -425,78 +490,124 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
     formData?.code
   ]);
 
+  // Utiliser un ref pour suivre le step précédent et éviter les resets inutiles
+  const prevStepRef = useRef(currentStep);
+
   useEffect(() => {
-    // Merger les données avec les valeurs par défaut pour éviter les erreurs controlled/uncontrolled
+    // Ne faire le reset que lors d'un changement de step réel, pas à chaque modification
+    const stepChanged = prevStepRef.current !== currentStep;
+    prevStepRef.current = currentStep;
+    
+    // Si on change de step, préserver les valeurs actuelles
+    if (stepChanged) {
+      // Récupérer les valeurs actuelles du formulaire pour préserver ce qui est déjà saisi
+      const currentValues = getValues();
+      
+      // Merger les données : PRIORITÉ = valeurs actuelles > memoizedFormData > valeurs par défaut
+      // Cela garantit que les données saisies ne sont pas perdues lors de la navigation entre les étapes
     const mergedData = {
-      debiteur: memoizedFormData?.debiteur || '',
-      groupeCreance: memoizedFormData?.groupeCreance || '',
-      typeObjet: memoizedFormData?.typeObjet || '',
-      capitalInitial: memoizedFormData?.capitalInitial || undefined,
-      montantDecaisse: memoizedFormData?.montantDecaisse || undefined,
-      steCaution: memoizedFormData?.steCaution || '',
-      statutRecouvrement: memoizedFormData?.statutRecouvrement || '',
-      numeroPrecedent: memoizedFormData?.numeroPrecedent || '',
-      numeroAncien: memoizedFormData?.numeroAncien || '',
-      typeStructure: memoizedFormData?.typeStructure || '',
-      classeCreance: memoizedFormData?.classeCreance || '',
-      numeroCreance: memoizedFormData?.numeroCreance || '',
-      entite: memoizedFormData?.entite || '',
-      objetCreance: memoizedFormData?.objetCreance || '',
-      periodicite: memoizedFormData?.periodicite || '',
-      nbEch: memoizedFormData?.nbEch || undefined,
-      dateReconnaissance: memoizedFormData?.dateReconnaissance || '',
-      datePremiereEcheance: memoizedFormData?.datePremiereEcheance || '',
-      dateDerniereEcheance: memoizedFormData?.dateDerniereEcheance || '',
-      dateOctroi: memoizedFormData?.dateOctroi || '',
-      datePremierPrecept: memoizedFormData?.datePremierPrecept || '',
-      creanceSoldeAvantLid: memoizedFormData?.creanceSoldeAvantLid || '',
-      ordonnateur: memoizedFormData?.ordonnateur || '',
-      montantRembourse: memoizedFormData?.montantRembourse || undefined,
-      montantDu: memoizedFormData?.montantDu || undefined,
-      montantDejaRembourse: memoizedFormData?.montantDejaRembourse || undefined,
-      montantImpaye: memoizedFormData?.montantImpaye || undefined,
-      diversFrais: memoizedFormData?.diversFrais || undefined,
-      commission: memoizedFormData?.commission || undefined,
-      montantAss: memoizedFormData?.montantAss || undefined,
-      intConvPourcentage: memoizedFormData?.intConvPourcentage || undefined,
-      montantIntConvPaye: memoizedFormData?.montantIntConvPaye || undefined,
-      intRetPourcentage: memoizedFormData?.intRetPourcentage || undefined,
-      encours: memoizedFormData?.encours || undefined,
-      totalDu: memoizedFormData?.totalDu || undefined,
-      penalite1Pourcent: memoizedFormData?.penalite1Pourcent || undefined,
-      totalARecouvrer: memoizedFormData?.totalARecouvrer || undefined,
-      typePiece: memoizedFormData?.typePiece || '',
-      reference: memoizedFormData?.reference || '',
-      libelle: memoizedFormData?.libelle || '',
-      dateEmission: memoizedFormData?.dateEmission || '',
-      dateReception: memoizedFormData?.dateReception || '',
-      typeGarantie: memoizedFormData?.typeGarantie || '',
-      employeur: memoizedFormData?.employeur || '',
-      statutSal: memoizedFormData?.statutSal || '',
-      quartier: memoizedFormData?.quartier || '',
-      priorite: memoizedFormData?.priorite || '',
-      nom: memoizedFormData?.nom || '',
-      prenoms: memoizedFormData?.prenoms || '',
-      dateInscription: memoizedFormData?.dateInscription || '',
-      fonction: memoizedFormData?.fonction || '',
-      profession: memoizedFormData?.profession || '',
-      adressePostale: memoizedFormData?.adressePostale || '',
-      numeroGarantie: memoizedFormData?.numeroGarantie || '',
-      objetMontant: memoizedFormData?.objetMontant || '',
-      terrain: memoizedFormData?.terrain || '',
-      logement: memoizedFormData?.logement || '',
-      code: memoizedFormData?.code || '',
-    };
-    reset(mergedData);
-  }, [currentStep, reset, memoizedFormData]);
+        // Step 1
+        debiteur: currentValues.debiteur ?? memoizedFormData?.debiteur ?? '',
+        groupeCreance: currentValues.groupeCreance ?? memoizedFormData?.groupeCreance ?? '',
+        objetCreance: currentValues.objetCreance ?? memoizedFormData?.objetCreance ?? '',
+        objetDetail: currentValues.objetDetail ?? memoizedFormData?.objetDetail ?? '',
+        capitalInitial: currentValues.capitalInitial ?? memoizedFormData?.capitalInitial ?? undefined,
+        montantDecaisse: currentValues.montantDecaisse ?? memoizedFormData?.montantDecaisse ?? undefined,
+        numeroPrecedent: currentValues.numeroPrecedent ?? memoizedFormData?.numeroPrecedent ?? '',
+        numeroAncien: currentValues.numeroAncien ?? memoizedFormData?.numeroAncien ?? '',
+        // Step 2
+        dateDeblocage: currentValues.dateDeblocage ?? memoizedFormData?.dateDeblocage ?? '',
+        dateEcheance: currentValues.dateEcheance ?? memoizedFormData?.dateEcheance ?? '',
+        periodicite: currentValues.periodicite ?? memoizedFormData?.periodicite ?? '',
+        duree: currentValues.duree ?? memoizedFormData?.duree ?? undefined,
+        tauxInteretConventionnel: currentValues.tauxInteretConventionnel ?? memoizedFormData?.tauxInteretConventionnel ?? undefined,
+        tauxInteretRetard: currentValues.tauxInteretRetard ?? memoizedFormData?.tauxInteretRetard ?? undefined,
+        ordonnateur: currentValues.ordonnateur ?? memoizedFormData?.ordonnateur ?? '',
+        statut: currentValues.statut ?? memoizedFormData?.statut ?? 'A', // Par défaut "A" pour Actif (initiale)
+        // Step 2 - Montants (Détails financiers)
+        montantInteretConventionnel: currentValues.montantInteretConventionnel ?? memoizedFormData?.montantInteretConventionnel ?? undefined,
+        commissionBanque: currentValues.commissionBanque ?? memoizedFormData?.commissionBanque ?? undefined,
+        montantDu: currentValues.montantDu ?? memoizedFormData?.montantDu ?? undefined,
+        montantRembourse: currentValues.montantRembourse ?? memoizedFormData?.montantRembourse ?? undefined,
+        montantInteretRetard: currentValues.montantInteretRetard ?? memoizedFormData?.montantInteretRetard ?? undefined,
+        frais: currentValues.frais ?? memoizedFormData?.frais ?? undefined,
+        encours: currentValues.encours ?? memoizedFormData?.encours ?? undefined,
+        // Champs calculés (préservés pour éviter de perdre les calculs lors de la navigation)
+        montantARembourser: currentValues.montantARembourser ?? memoizedFormData?.montantARembourser ?? undefined,
+        montantImpaye: currentValues.montantImpaye ?? memoizedFormData?.montantImpaye ?? undefined,
+        totalDu: currentValues.totalDu ?? memoizedFormData?.totalDu ?? undefined,
+        penalite: currentValues.penalite ?? memoizedFormData?.penalite ?? undefined,
+        totalSolde: currentValues.totalSolde ?? memoizedFormData?.totalSolde ?? undefined,
+        // Step 4 - Pièces jointes (géré par state)
+        // Step 5 - Garanties
+        typeGarantie: currentValues.typeGarantie ?? memoizedFormData?.typeGarantie ?? '',
+        employeur: currentValues.employeur ?? memoizedFormData?.employeur ?? '',
+        statutSal: currentValues.statutSal ?? memoizedFormData?.statutSal ?? '',
+        quartier: currentValues.quartier ?? memoizedFormData?.quartier ?? '',
+        priorite: currentValues.priorite ?? memoizedFormData?.priorite ?? '',
+        nom: currentValues.nom ?? memoizedFormData?.nom ?? '',
+        prenoms: currentValues.prenoms ?? memoizedFormData?.prenoms ?? '',
+        dateInscription: currentValues.dateInscription ?? memoizedFormData?.dateInscription ?? '',
+        fonction: currentValues.fonction ?? memoizedFormData?.fonction ?? '',
+        profession: currentValues.profession ?? memoizedFormData?.profession ?? '',
+        adressePostale: currentValues.adressePostale ?? memoizedFormData?.adressePostale ?? '',
+        numeroGarantie: currentValues.numeroGarantie ?? memoizedFormData?.numeroGarantie ?? '',
+        objetMontant: currentValues.objetMontant ?? memoizedFormData?.objetMontant ?? '',
+        terrain: currentValues.terrain ?? memoizedFormData?.terrain ?? '',
+        logement: currentValues.logement ?? memoizedFormData?.logement ?? '',
+        code: currentValues.code ?? memoizedFormData?.code ?? '',
+      };
+      
+      // Utiliser reset pour préserver les valeurs lors de la navigation
+      reset(mergedData, { keepValues: false });
+    }
+  }, [currentStep, reset, memoizedFormData, getValues]);
 
   // Exposer la méthode de validation au composant parent
   useImperativeHandle(ref, () => ({
     validateStep: async () => {
+      // Déclencher d'abord la validation react-hook-form pour récupérer toutes les erreurs
       const isValid = await trigger();
-      return isValid;
+      
+      if (!isValid) {
+        console.log("❌ Validation react-hook-form échouée pour step", currentStep, "Erreurs:", errors);
+        return false;
+      }
+      
+      // Ensuite valider avec Zod pour les validations supplémentaires (dates, etc.)
+      const values = getValues();
+      const stepSchema = getSchemaForStep(currentStep);
+      
+      try {
+        await stepSchema.parseAsync(values);
+        return true;
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          console.log("❌ Validation Zod échouée pour step", currentStep, error.issues);
+          
+          // Transformer les erreurs Zod en erreurs react-hook-form en déclenchant la validation
+          // pour chaque champ en erreur
+          for (const err of error.issues) {
+            const path = err.path.join(".");
+            // Re-déclencher la validation pour ce champ spécifique
+            await trigger(path as any);
+          }
+        }
+        return false;
+      }
+    },
+    // Exposer getValues pour que le parent puisse récupérer toutes les valeurs
+    getFormValues: () => {
+      return getValues();
+    },
+    // Exposer les garanties et pièces pour le payload
+    getGaranties: () => {
+      return garanties;
+    },
+    getPieces: () => {
+      return pieces;
     }
-  }));
+  }), [currentStep, trigger, getValues, errors, garanties, pieces]);
 
   // Styles unifiés (alignés avec agence-banque-form)
   const primaryGreen = '#28A325'
@@ -508,1110 +619,1146 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
   const errorRed = '#ef4444'
   const errorBg = '#fef2f2'
 
-  const getFieldStyles = (hasError?: boolean) => ({
-    borderColor: hasError ? errorRed : borderGray,
-    bg: hasError ? errorBg : (readOnly ? 'gray.50' : 'white'),
-    _focus: { borderColor: primaryGreen },
-    isReadOnly: readOnly,
-    isDisabled: readOnly,
-  })
-
   // Fonctions helper pour obtenir les libellés des options
+  const getDebiteurLibelle = (id: string) => {
+    if (!id) return '';
+    const item = debiteursSearchable.items.find((d: any) => d.value === id || d.DEB_CODE?.toString() === id);
+    return item?.label || id;
+  }
+
   const getGroupeCreanceLibelle = (id: string) => {
     if (!id) return '';
-    if (!groupesCreance || !Array.isArray(groupesCreance)) return id;
-    const groupe: any = groupesCreance.find((g: any) => g.GC_CODE === id);
-    return groupe?.GC_LIB || id;
+    const item = groupesCreanceSearchable.items.find((g: any) => 
+      g.value === id || g.GRP_CREAN_CODE === id || g.GC_CODE === id
+    );
+    return item?.label || item?.GRP_CREAN_LIB || item?.GC_LIB || id;
   }
 
   const getObjetCreanceLibelle = (id: string) => {
     if (!id) return '';
-    if (!objetsCreance || !Array.isArray(objetsCreance)) return id;
-    const objet: any = objetsCreance.find((o: any) => o.OC_CODE === id);
-    return objet?.OC_LIB || id;
+    const item = objetsCreanceSearchable.items.find((o: any) => 
+      o.value === id || o.OBJ_CREAN_CODE === id || o.OC_CODE === id
+    );
+    return item?.label || item?.OBJ_CREAN_LIB || item?.OC_LIB || id;
   }
 
-  const getClasseLibelle = (id: string) => {
+  const getOrdonnateurLibelle = (id: string) => {
     if (!id) return '';
-    if (!classes || !Array.isArray(classes)) return id;
-    const classe: any = classes.find((c: any) => c.CLAS_CODE === id);
-    return classe?.CLAS_LIB || id;
+    const item = ordonnateursSearchable.items.find((o: any) => 
+      o.value === id.toString() || 
+      o.ORDO_CODE?.toString() === id.toString() || 
+      o.code === id.toString()
+    );
+    return item?.label || item?.ORDO_NOM || item?.ORDO_LIB || id;
   }
 
   const getEntiteLibelle = (id: string) => {
     if (!id) return '';
-    if (!entites || !Array.isArray(entites)) return id;
-    const entite: any = entites.find((e: any) => e.ENT_CODE === id);
-    return entite?.ENT_LIB || id;
+    const item = entitesSearchable.items.find((e: any) => 
+      e.value === id || e.ENTITE_CODE === id || e.ENT_CODE === id
+    );
+    return item?.label || item?.ENTITE_LIB || item?.ENT_LIB || id;
   }
 
   const getQuartierLibelle = (id: string) => {
     if (!id) return '';
-    if (!quartiers || !Array.isArray(quartiers)) return id;
-    const quartier: any = quartiers.find((q: any) => q.Q_CODE === id);
-    return quartier?.Q_LIB || id;
+    const item = quartiersSearchable.items.find((q: any) => q.value === id || q.QUART_CODE === id || q.Q_CODE === id);
+    return item?.label || item?.QUART_LIB || item?.Q_LIB || id;
   }
 
   const renderStep1 = () => (
-    <VStack spacing={2} align="stretch">
-      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Informations générales</Text>
-      
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.debiteur}>
-            <FormLabel color={labelColor}>Débiteur</FormLabel>
-            <Controller
-              name="debiteur"
-              control={control}
-              render={({ field }) => (
-                readOnly ? (
-                  <Input 
-                    value={field.value === 'deb1' ? 'Koné Amadou' : field.value === 'deb2' ? 'Traoré Fatou' : field.value === 'deb3' ? 'Société ABC SARL' : field.value} 
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.debiteur)} 
-                    bg="gray.100"
-                  />
-                ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner un débiteur" 
-                    borderColor={primaryGreen}
-                    bg="gray.100"
-                    color="gray.700"
-                    _focus={{ borderColor: primaryGreen }}
-                  >
-                    <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
-                    <option value="deb1" style={{ backgroundColor: 'white', color: 'black' }}>Koné Amadou</option>
-                    <option value="deb2" style={{ backgroundColor: 'white', color: 'black' }}>Traoré Fatou</option>
-                    <option value="deb3" style={{ backgroundColor: 'white', color: 'black' }}>Société ABC SARL</option>
-                  </Select>
-                )
-              )}
-            />
-            {errors.debiteur && (
-              <Text color={errorRed} fontSize="sm">{String(errors.debiteur.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
+    <div className="space-y-6">
+      <h2 className="text-lg font-bold mb-4" style={{ color: titleColor }}>Informations générales</h2>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.groupeCreance}>
-            <FormLabel color={labelColor}>Groupe créance</FormLabel>
-            <Controller
-              name="groupeCreance"
-              control={control}
-              render={({ field }) => (
-                readOnly ? (
-                  <Input 
-                    value={getGroupeCreanceLibelle(field.value)} 
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.groupeCreance)} 
-                    bg="gray.100"
-                  />
-                ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner un groupe" 
-                    borderColor={primaryGreen}
-                    bg="gray.100"
-                    color="gray.700"
-                    _focus={{ borderColor: primaryGreen }}
-                  >
-                    {loadingGroupesCreance ? (
-                      <option value="">Chargement...</option>
-                    ) : (
-                      Array.isArray(groupesCreance) && groupesCreance.map((groupe) => (
-                        <option key={groupe.GC_CODE} value={groupe.GC_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                          {groupe.GC_LIB}
-                        </option>
-                      ))
-                    )}
-                  </Select>
-                )
-              )}
-            />
-            {errors.groupeCreance && (
-              <Text color={errorRed} fontSize="sm">{String(errors.groupeCreance.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-
-        <GridItem>
-          <FormControl isInvalid={!!errors.typeObjet}>
-            <FormLabel color={labelColor}>Type d'objet</FormLabel>
-            <Controller
-              name="typeObjet"
-              control={control}
-              render={({ field }) => (
-                readOnly ? (
-                  <Input 
-                    value={getObjetCreanceLibelle(field.value)} 
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.typeObjet)} 
-                    bg="gray.100"
-                  />
-                ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner un type" 
-                    borderColor={primaryGreen}
-                    bg="gray.100"
-                    color="gray.700"
-                    _focus={{ borderColor: primaryGreen }}
-                  >
-                    <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
-                    {Array.isArray(objetsCreance) && objetsCreance.map((objet) => (
-                      <option key={objet.OC_CODE} value={objet.OC_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {objet.OC_LIB}
-                      </option>
-                    ))}
-                  </Select>
-                )
-              )}
-            />
-            {errors.typeObjet && (
-              <Text color={errorRed} fontSize="sm">{String(errors.typeObjet.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.capitalInitial}>
-            <FormLabel color={labelColor}>Capital initial</FormLabel>
-            <Controller
-              name="capitalInitial"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.capitalInitial)} 
-                  isDisabled={readOnly}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
+              Débiteur <span style={{ color: '#f97316' }}>*</span>
+            </Label>
+          <Controller
+            name="debiteur"
+            control={control}
+            rules={{ required: "Le débiteur est obligatoire" }}
+            render={({ field }) => (
+              readOnly ? (
+                <Input
+                  value={getDebiteurLibelle(field.value)}
+                  className="bg-gray-100 text-gray-700 flex-1"
+                  style={{ borderColor: !!errors.debiteur ? errorRed : primaryGreen }}
+                  disabled
                 />
-              )}
-            />
-            {errors.capitalInitial && (
-              <Text color={errorRed} fontSize="sm">{String(errors.capitalInitial.message)}</Text>
+              ) : (
+                <div className="flex-1">
+                  <SearchableSelect
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    items={debiteursSearchable.items}
+                    placeholder="Sélectionner un débiteur"
+                    emptyMessage="Aucun débiteur trouvé"
+                    searchPlaceholder="Rechercher un débiteur..."
+                    isLoading={debiteursSearchable.isLoading}
+                    hasMore={debiteursSearchable.hasMore}
+                    onLoadMore={debiteursSearchable.loadMore}
+                    isFetchingMore={debiteursSearchable.isFetchingMore}
+                    onSearchChange={debiteursSearchable.setSearch}
+                    disabled={readOnly}
+                  />
+                </div>
+              )
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.debiteur && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.debiteur.message)}</p>
+          )}
+        </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.montantDecaisse}>
-            <FormLabel color={labelColor}>Montant décaissé</FormLabel>
-            <Controller
-              name="montantDecaisse"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.montantDecaisse)} 
-                  isDisabled={readOnly}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
+              Groupe créance <span style={{ color: '#f97316' }}>*</span>
+            </Label>
+          <Controller
+            name="groupeCreance"
+            control={control}
+            rules={{ required: "Le groupe créance est obligatoire" }}
+            render={({ field }) => (
+              readOnly ? (
+                <Input
+                  value={getGroupeCreanceLibelle(field.value)}
+                  className="bg-gray-100 text-gray-700 flex-1"
+                  style={{ borderColor: !!errors.groupeCreance ? errorRed : primaryGreen }}
+                  disabled
                 />
-              )}
-            />
-            {errors.montantDecaisse && (
-              <Text color={errorRed} fontSize="sm">{String(errors.montantDecaisse.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-
-        <GridItem>
-          <FormControl isInvalid={!!errors.steCaution}>
-            <FormLabel color={labelColor}>Sté caution</FormLabel>
-            <Controller
-              name="steCaution"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Société de caution" {...getFieldStyles(!!errors.steCaution)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.steCaution && (
-              <Text color={errorRed} fontSize="sm">{String(errors.steCaution.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.statutRecouvrement}>
-            <FormLabel color={labelColor}>Statut recouvrement</FormLabel>
-            <Controller
-              name="statutRecouvrement"
-              control={control}
-              render={({ field }) => (
-                readOnly ? (
-                  <Input 
-                    value={field.value === 'oui' ? 'Oui' : field.value === 'non' ? 'Non' : field.value} 
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.statutRecouvrement)} 
-                    bg="gray.100"
+              ) : (
+                <div className="flex-1">
+                  <SearchableSelect
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    items={groupesCreanceSearchable.items}
+                    placeholder="Sélectionner un groupe créance"
+                    emptyMessage="Aucun groupe créance trouvé"
+                    searchPlaceholder="Rechercher un groupe..."
+                    isLoading={groupesCreanceSearchable.isLoading}
+                    hasMore={groupesCreanceSearchable.hasMore}
+                    onLoadMore={groupesCreanceSearchable.loadMore}
+                    isFetchingMore={groupesCreanceSearchable.isFetchingMore}
+                    onSearchChange={groupesCreanceSearchable.setSearch}
+                    disabled={readOnly}
                   />
-                ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner" 
-                    borderColor={primaryGreen}
-                    bg="gray.100"
-                    color="gray.700"
-                    _focus={{ borderColor: primaryGreen }}
-                  >
-                    <option value="oui" style={{ backgroundColor: 'white', color: 'black' }}>Oui</option>
-                    <option value="non" style={{ backgroundColor: 'white', color: 'black' }}>Non</option>
-                  </Select>
-                )
-              )}
-            />
-            {errors.statutRecouvrement && (
-              <Text color={errorRed} fontSize="sm">{String(errors.statutRecouvrement.message)}</Text>
+                </div>
+              )
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.groupeCreance && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.groupeCreance.message)}</p>
+          )}
+        </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.numeroPrecedent}>
-            <FormLabel color={labelColor}>Numéro précédent</FormLabel>
-            <Controller
-              name="numeroPrecedent"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Numéro précédent" {...getFieldStyles(!!errors.numeroPrecedent)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.numeroPrecedent && (
-              <Text color={errorRed} fontSize="sm">{String(errors.numeroPrecedent.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-
-        <GridItem>
-          <FormControl isInvalid={!!errors.numeroAncien}>
-            <FormLabel color={labelColor}>Numéro ancien</FormLabel>
-            <Controller
-              name="numeroAncien"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Numéro ancien" {...getFieldStyles(!!errors.numeroAncien)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.numeroAncien && (
-              <Text color={errorRed} fontSize="sm">{String(errors.numeroAncien.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.typeStructure}>
-            <FormLabel color={labelColor}>Type structure</FormLabel>
-            <Controller
-              name="typeStructure"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Type de structure" {...getFieldStyles(!!errors.typeStructure)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.typeStructure && (
-              <Text color={errorRed} fontSize="sm">{String(errors.typeStructure.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-
-        <GridItem>
-          <FormControl isInvalid={!!errors.classeCreance}>
-            <FormLabel color={labelColor}>Classe créance</FormLabel>
-            <Controller
-              name="classeCreance"
-              control={control}
-              render={({ field }) => (
-                readOnly ? (
-                  <Input 
-                    value={getClasseLibelle(field.value)} 
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.classeCreance)} 
-                    bg="gray.100"
-                  />
-                ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner une classe" 
-                    borderColor={primaryGreen}
-                    bg="gray.100"
-                    color="gray.700"
-                    _focus={{ borderColor: primaryGreen }}
-                  >
-                    <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
-                    {Array.isArray(classes) && classes.map((classe) => (
-                      <option key={classe.CLAS_CODE} value={classe.CLAS_CODE} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {classe.CLAS_LIB}
-                      </option>
-                    ))}
-                  </Select>
-                )
-              )}
-            />
-            {errors.classeCreance && (
-              <Text color={errorRed} fontSize="sm">{String(errors.classeCreance.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-    </VStack>
-  );
-
-  const renderStep2 = () => (
-    <VStack spacing={2} align="stretch">
-      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Informations générales 2</Text>
-      
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.numeroCreance}>
-            <FormLabel color={labelColor}>Numéro de créance</FormLabel>
-            <Controller
-              name="numeroCreance"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Ex: CRE-2024-001" {...getFieldStyles(!!errors.numeroCreance)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.numeroCreance && (
-              <Text color={errorRed} fontSize="sm">{String(errors.numeroCreance.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-
-        <GridItem>
-          <FormControl isInvalid={!!errors.entite}>
-            <FormLabel color={labelColor}>Entité</FormLabel>
-            <Controller
-              name="entite"
-              control={control}
-              render={({ field }) => (
-                readOnly ? (
-                  <Input 
-                    value={getEntiteLibelle(field.value)} 
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.entite)} 
-                    bg="gray.100"
-                  />
-                ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner une entité" 
-                    borderColor={primaryGreen}
-                    bg="gray.100"
-                    color="gray.700"
-                    _focus={{ borderColor: primaryGreen }}
-                  >
-                    <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Chargement...</option>
-                    {Array.isArray(entites) && entites.map((entite: any) => (
-                      <option key={entite.ENT_CODE || entite.id} value={entite.ENT_CODE || entite.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                        {entite.ENT_LIB || entite.libelle}
-                      </option>
-                    ))}
-                  </Select>
-                )
-              )}
-            />
-            {errors.entite && (
-              <Text color={errorRed} fontSize="sm">{String(errors.entite.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-
-        <GridItem>
-          <FormControl isInvalid={!!errors.objetCreance}>
-            <FormLabel color={labelColor}>Objet créance</FormLabel>
-            <Controller
-              name="objetCreance"
-              control={control}
-              render={({ field }) => (
-                <Input 
-                  {...field} 
-                  placeholder="Saisir l'objet de la créance" 
-                  {...getFieldStyles(!!errors.objetCreance)} 
-                  isDisabled={readOnly}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
+            Objet créance <span style={{ color: '#f97316' }}>*</span>
+          </Label>
+          <Controller
+            name="objetCreance"
+            control={control}
+            rules={{ required: "L'objet créance est obligatoire" }}
+            render={({ field }) => (
+              readOnly ? (
+                <Input
+                  value={getObjetCreanceLibelle(field.value)}
+                  className="bg-gray-100 text-gray-700 flex-1"
+                  style={{ borderColor: !!errors.objetCreance ? errorRed : primaryGreen }}
+                  disabled
                 />
-              )}
-            />
-            {errors.objetCreance && (
-              <Text color={errorRed} fontSize="sm">{String(errors.objetCreance.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.periodicite}>
-            <FormLabel color={labelColor}>Périodicité</FormLabel>
-            <Controller
-              name="periodicite"
-              control={control}
-              render={({ field }) => (
-                readOnly ? (
-                  <Input 
-                    value={field.value === 'mensuelle' ? 'Mensuelle' : field.value === 'trimestrielle' ? 'Trimestrielle' : field.value === 'semestrielle' ? 'Semestrielle' : field.value === 'annuelle' ? 'Annuelle' : field.value} 
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.periodicite)} 
-                    bg="gray.100"
+              ) : (
+                <div className="flex-1">
+                  <SearchableSelect
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    items={objetsCreanceSearchable.items}
+                  placeholder="Sélectionner un objet créance"
+                  emptyMessage="Aucun objet créance trouvé"
+                  searchPlaceholder="Rechercher un objet..."
+                  isLoading={objetsCreanceSearchable.isLoading}
+                  hasMore={objetsCreanceSearchable.hasMore}
+                  onLoadMore={objetsCreanceSearchable.loadMore}
+                  isFetchingMore={objetsCreanceSearchable.isFetchingMore}
+                  onSearchChange={objetsCreanceSearchable.setSearch}
+                  disabled={readOnly}
                   />
-                ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner une périodicité" 
-                    borderColor={primaryGreen}
-                    bg="gray.100"
-                    color="gray.700"
-                    _focus={{ borderColor: primaryGreen }}
-                  >
-                    <option value="mensuelle" style={{ backgroundColor: 'white', color: 'black' }}>Mensuelle</option>
-                    <option value="trimestrielle" style={{ backgroundColor: 'white', color: 'black' }}>Trimestrielle</option>
-                    <option value="semestrielle" style={{ backgroundColor: 'white', color: 'black' }}>Semestrielle</option>
-                    <option value="annuelle" style={{ backgroundColor: 'white', color: 'black' }}>Annuelle</option>
-                  </Select>
-                )
-              )}
-            />
-            {errors.periodicite && (
-              <Text color={errorRed} fontSize="sm">{String(errors.periodicite.message)}</Text>
+                </div>
+              )
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.objetCreance && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.objetCreance.message)}</p>
+          )}
+        </div>
+      </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.nbEch}>
-            <FormLabel color={labelColor}>Nb. Échéances</FormLabel>
-        <Controller
-              name="nbEch"
-          control={control}
-          render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="number" 
-                  placeholder="0" 
-                  value={field.value ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === '') { field.onChange(undefined); return; }
-                    field.onChange(parseInt(v));
-                  }}
-                  {...getFieldStyles(!!errors.nbEch)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
-            {errors.nbEch && (
-              <Text color={errorRed} fontSize="sm">{String(errors.nbEch.message)}</Text>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Détail de l'objet</Label>
+          <Controller
+            name="objetDetail"
+            control={control}
+            render={({ field }) => (
+              <Textarea
+                {...field}
+                placeholder="Description détaillée de l'objet de créance"
+                rows={3}
+                maxLength={255}
+                className={`${!!errors.objetDetail ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.objetDetail ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
+            )}
+          />
+        </div>
+        {errors.objetDetail && (
+          <p className="text-sm" style={{ color: errorRed }}>{String(errors.objetDetail.message)}</p>
         )}
-      </FormControl>
-        </GridItem>
+      </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.dateReconnaissance}>
-            <FormLabel color={labelColor}>Date de reconnaissance</FormLabel>
-            <Controller
-              name="dateReconnaissance"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} type="date" {...getFieldStyles(!!errors.dateReconnaissance)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.dateReconnaissance && (
-              <Text color={errorRed} fontSize="sm">{String(errors.dateReconnaissance.message)}</Text>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
+            Capital initial <span style={{ color: '#f97316' }}>*</span>
+          </Label>
+          <Controller
+            name="capitalInitial"
+            control={control}
+            rules={{ required: "Le capital initial est obligatoire", min: { value: 0.01, message: "Le capital initial doit être supérieur à 0" } }}
+            render={({ field }) => (
+              <NumberInputField
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="0"
+                className={`${!!errors.capitalInitial ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.capitalInitial ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
-      </Grid>
+          />
+          </div>
+          {errors.capitalInitial && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.capitalInitial.message)}</p>
+          )}
+        </div>
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.datePremiereEcheance}>
-            <FormLabel color={labelColor}>Date de 1ère échéance</FormLabel>
-            <Controller
-              name="datePremiereEcheance"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} type="date" {...getFieldStyles(!!errors.datePremiereEcheance)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.datePremiereEcheance && (
-              <Text color={errorRed} fontSize="sm">{String(errors.datePremiereEcheance.message)}</Text>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant décaissé</Label>
+          <Controller
+            name="montantDecaisse"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="0"
+                className={`${!!errors.montantDecaisse ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.montantDecaisse ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.montantDecaisse && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantDecaisse.message)}</p>
+          )}
+        </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.dateDerniereEcheance}>
-            <FormLabel color={labelColor}>Date de dernière échéance</FormLabel>
-            <Controller
-              name="dateDerniereEcheance"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} type="date" {...getFieldStyles(!!errors.dateDerniereEcheance)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.dateDerniereEcheance && (
-              <Text color={errorRed} fontSize="sm">{String(errors.dateDerniereEcheance.message)}</Text>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Numéro précédent</Label>
+          <Controller
+            name="numeroPrecedent"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                placeholder="Numéro précédent"
+                className={`${!!errors.numeroPrecedent ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.numeroPrecedent ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.numeroPrecedent && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.numeroPrecedent.message)}</p>
+          )}
+        </div>
+      </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.dateOctroi}>
-            <FormLabel color={labelColor}>Date d'octroi</FormLabel>
-            <Controller
-              name="dateOctroi"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} type="date" {...getFieldStyles(!!errors.dateOctroi)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.dateOctroi && (
-              <Text color={errorRed} fontSize="sm">{String(errors.dateOctroi.message)}</Text>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Numéro ancien</Label>
+          <Controller
+            name="numeroAncien"
+            control={control}
+            render={({ field }) => (
+                <Input
+                  {...field}
+                placeholder="Numéro ancien"
+                className={`${!!errors.numeroAncien ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.numeroAncien ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
-      </Grid>
+          />
+          </div>
+          {errors.numeroAncien && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.numeroAncien.message)}</p>
+          )}
+        </div>
+        </div>
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.datePremierPrecept}>
-            <FormLabel color={labelColor}>Date de 1er précept</FormLabel>
-            <Controller
-              name="datePremierPrecept"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} type="date" {...getFieldStyles(!!errors.datePremierPrecept)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.datePremierPrecept && (
-              <Text color={errorRed} fontSize="sm">{String(errors.datePremierPrecept.message)}</Text>
+      {/* Section Dates et conditions - déplacée depuis step2 */}
+      <Separator className="my-6" />
+      <h2 className="text-lg font-bold mb-4" style={{ color: titleColor }}>Dates et conditions</h2>
+      
+      {(() => {
+        const dateDeblocage = watch("dateDeblocage");
+        return (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
+                    Date de déblocage <span style={{ color: '#f97316' }}>*</span>
+                  </Label>
+          <Controller
+                    name="dateDeblocage"
+            control={control}
+                    rules={{ required: "La date de déblocage est obligatoire" }}
+            render={({ field }) => (
+              <Input
+                {...field}
+                        type="date"
+                        max={getToday()}
+                        className={`${!!errors.dateDeblocage ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                        style={{ borderColor: !!errors.dateDeblocage ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
+          />
+                </div>
+                {errors.dateDeblocage && (
+                  <p className="text-sm" style={{ color: errorRed }}>{String(errors.dateDeblocage.message)}</p>
+          )}
+      </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.creanceSoldeAvantLid}>
-            <FormLabel color={labelColor}>Créance solde avant LID</FormLabel>
-            <Controller
-              name="creanceSoldeAvantLid"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Solde avant LID" {...getFieldStyles(!!errors.creanceSoldeAvantLid)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.creanceSoldeAvantLid && (
-              <Text color={errorRed} fontSize="sm">{String(errors.creanceSoldeAvantLid.message)}</Text>
+        <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
+                    Date d'échéance <span style={{ color: '#f97316' }}>*</span>
+                  </Label>
+          <Controller
+                    name="dateEcheance"
+            control={control}
+                    rules={{ required: "La date d'échéance est obligatoire" }}
+            render={({ field }) => (
+              <Input
+                {...field}
+                        type="date"
+                        min={dateDeblocage || undefined}
+                        className={`${!!errors.dateEcheance ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                        style={{ borderColor: !!errors.dateEcheance ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
+          />
+                </div>
+                {errors.dateEcheance && (
+                  <p className="text-sm" style={{ color: errorRed }}>{String(errors.dateEcheance.message)}</p>
+          )}
+        </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.ordonnateur}>
-            <FormLabel color={labelColor}>Ordonnateur</FormLabel>
-            <Controller
-              name="ordonnateur"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Ordonnateur" {...getFieldStyles(!!errors.ordonnateur)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.ordonnateur && (
-              <Text color={errorRed} fontSize="sm">{String(errors.ordonnateur.message)}</Text>
+        <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Périodicité</Label>
+          <Controller
+                    name="periodicite"
+            control={control}
+            render={({ field }) => (
+              readOnly ? (
+                <Input
+                          value={field.value === 'M' ? 'Mensuel' : field.value === 'T' ? 'Trimestriel' : field.value === 'S' ? 'Semestriel' : field.value === 'A' ? 'Annuel' : field.value}
+                          className="bg-gray-100 text-gray-700 flex-1"
+                          style={{ borderColor: !!errors.periodicite ? errorRed : primaryGreen }}
+                  disabled
+                />
+              ) : (
+                <select
+                  {...field}
+                          className="flex h-10 w-full rounded-md border bg-gray-100 px-3 py-2 text-sm text-gray-700 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 flex-1"
+                  style={{ borderColor: primaryGreen }}
+                >
+                          <option value="">Sélectionner une périodicité</option>
+                          <option value="M">Mensuel (M)</option>
+                          <option value="T">Trimestriel (T)</option>
+                          <option value="S">Semestriel (S)</option>
+                          <option value="A">Annuel (A)</option>
+                </select>
+              )
             )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-    </VStack>
+          />
+                </div>
+                {errors.periodicite && (
+                  <p className="text-sm" style={{ color: errorRed }}>{String(errors.periodicite.message)}</p>
+          )}
+        </div>
+      </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Durée (en mois)</Label>
+          <Controller
+                    name="duree"
+            control={control}
+            render={({ field }) => (
+                      <NumberInputField
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="0"
+                        min={1}
+                        className={`${!!errors.duree ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                        style={{ borderColor: !!errors.duree ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
+            )}
+          />
+                </div>
+                {errors.duree && (
+                  <p className="text-sm" style={{ color: errorRed }}>{String(errors.duree.message)}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Taux intérêt conventionnel (%)</Label>
+          <Controller
+                    name="tauxInteretConventionnel"
+            control={control}
+            render={({ field }) => (
+                      <NumberInputField
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="0.00"
+                        step={0.1}
+                        className={`${!!errors.tauxInteretConventionnel ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                        style={{ borderColor: !!errors.tauxInteretConventionnel ? errorRed : primaryGreen }}
+                        disabled={readOnly}
+                      />
+                    )}
+                  />
+                </div>
+                {errors.tauxInteretConventionnel && (
+                  <p className="text-sm" style={{ color: errorRed }}>{String(errors.tauxInteretConventionnel.message)}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Taux intérêt retard (%)</Label>
+          <Controller
+                    name="tauxInteretRetard"
+            control={control}
+            render={({ field }) => (
+                      <NumberInputField
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="0.00"
+                        step={0.1}
+                        className={`${!!errors.tauxInteretRetard ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                        style={{ borderColor: !!errors.tauxInteretRetard ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
+            )}
+          />
+                </div>
+                {errors.tauxInteretRetard && (
+                  <p className="text-sm" style={{ color: errorRed }}>{String(errors.tauxInteretRetard.message)}</p>
+          )}
+        </div>
+      </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
+                    Ordonnateur <span style={{ color: '#f97316' }}>*</span>
+                  </Label>
+          <Controller
+                    name="ordonnateur"
+            control={control}
+                    rules={{ required: "L'ordonnateur est obligatoire" }}
+            render={({ field }) => (
+              readOnly ? (
+                <Input
+                          value={getOrdonnateurLibelle(field.value)}
+                          className="bg-gray-100 text-gray-700 flex-1"
+                          style={{ borderColor: !!errors.ordonnateur ? errorRed : primaryGreen }}
+                  disabled
+                />
+              ) : (
+                        <div className="flex-1">
+                          <SearchableSelect
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            items={ordonnateursSearchable.items}
+                            placeholder="Sélectionner un ordonnateur"
+                            emptyMessage="Aucun ordonnateur trouvé"
+                            searchPlaceholder="Rechercher un ordonnateur..."
+                            isLoading={ordonnateursSearchable.isLoading}
+                            hasMore={ordonnateursSearchable.hasMore}
+                            onLoadMore={ordonnateursSearchable.loadMore}
+                            isFetchingMore={ordonnateursSearchable.isFetchingMore}
+                            onSearchChange={ordonnateursSearchable.setSearch}
+                            disabled={readOnly}
+                          />
+                        </div>
+              )
+            )}
+          />
+                </div>
+                {errors.ordonnateur && (
+                  <p className="text-sm" style={{ color: errorRed }}>{String(errors.ordonnateur.message)}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
+                    Statut <span style={{ color: '#f97316' }}>*</span>
+                  </Label>
+          <Controller
+                    name="statut"
+            control={control}
+                    rules={{ required: "Le statut est obligatoire" }}
+            render={({ field }) => (
+                      readOnly ? (
+              <Input
+                          value={(() => {
+                            // Convertir l'initiale en libellé pour l'affichage
+                            if (field.value === 'A') return 'Actif';
+                            if (field.value === 'C') return 'Clôturé';
+                            if (field.value === 'S') return 'Suspendu';
+                            return field.value || '';
+                          })()}
+                          className="bg-gray-100 text-gray-700 flex-1"
+                          style={{ borderColor: !!errors.statut ? errorRed : primaryGreen }}
+                          disabled
+                        />
+                      ) : (
+                        <select
+                {...field}
+                          className="flex h-10 w-full rounded-md border bg-gray-100 px-3 py-2 text-sm text-gray-700 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 flex-1"
+                          style={{ borderColor: primaryGreen }}
+                onChange={(e) => {
+                            // Stocker l'initiale dans le formulaire mais afficher le libellé complet
+                            const value = e.target.value;
+                            let initiale = '';
+                            if (value === 'ACTIF') initiale = 'A';
+                            else if (value === 'CLOTURE') initiale = 'C';
+                            else if (value === 'SUSPENDU') initiale = 'S';
+                            else initiale = value;
+                            field.onChange(initiale);
+                          }}
+                          value={(() => {
+                            // Convertir l'initiale en valeur complète pour l'affichage
+                            if (field.value === 'A') return 'ACTIF';
+                            if (field.value === 'C') return 'CLOTURE';
+                            if (field.value === 'S') return 'SUSPENDU';
+                            return field.value || '';
+                          })()}
+                        >
+                          <option value="">Sélectionner un statut</option>
+                          <option value="ACTIF">Actif</option>
+                          <option value="CLOTURE">Clôturé</option>
+                          <option value="SUSPENDU">Suspendu</option>
+                        </select>
+                      )
+                    )}
+                  />
+                </div>
+                {errors.statut && (
+                  <p className="text-sm" style={{ color: errorRed }}>{String(errors.statut.message)}</p>
+          )}
+        </div>
+            </div>
+          </>
+        );
+      })()}
+    </div>
   );
+
+  // Step 2: Détails financiers (ancien step3)
+  const renderStep2 = () => {
+    return renderStep3();
+  };
 
   const renderStep3 = () => (
-    <VStack spacing={2} align="stretch">
-      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Détails financiers</Text>
-      
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.commission}>
-            <FormLabel color={labelColor}>Commission</FormLabel>
-            <Controller
-              name="commission"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.commission)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
-            {errors.commission && (
-              <Text color={errorRed} fontSize="sm">{String(errors.commission.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
+    <div className="space-y-6">
+      <h2 className="text-lg font-bold mb-4" style={{ color: titleColor }}>Détails financiers</h2>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.montantRembourse}>
-            <FormLabel color={labelColor}>Montant à rembourser</FormLabel>
-            <Controller
-              name="montantRembourse"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.montantRembourse)} 
-                  isDisabled={true}
-                  bg="gray.100"
-                  color="gray.700"
-                />
-              )}
-            />
-            
-            {errors.montantRembourse && (
-              <Text color={errorRed} fontSize="sm">{String(errors.montantRembourse.message)}</Text>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Commission</Label>
+          <Controller
+            name="commissionBanque"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="0"
+                className={`${!!errors.commissionBanque ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.commissionBanque ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.commissionBanque && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.commissionBanque.message)}</p>
+          )}
+        </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.intConvPourcentage}>
-            <FormLabel color={labelColor}>Int. Conv (pourcentage)</FormLabel>
-            <Controller
-              name="intConvPourcentage"
-              control={control}
-              render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="number" 
-                  placeholder="0" 
-                  step="0.01"
-                  value={field.value ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === '') { field.onChange(undefined); return; }
-                    field.onChange(parseFloat(v));
-                  }}
-                  {...getFieldStyles(!!errors.intConvPourcentage)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
-            
-            {errors.intConvPourcentage && (
-              <Text color={errorRed} fontSize="sm">{String(errors.intConvPourcentage.message)}</Text>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant à rembourser</Label>
+          <Controller
+            name="montantARembourser"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
+                onChange={(val) => {
+                  // Ne pas permettre la modification manuelle (champ calculé)
+                }}
+                placeholder="0"
+                className="bg-gray-100 text-gray-700 cursor-not-allowed"
+                style={{ borderColor: !!errors.montantARembourser ? errorRed : primaryGreen }}
+                disabled={true}
+                readOnly={true}
+              />
             )}
-          </FormControl>
-        </GridItem>
-      </Grid>
+          />
+          </div>
+          {errors.montantARembourser && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantARembourser.message)}</p>
+          )}
+        </div>
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.montantIntConvPaye}>
-            <FormLabel color={labelColor}>Montant Int Conv</FormLabel>
-            <Controller
-              name="montantIntConvPaye"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.montantIntConvPaye)} 
-                  isDisabled={true}
-                  bg="gray.100"
-                  color="gray.700"
-                />
-              )}
-            />
-            
-            {errors.montantIntConvPaye && (
-              <Text color={errorRed} fontSize="sm">{String(errors.montantIntConvPaye.message)}</Text>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Int. Conv (pourcentage)</Label>
+          <Controller
+            name="intConvPourcentage"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="number"
+                placeholder="0"
+                step="0.01"
+                value={field.value ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === '') { field.onChange(undefined); return; }
+                  field.onChange(parseFloat(v));
+                }}
+                className={`${!!errors.intConvPourcentage ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.intConvPourcentage ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.intConvPourcentage && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.intConvPourcentage.message)}</p>
+          )}
+        </div>
+      </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.montantDu}>
-            <FormLabel color={labelColor}>Montant dû</FormLabel>
-            <Controller
-              name="montantDu"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.montantDu)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
-            {errors.montantDu && (
-              <Text color={errorRed} fontSize="sm">{String(errors.montantDu.message)}</Text>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant Int Conv</Label>
+          <Controller
+            name="montantInteretConventionnel"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="0"
+                className={`${!!errors.montantInteretConventionnel ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.montantInteretConventionnel ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.montantInteretConventionnel && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantInteretConventionnel.message)}</p>
+          )}
+        </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.intRetPourcentage}>
-            <FormLabel color={labelColor}>Int. Ret (pourcentage)</FormLabel>
-            <Controller
-              name="intRetPourcentage"
-              control={control}
-              render={({ field }) => (
-                <Input 
-                  {...field} 
-                  type="number" 
-                  placeholder="0" 
-                  step="0.01"
-                  value={field.value ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === '') { field.onChange(undefined); return; }
-                    field.onChange(parseFloat(v));
-                  }}
-                  {...getFieldStyles(!!errors.intRetPourcentage)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
-            
-            {errors.intRetPourcentage && (
-              <Text color={errorRed} fontSize="sm">{String(errors.intRetPourcentage.message)}</Text>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant dû</Label>
+          <Controller
+            name="montantDu"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="0"
+                className={`${!!errors.montantDu ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.montantDu ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
-      </Grid>
+          />
+          </div>
+          {errors.montantDu && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantDu.message)}</p>
+          )}
+        </div>
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.montantDejaRembourse}>
-            <FormLabel color={labelColor}>Montant déjà remboursé</FormLabel>
-            <Controller
-              name="montantDejaRembourse"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.montantDejaRembourse)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
-            {errors.montantDejaRembourse && (
-              <Text color={errorRed} fontSize="sm">{String(errors.montantDejaRembourse.message)}</Text>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Int. Ret (pourcentage)</Label>
+          <Controller
+            name="montantInteretRetard"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="0"
+                className={`${!!errors.montantInteretRetard ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.montantInteretRetard ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.montantInteretRetard && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantInteretRetard.message)}</p>
+          )}
+        </div>
+      </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.montantImpaye}>
-            <FormLabel color={labelColor}>Montant impayé</FormLabel>
-            <Controller
-              name="montantImpaye"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.montantImpaye)} 
-                  isDisabled={true}
-                  bg="gray.100"
-                  color="gray.700"
-                />
-              )}
-            />
-            
-            {errors.montantImpaye && (
-              <Text color={errorRed} fontSize="sm">{String(errors.montantImpaye.message)}</Text>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant déjà remboursé</Label>
+          <Controller
+            name="montantRembourse"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={typeof field.value === 'number' ? field.value : (typeof field.value === 'string' && field.value !== '' ? parseFloat(field.value) : undefined)}
+                onChange={(val) => {
+                  // S'assurer que la valeur est toujours un number ou undefined
+                  field.onChange(val !== undefined && !isNaN(val) ? val : undefined);
+                }}
+                placeholder="0"
+                className={`${!!errors.montantRembourse ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.montantRembourse ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.montantRembourse && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantRembourse.message)}</p>
+          )}
+        </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.diversFrais}>
-            <FormLabel color={labelColor}>Divers frais</FormLabel>
-            <Controller
-              name="diversFrais"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.diversFrais)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
-            {errors.diversFrais && (
-              <Text color={errorRed} fontSize="sm">{String(errors.diversFrais.message)}</Text>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant impayé</Label>
+          <Controller
+            name="montantImpaye"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
+                onChange={() => {}} // Lecture seule - Calculé automatiquement
+                placeholder="0"
+                className="bg-gray-100 text-gray-700 cursor-not-allowed"
+                style={{ borderColor: !!errors.montantImpaye ? errorRed : primaryGreen }}
+                disabled={true}
+                readOnly={true}
+              />
             )}
-          </FormControl>
-        </GridItem>
-      </Grid>
+          />
+          </div>
+          {errors.montantImpaye && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantImpaye.message)}</p>
+          )}
+        </div>
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.montantAss}>
-            <FormLabel color={labelColor}>Montant Ass</FormLabel>
-            <Controller
-              name="montantAss"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.montantAss)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
-            {errors.montantAss && (
-              <Text color={errorRed} fontSize="sm">{String(errors.montantAss.message)}</Text>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Divers frais</Label>
+          <Controller
+            name="frais"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="0"
+                className={`${!!errors.frais ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.frais ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.frais && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.frais.message)}</p>
+          )}
+        </div>
+      </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.encours}>
-            <FormLabel color={labelColor}>Encours</FormLabel>
-            <Controller
-              name="encours"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.encours)} 
-                  isDisabled={readOnly}
-                />
-              )}
-            />
-            {errors.encours && (
-              <Text color={errorRed} fontSize="sm">{String(errors.encours.message)}</Text>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant Ass</Label>
+          <Controller
+            name="montantAss"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="0"
+                className={`${!!errors.montantAss ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.montantAss ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.montantAss && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantAss.message)}</p>
+          )}
+        </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.totalDu}>
-            <FormLabel color={labelColor}>Total dû</FormLabel>
-            <Controller
-              name="totalDu"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.totalDu)} 
-                  isDisabled={true}
-                  bg="gray.100"
-                  color="gray.700"
-                />
-              )}
-            />
-            
-            {errors.totalDu && (
-              <Text color={errorRed} fontSize="sm">{String(errors.totalDu.message)}</Text>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant en cours de recouvrement</Label>
+          <Controller
+            name="encours"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="0"
+                className={`${!!errors.encours ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                style={{ borderColor: !!errors.encours ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
             )}
-          </FormControl>
-        </GridItem>
-      </Grid>
+          />
+          </div>
+          {errors.encours && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.encours.message)}</p>
+          )}
+        </div>
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.penalite1Pourcent}>
-            <FormLabel color={labelColor}>Pénalité 1%</FormLabel>
-            <Controller
-              name="penalite1Pourcent"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.penalite1Pourcent)} 
-                  isDisabled={true}
-                  bg="gray.100"
-                  color="gray.700"
-                />
-              )}
-            />
-            
-            {errors.penalite1Pourcent && (
-              <Text color={errorRed} fontSize="sm">{String(errors.penalite1Pourcent.message)}</Text>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Total dû</Label>
+          <Controller
+            name="totalDu"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
+                onChange={() => {}} // Lecture seule - Calculé automatiquement
+                placeholder="0"
+                className="bg-gray-100 text-gray-700 cursor-not-allowed"
+                style={{ borderColor: !!errors.totalDu ? errorRed : primaryGreen }}
+                disabled={true}
+                readOnly={true}
+              />
             )}
-          </FormControl>
-        </GridItem>
+          />
+          </div>
+          {errors.totalDu && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.totalDu.message)}</p>
+          )}
+        </div>
+      </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.totalARecouvrer}>
-            <FormLabel color={labelColor}>Total à recouvrer</FormLabel>
-            <Controller
-              name="totalARecouvrer"
-              control={control}
-              render={({ field }) => (
-                <NumberInputField
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="0"
-                  {...getFieldStyles(!!errors.totalARecouvrer)}
-                  isDisabled={true}
-                  bg="gray.100"
-                  color="gray.700"
-                />
-              )}
-            />
-            
-            {errors.totalARecouvrer && (
-              <Text color={errorRed} fontSize="sm">{String(errors.totalARecouvrer.message)}</Text>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Pénalité (1%)</Label>
+          <Controller
+            name="penalite"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
+                onChange={() => {}} // Lecture seule
+                placeholder="0"
+                className="bg-gray-100 text-gray-700 cursor-not-allowed"
+                style={{ borderColor: !!errors.penalite ? errorRed : primaryGreen }}
+                disabled={true}
+                readOnly={true}
+              />
             )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-    </VStack>
+          />
+          </div>
+          {errors.penalite && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.penalite.message)}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Total à recouvrer</Label>
+          <Controller
+            name="totalSolde"
+            control={control}
+            render={({ field }) => (
+              <NumberInputField
+                value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
+                onChange={() => {}} // Lecture seule - Calculé automatiquement
+                placeholder="0"
+                className="bg-gray-100 text-gray-700 cursor-not-allowed"
+                style={{ borderColor: !!errors.totalSolde ? errorRed : primaryGreen }}
+                disabled={true}
+                readOnly={true}
+              />
+            )}
+          />
+          </div>
+          {errors.totalSolde && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.totalSolde.message)}</p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 
+  // Step 4: Pièces jointes
   const renderStep4 = () => (
-    <VStack spacing={2} align="stretch">
-      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Pièces</Text>
+    <div className="space-y-6">
+      <h2 className="text-lg font-bold mb-4" style={{ color: titleColor }}>Pièces jointes</h2>
       
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.typePiece}>
-            <FormLabel color={labelColor}>Type de pièce</FormLabel>
-            <Controller
-              name="typePiece"
-              control={control}
-              render={({ field }) => (
-                readOnly ? (
-                  <Input 
-                    value={field.value === 'contrat' ? 'Contrat' : field.value === 'facture' ? 'Facture' : field.value === 'bon_commande' ? 'Bon de commande' : field.value === 'lettre_engagement' ? "Lettre d'engagement" : field.value === 'autre' ? 'Autre' : field.value} 
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.typePiece)} 
-                    bg="gray.100"
+      <div className="space-y-4">
+        {pieces.map((piece, index) => (
+          <div key={piece.id} className="p-4 border rounded-md" style={{ borderColor: primaryGreen }}>
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-sm font-semibold" style={{ color: titleColor }}>
+                Pièce #{index + 1}
+              </h4>
+              {!readOnly && pieces.length > 1 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removePiece(piece.id)}
+                  className="text-red-600 border-red-600 hover:bg-red-50"
+                >
+                  Supprimer
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label style={{ color: labelColor }}>Type de pièce</Label>
+                {readOnly ? (
+                  <Input
+                    value={piece.typePieceCode || ''}
+                    className="bg-gray-100 text-gray-700"
+                    style={{ borderColor: primaryGreen }}
+                    disabled
                   />
                 ) : (
-                  <Select 
-                    {...field} 
-                    placeholder="Sélectionner un type" 
-                    borderColor={primaryGreen}
-                    bg="gray.100"
-                    color="gray.700"
-                    _focus={{ borderColor: primaryGreen }}
-                  >
-                    <option value="contrat" style={{ backgroundColor: 'white', color: 'black' }}>Contrat</option>
-                    <option value="facture" style={{ backgroundColor: 'white', color: 'black' }}>Facture</option>
-                    <option value="bon_commande" style={{ backgroundColor: 'white', color: 'black' }}>Bon de commande</option>
-                    <option value="lettre_engagement" style={{ backgroundColor: 'white', color: 'black' }}>Lettre d'engagement</option>
-                    <option value="autre" style={{ backgroundColor: 'white', color: 'black' }}>Autre</option>
-                  </Select>
-                )
-              )}
-            />
-            {errors.typePiece && (
-              <Text color={errorRed} fontSize="sm">{String(errors.typePiece.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
+                  <SearchableSelect
+                    value={piece.typePieceCode || ""}
+                    onValueChange={(value) => updatePiece(piece.id, 'typePieceCode', value)}
+                    items={typePiecesSearchable.items}
+                    placeholder="Sélectionner un type de pièce"
+                    emptyMessage="Aucun type trouvé"
+                    searchPlaceholder="Rechercher un type..."
+                    isLoading={typePiecesSearchable.isLoading}
+                    hasMore={typePiecesSearchable.hasMore}
+                    onLoadMore={typePiecesSearchable.loadMore}
+                    isFetchingMore={typePiecesSearchable.isFetchingMore}
+                    onSearchChange={typePiecesSearchable.setSearch}
+                    disabled={readOnly}
+                  />
+                )}
+              </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.reference}>
-            <FormLabel color={labelColor}>Référence</FormLabel>
-            <Controller
-              name="reference"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Référence de la pièce" {...getFieldStyles(!!errors.reference)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.reference && (
-              <Text color={errorRed} fontSize="sm">{String(errors.reference.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-
-        <GridItem>
-          <FormControl isInvalid={!!errors.dateEmission}>
-            <FormLabel color={labelColor}>Date d'émission</FormLabel>
-            <Controller
-              name="dateEmission"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} type="date" {...getFieldStyles(!!errors.dateEmission)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.dateEmission && (
-              <Text color={errorRed} fontSize="sm">{String(errors.dateEmission.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.libelle}>
-            <FormLabel color={labelColor}>Libellé</FormLabel>
-            <Controller
-              name="libelle"
-              control={control}
-              render={({ field }) => (
-                <Textarea 
-                  {...field} 
-                  placeholder="Description de la pièce" 
-                  rows={2}
-                  {...getFieldStyles(!!errors.libelle)} 
-                  isDisabled={readOnly} 
+              <div className="space-y-2">
+                <Label style={{ color: labelColor }}>Numéro</Label>
+                <Input
+                  value={piece.numero || ''}
+                  onChange={(e) => updatePiece(piece.id, 'numero', e.target.value)}
+                  placeholder="Numéro de la pièce"
+                  style={{ borderColor: primaryGreen }}
+                  className="focus:ring-2"
+                  disabled={readOnly}
                 />
-              )}
-            />
-            {errors.libelle && (
-              <Text color={errorRed} fontSize="sm">{String(errors.libelle.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
+              </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.dateReception}>
-            <FormLabel color={labelColor}>Date de réception</FormLabel>
-            <Controller
-              name="dateReception"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} type="date" {...getFieldStyles(!!errors.dateReception)} isDisabled={readOnly} />
-              )}
-            />
-            {errors.dateReception && (
-              <Text color={errorRed} fontSize="sm">{String(errors.dateReception.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-    </VStack>
+              <div className="space-y-2">
+                <Label style={{ color: labelColor }}>Date</Label>
+                <Input
+                  type="date"
+                  value={piece.date || ''}
+                  onChange={(e) => updatePiece(piece.id, 'date', e.target.value)}
+                  style={{ borderColor: primaryGreen }}
+                  className="focus:ring-2"
+                  disabled={readOnly}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label style={{ color: labelColor }}>Description</Label>
+                <Input
+                  value={piece.description || ''}
+                  onChange={(e) => updatePiece(piece.id, 'description', e.target.value)}
+                  placeholder="Description de la pièce"
+                  style={{ borderColor: primaryGreen }}
+                  className="focus:ring-2"
+                  disabled={readOnly}
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label style={{ color: labelColor }}>Fichier</Label>
+                {readOnly ? (
+                  <Input
+                    value={piece.fichier || ''}
+                    className="bg-gray-100 text-gray-700"
+                    style={{ borderColor: primaryGreen }}
+                    disabled
+                  />
+                ) : (
+                  <Input
+                    type="file"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      handleFileChange(piece.id, file);
+                    }}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                  />
+                )}
+                {piece.file && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Fichier sélectionné : {piece.file.name}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {!readOnly && (
+          <Button
+            onClick={addPiece}
+            className="text-white"
+            style={{ backgroundColor: primaryGreen }}
+            size="sm"
+          >
+            <span className="mr-2">+</span>
+            Ajouter une pièce jointe
+          </Button>
+        )}
+      </div>
+    </div>
   );
 
   const addGarantie = () => {
     const newId = garanties.length > 0 ? Math.max(...garanties.map(g => g.id)) + 1 : 1;
-    setGaranties([...garanties, { id: newId }]);
+    setGaranties([...garanties, { 
+      id: newId,
+      type: '',
+      employeur: '',
+      statutSal: '',
+      quartier: '',
+      priorite: '',
+      nom: '',
+      prenoms: '',
+      dateInscription: '',
+      fonction: '',
+      profession: '',
+      adressePostale: '',
+      numeroGarantie: '',
+      objetMontant: '',
+      terrain: '',
+      logement: '',
+      code: '',
+      tel: '',
+      ville: '',
+      civCode: '',
+      debCode: '',
+      revenu: '',
+      description: '',
+      valeur: '',
+      adresse: '',
+      surface: '',
+      circonscription: '',
+      titreFoncier: '',
+    }]);
+  };
+
+  const addPiece = () => {
+    const newId = pieces.length > 0 ? Math.max(...pieces.map(p => p.id)) + 1 : 1;
+    setPieces([...pieces, {
+      id: newId,
+      typePieceCode: '',
+      numero: '',
+      date: '',
+      description: '',
+      fichier: null,
+      file: null,
+    }]);
+  };
+
+  const removePiece = (id: number) => {
+    setPieces(pieces.filter(p => p.id !== id));
+  };
+
+  const updatePiece = (id: number, field: string, value: any) => {
+    setPieces(pieces.map(p =>
+      p.id === id ? { ...p, [field]: value } : p
+    ));
+  };
+
+  const handleFileChange = (pieceId: number, file: File | null) => {
+    updatePiece(pieceId, 'file', file);
+    if (file) {
+      updatePiece(pieceId, 'fichier', file.name);
+    }
   };
 
   const removeGarantie = (id: number) => {
@@ -1621,549 +1768,564 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
   };
 
   const updateGarantie = (id: number, field: string, value: any) => {
-    setGaranties(garanties.map(g => 
+    setGaranties(garanties.map(g =>
       g.id === id ? { ...g, [field]: value } : g
     ));
   };
 
   const renderStep5 = () => {
     const watchedTypeGarantie = watch("typeGarantie");
-    
+
     return (
-    <VStack spacing={4} align="stretch">
-        <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>Garanties</Text>
-      
-        <FormControl isInvalid={!!errors.typeGarantie}>
-          <FormLabel color={labelColor}>Type de garantie</FormLabel>
-        <Controller
+      <div className="space-y-6">
+        <h2 className="text-lg font-bold mb-4" style={{ color: titleColor }}>Garanties</h2>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Type de garantie</Label>
+          <Controller
             name="typeGarantie"
-          control={control}
-          render={({ field }) => (
+            control={control}
+            render={({ field }) => (
               readOnly ? (
-                <Input 
-                  value={field.value === 'personnelles' ? 'Garanties personnelles' : field.value === 'reelles' ? 'Garanties réelles' : field.value} 
-                  color="gray.700"
-                  {...getFieldStyles(!!errors.typeGarantie)} 
-                  bg="gray.100"
+                <Input
+                  value={field.value === 'personnelles' ? 'Garanties personnelles' : field.value === 'reelles' ? 'Garanties réelles' : field.value}
+                  className="bg-gray-100 text-gray-700 flex-1"
+                  style={{ borderColor: !!errors.typeGarantie ? errorRed : primaryGreen }}
+                  disabled
                 />
               ) : (
-                <Select 
-                  {...field} 
-                  placeholder="Sélectionner un type de garantie" 
-                  {...getFieldStyles(!!errors.typeGarantie)} 
-                  bg="white"
-                  color="gray.800"
+                <select
+                  {...field}
+                  className="flex h-10 w-full rounded-md border px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ borderColor: !!errors.typeGarantie ? errorRed : primaryGreen }}
                   onChange={(e) => {
                     field.onChange(e.target.value);
                     setTypeGarantie(e.target.value);
                   }}
                 >
+                  <option value="">Sélectionner un type de garantie</option>
                   <option value="personnelles">Garanties personnelles</option>
                   <option value="reelles">Garanties réelles</option>
-                </Select>
+                </select>
               )
             )}
           />
+          </div>
           {errors.typeGarantie && (
-            <Text color={errorRed} fontSize="sm">{String(errors.typeGarantie.message)}</Text>
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.typeGarantie.message)}</p>
           )}
-        </FormControl>
+        </div>
 
         {watchedTypeGarantie === "personnelles" && garanties.map((garantie, index) => (
-          <Box key={garantie.id} p={4} borderWidth="1px" borderRadius="md" borderColor={primaryGreen} position="relative">
-            <HStack justify="space-between" mb={2}>
-              <Text fontSize="md" fontWeight="semibold" color={titleColor}>
+          <div key={garantie.id} className="p-4 border rounded-md relative" style={{ borderColor: primaryGreen }}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-md font-semibold" style={{ color: titleColor }}>
                 Garantie personnelle #{index + 1}
-              </Text>
+              </h3>
               {!readOnly && garanties.length > 1 && (
                 <Button
-                  size="sm"
-                  colorScheme="red"
                   variant="outline"
+                  size="sm"
                   onClick={() => removeGarantie(garantie.id)}
+                  className="text-red-600 border-red-600 hover:bg-red-50"
                 >
                   Supprimer
                 </Button>
               )}
-            </HStack>
-            
-          <VStack spacing={2} align="stretch">
-            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-              <GridItem>
-                <FormControl>
-                  <FormLabel color={labelColor}>Type</FormLabel>
-                  <Input 
-                    value={garantie.type || ''} 
-                    onChange={(e) => updateGarantie(garantie.id, 'type', e.target.value)}
-                    placeholder="Type de garantie" 
-                    borderColor={borderGray}
-                    bg="white"
-                    _focus={{ borderColor: primaryGreen }}
-                    isDisabled={readOnly} 
-                  />
-                </FormControl>
-              </GridItem>
+            </div>
 
-              <GridItem>
-                <FormControl>
-                  <FormLabel color={labelColor}>Employeur</FormLabel>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Type</Label>
                   {readOnly ? (
-                    <Input 
-                      value={getEntiteLibelle(garantie.employeur || '')} 
-                      color="gray.700"
-                      borderColor={primaryGreen}
-                      bg="gray.100"
-                      isReadOnly
+                  <Input
+                    value={garantie.type || ''}
+                      className="bg-gray-100 text-gray-700"
+                      style={{ borderColor: primaryGreen }}
+                      disabled
                     />
                   ) : (
-                    <Select 
-                      value={garantie.employeur || ''}
-                      onChange={(e) => updateGarantie(garantie.id, 'employeur', e.target.value)}
-                      placeholder="Sélectionner un employeur" 
-                      borderColor={primaryGreen}
-                      bg="gray.100"
-                      color="gray.700"
-                      _focus={{ borderColor: primaryGreen }}
-                      _hover={{ bg: "gray.100" }}
-                    >
-                      <option value="">Chargement...</option>
-                      {Array.isArray(entites) && entites.map((entite: any) => (
-                        <option key={entite.ENT_CODE || entite.id} value={entite.ENT_CODE || entite.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                          {entite.ENT_LIB || entite.libelle}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </FormControl>
-              </GridItem>
-
-              <GridItem>
-                <FormControl>
-                  <FormLabel color={labelColor}>Statut sal.</FormLabel>
-                  <Input 
-                    value={garantie.statutSal || ''} 
-                    onChange={(e) => updateGarantie(garantie.id, 'statutSal', e.target.value)}
-                    placeholder="Statut salarié" 
-                    borderColor={borderGray}
-                    bg="white"
-                    _focus={{ borderColor: primaryGreen }}
-                    isDisabled={readOnly} 
+                    <SearchableSelect
+                      value={garantie.type || ""}
+                      onValueChange={(value) => updateGarantie(garantie.id, 'type', value)}
+                      items={typeGarantiePersonnellesSearchable.items}
+                      placeholder="Sélectionner un type de garantie personnelle"
+                      emptyMessage="Aucun type trouvé"
+                      searchPlaceholder="Rechercher un type..."
+                      isLoading={typeGarantiePersonnellesSearchable.isLoading}
+                      hasMore={typeGarantiePersonnellesSearchable.hasMore}
+                      onLoadMore={typeGarantiePersonnellesSearchable.loadMore}
+                      isFetchingMore={typeGarantiePersonnellesSearchable.isFetchingMore}
+                      onSearchChange={typeGarantiePersonnellesSearchable.setSearch}
+                    disabled={readOnly}
                   />
-                </FormControl>
-              </GridItem>
-            </Grid>
+                  )}
+                </div>
 
-            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-              <GridItem>
-                <FormControl isInvalid={!!errors.quartier}>
-                  <FormLabel color={labelColor}>Quartier</FormLabel>
-                  <Controller
-                    name="quartier"
-                    control={control}
-                    render={({ field }) => (
-                      readOnly ? (
-                        <Input 
-                          value={getQuartierLibelle(field.value)} 
-                          color="gray.700"
-                          {...getFieldStyles(!!errors.quartier)} 
-                          bg="gray.100"
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Employeur</Label>
+                  {readOnly ? (
+                    <Input
+                      value={getEntiteLibelle(garantie.employeur || '')}
+                      className="bg-gray-100 text-gray-700"
+                      style={{ borderColor: primaryGreen }}
+                      disabled
+                    />
+                  ) : (
+                    <SearchableSelect
+                      value={garantie.employeur || ""}
+                      onValueChange={(value) => updateGarantie(garantie.id, 'employeur', value)}
+                      items={entitesSearchable.items}
+                      placeholder="Sélectionner un employeur"
+                      emptyMessage="Aucun employeur trouvé"
+                      searchPlaceholder="Rechercher un employeur..."
+                      isLoading={entitesSearchable.isLoading}
+                      hasMore={entitesSearchable.hasMore}
+                      onLoadMore={entitesSearchable.loadMore}
+                      isFetchingMore={entitesSearchable.isFetchingMore}
+                      onSearchChange={entitesSearchable.setSearch}
+                      disabled={readOnly}
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Statut sal.</Label>
+                  <Input
+                    value={garantie.statutSal || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'statutSal', e.target.value)}
+                    placeholder="Statut salarié"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                    disabled={readOnly}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Quartier</Label>
+                  {readOnly ? (
+                        <Input
+                      value={getQuartierLibelle(garantie.quartier || '')}
+                          className="bg-gray-100 text-gray-700"
+                      style={{ borderColor: primaryGreen }}
+                          disabled
                         />
                       ) : (
-                        <Select 
-                          {...field} 
-                          placeholder="Sélectionner un quartier" 
-                          {...getFieldStyles(!!errors.quartier)} 
-                          bg="white"
-                          color="gray.800"
-                        >
-                          <option value="">Chargement...</option>
-                          {Array.isArray(quartiers) && quartiers.map((quartier: any) => (
-                            <option key={quartier.Q_CODE || quartier.id} value={quartier.Q_CODE || quartier.id} style={{ backgroundColor: 'white', color: 'black' }}>
-                              {quartier.Q_LIB || quartier.libelle}
-                            </option>
-                          ))}
-                        </Select>
-                      )
-                    )}
-                  />
-                  {errors.quartier && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.quartier.message)}</Text>
+                    <SearchableSelect
+                      value={garantie.quartier || ""}
+                      onValueChange={(value) => updateGarantie(garantie.id, 'quartier', value)}
+                      items={quartiersSearchable.items}
+                      placeholder="Sélectionner un quartier"
+                      emptyMessage="Aucun quartier trouvé"
+                      searchPlaceholder="Rechercher un quartier..."
+                      isLoading={quartiersSearchable.isLoading}
+                      hasMore={quartiersSearchable.hasMore}
+                      onLoadMore={quartiersSearchable.loadMore}
+                      isFetchingMore={quartiersSearchable.isFetchingMore}
+                      onSearchChange={quartiersSearchable.setSearch}
+                      disabled={readOnly}
+                    />
                   )}
-                </FormControl>
-              </GridItem>
+                </div>
 
-              <GridItem>
-                <FormControl isInvalid={!!errors.priorite}>
-                  <FormLabel color={labelColor}>Priorité</FormLabel>
-                  <Controller
-                    name="priorite"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Priorité" {...getFieldStyles(!!errors.priorite)} isDisabled={readOnly} />
-                    )}
-                  />
-                  {errors.priorite && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.priorite.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
-
-              <GridItem>
-                <FormControl isInvalid={!!errors.dateInscription}>
-                  <FormLabel color={labelColor}>Date d'inscription</FormLabel>
-                  <Controller
-                    name="dateInscription"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} type="date" {...getFieldStyles(!!errors.dateInscription)} isDisabled={readOnly} />
-                    )}
-                  />
-                  {errors.dateInscription && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.dateInscription.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
-            </Grid>
-
-            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-              <GridItem>
-                <FormControl isInvalid={!!errors.nom}>
-                  <FormLabel color={labelColor}>Nom</FormLabel>
-                  <Controller
-                    name="nom"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Nom" {...getFieldStyles(!!errors.nom)} isDisabled={readOnly} />
-                    )}
-                  />
-                  {errors.nom && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.nom.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
-
-              <GridItem>
-                <FormControl isInvalid={!!errors.prenoms}>
-                  <FormLabel color={labelColor}>Prénoms</FormLabel>
-                  <Controller
-                    name="prenoms"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Prénoms" {...getFieldStyles(!!errors.prenoms)} isDisabled={readOnly} />
-                    )}
-                  />
-                  {errors.prenoms && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.prenoms.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
-
-              <GridItem>
-                <FormControl isInvalid={!!errors.fonction}>
-                  <FormLabel color={labelColor}>Fonction</FormLabel>
-                  <Controller
-                    name="fonction"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Fonction" {...getFieldStyles(!!errors.fonction)} isDisabled={readOnly} />
-                    )}
-                  />
-                  {errors.fonction && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.fonction.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
-            </Grid>
-
-            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-              <GridItem>
-                <FormControl isInvalid={!!errors.profession}>
-                  <FormLabel color={labelColor}>Profession</FormLabel>
-                  <Controller
-                    name="profession"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Profession" {...getFieldStyles(!!errors.profession)} isDisabled={readOnly} />
-                    )}
-                  />
-                  {errors.profession && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.profession.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
-
-              <GridItem colSpan={2}>
-                <FormControl isInvalid={!!errors.adressePostale}>
-                  <FormLabel color={labelColor}>Adresse postale</FormLabel>
-                  <Controller
-                    name="adressePostale"
-                    control={control}
-                    render={({ field }) => (
-                      <Textarea 
-                        {...field} 
-                        placeholder="Adresse postale complète" 
-                        rows={2}
-                        {...getFieldStyles(!!errors.adressePostale)} 
-                        isDisabled={readOnly} 
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Priorité</Label>
+                      <Input
+                    value={garantie.priorite || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'priorite', e.target.value)}
+                        placeholder="Priorité"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
                       />
-                    )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Date d'inscription</Label>
+                      <Input
+                    value={garantie.dateInscription || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'dateInscription', e.target.value)}
+                        type="date"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
+                      />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Nom</Label>
+                      <Input
+                    value={garantie.nom || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'nom', e.target.value)}
+                        placeholder="Nom"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
+                      />
+                </div>
+
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Prénoms</Label>
+                      <Input
+                    value={garantie.prenoms || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'prenoms', e.target.value)}
+                        placeholder="Prénoms"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
+                      />
+                </div>
+
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Fonction</Label>
+                      <Input
+                    value={garantie.fonction || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'fonction', e.target.value)}
+                        placeholder="Fonction"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
+                      />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Profession</Label>
+                      <Input
+                    value={garantie.profession || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'profession', e.target.value)}
+                        placeholder="Profession"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
+                      />
+                </div>
+
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Téléphone</Label>
+                  <Input
+                    value={garantie.tel || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'tel', e.target.value)}
+                    placeholder="Ex: +225 07 08 09 10 11"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                    disabled={readOnly}
                   />
-                  {errors.adressePostale && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.adressePostale.message)}</Text>
+                </div>
+
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Revenu</Label>
+                  <Input
+                    type="number"
+                    value={garantie.revenu || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'revenu', e.target.value ? parseFloat(e.target.value) : '')}
+                    placeholder="Revenu mensuel"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                    disabled={readOnly}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Code civilité</Label>
+                  {readOnly ? (
+                    <Input
+                      value={garantie.civCode || ''}
+                      className="bg-gray-100 text-gray-700"
+                      style={{ borderColor: primaryGreen }}
+                      disabled
+                    />
+                  ) : (
+                    <SearchableSelect
+                      value={garantie.civCode || ""}
+                      onValueChange={(value) => updateGarantie(garantie.id, 'civCode', value)}
+                      items={civilitesSearchable.items}
+                      placeholder="Sélectionner une civilité"
+                      emptyMessage="Aucune civilité trouvée"
+                      searchPlaceholder="Rechercher une civilité..."
+                      isLoading={civilitesSearchable.isLoading}
+                      hasMore={civilitesSearchable.hasMore}
+                      onLoadMore={civilitesSearchable.loadMore}
+                      isFetchingMore={civilitesSearchable.isFetchingMore}
+                      onSearchChange={civilitesSearchable.setSearch}
+                      disabled={readOnly}
+                    />
                   )}
-                </FormControl>
-              </GridItem>
-            </Grid>
-          </VStack>
-          </Box>
+                </div>
+
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Code ville</Label>
+                  <Input
+                    value={garantie.ville || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'ville', e.target.value)}
+                    placeholder="Code ville"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                    disabled={readOnly}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Code débiteur</Label>
+                  <Input
+                    value={garantie.debCode || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'debCode', e.target.value)}
+                    placeholder="Code débiteur (optionnel)"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                    disabled={readOnly}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Adresse postale</Label>
+                      <Textarea
+                    value={garantie.adressePostale || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'adressePostale', e.target.value)}
+                        placeholder="Adresse postale complète"
+                        rows={2}
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
+                      />
+                </div>
+              </div>
+            </div>
+          </div>
         ))}
 
         {watchedTypeGarantie === "personnelles" && !readOnly && (
           <Button
-            leftIcon={<Text>+</Text>}
             onClick={addGarantie}
-            bg={primaryGreen}
-            color="white"
-            _hover={{ bg: primaryGreenHover }}
+            className="text-white"
+            style={{ backgroundColor: primaryGreen }}
             size="sm"
-            alignSelf="flex-start"
           >
+            <span className="mr-2">+</span>
             Ajouter une garantie personnelle
           </Button>
         )}
 
         {watchedTypeGarantie === "reelles" && garanties.map((garantie, index) => (
-          <Box key={garantie.id} p={4} borderWidth="1px" borderRadius="md" borderColor={primaryGreen} position="relative">
-            <HStack justify="space-between" mb={2}>
-              <Text fontSize="md" fontWeight="semibold" color={titleColor}>
+          <div key={garantie.id} className="p-4 border rounded-md relative" style={{ borderColor: primaryGreen }}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-md font-semibold" style={{ color: titleColor }}>
                 Garantie réelle #{index + 1}
-              </Text>
+              </h3>
               {!readOnly && garanties.length > 1 && (
                 <Button
-                  size="sm"
-                  colorScheme="red"
                   variant="outline"
+                  size="sm"
                   onClick={() => removeGarantie(garantie.id)}
+                  className="text-red-600 border-red-600 hover:bg-red-50"
                 >
                   Supprimer
                 </Button>
               )}
-            </HStack>
-            
-    <VStack spacing={2} align="stretch">
-            
-            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-              <GridItem>
-                <FormControl isInvalid={!!errors.type}>
-                  <FormLabel color={labelColor}>Type</FormLabel>
-                  <Controller
-                    name="type"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Type de garantie" {...getFieldStyles(!!errors.type)} isDisabled={readOnly} />
-                    )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Type</Label>
+                  {readOnly ? (
+                      <Input
+                      value={garantie.type || ''}
+                      className="bg-gray-100 text-gray-700"
+                      style={{ borderColor: primaryGreen }}
+                      disabled
+                    />
+                  ) : (
+                    <SearchableSelect
+                      value={garantie.type || ""}
+                      onValueChange={(value) => updateGarantie(garantie.id, 'type', value)}
+                      items={typeGarantieReellesSearchable.items}
+                      placeholder="Sélectionner un type de garantie réelle"
+                      emptyMessage="Aucun type trouvé"
+                      searchPlaceholder="Rechercher un type..."
+                      isLoading={typeGarantieReellesSearchable.isLoading}
+                      hasMore={typeGarantieReellesSearchable.hasMore}
+                      onLoadMore={typeGarantieReellesSearchable.loadMore}
+                      isFetchingMore={typeGarantieReellesSearchable.isFetchingMore}
+                      onSearchChange={typeGarantieReellesSearchable.setSearch}
+                        disabled={readOnly}
+                      />
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Numéro garantie</Label>
+                      <Input
+                    value={garantie.numeroGarantie || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'numeroGarantie', e.target.value)}
+                        placeholder="Numéro de garantie"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
+                      />
+                </div>
+
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Date d'inscription</Label>
+                      <Input
+                    value={garantie.dateInscription || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'dateInscription', e.target.value)}
+                        type="date"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
+                      />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Description</Label>
+                      <Input
+                    value={garantie.description || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'description', e.target.value)}
+                    placeholder="Description de la garantie"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
+                      />
+                </div>
+
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Valeur</Label>
+                  <Input
+                    type="number"
+                    value={garantie.valeur || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'valeur', e.target.value ? parseFloat(e.target.value) : '')}
+                    placeholder="Valeur de la garantie"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                    disabled={readOnly}
                   />
-                  {errors.type && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.type.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
+                </div>
 
-              <GridItem>
-                <FormControl isInvalid={!!errors.numeroGarantie}>
-                  <FormLabel color={labelColor}>Numéro garantie</FormLabel>
-        <Controller
-                    name="numeroGarantie"
-          control={control}
-          render={({ field }) => (
-                      <Input {...field} placeholder="Numéro de garantie" {...getFieldStyles(!!errors.numeroGarantie)} isDisabled={readOnly} />
-          )}
-        />
-                  {errors.numeroGarantie && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.numeroGarantie.message)}</Text>
-        )}
-      </FormControl>
-              </GridItem>
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Surface</Label>
+                      <Input
+                    type="number"
+                    value={garantie.surface || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'surface', e.target.value ? parseFloat(e.target.value) : '')}
+                    placeholder="Surface en m²"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
+                      />
+                </div>
+              </div>
 
-              <GridItem>
-                <FormControl isInvalid={!!errors.dateInscription}>
-                  <FormLabel color={labelColor}>Date d'inscription</FormLabel>
-        <Controller
-                    name="dateInscription"
-          control={control}
-          render={({ field }) => (
-                      <Input {...field} type="date" {...getFieldStyles(!!errors.dateInscription)} isDisabled={readOnly} />
-          )}
-        />
-                  {errors.dateInscription && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.dateInscription.message)}</Text>
-                  )}
-      </FormControl>
-              </GridItem>
-            </Grid>
-
-            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-              <GridItem>
-                <FormControl isInvalid={!!errors.objetMontant}>
-                  <FormLabel color={labelColor}>Objet montant</FormLabel>
-                  <Controller
-                    name="objetMontant"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Objet et montant" {...getFieldStyles(!!errors.objetMontant)} isDisabled={readOnly} />
-                    )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Adresse</Label>
+                  <Input
+                    value={garantie.adresse || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'adresse', e.target.value)}
+                    placeholder="Adresse de la garantie"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                    disabled={readOnly}
                   />
-                  {errors.objetMontant && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.objetMontant.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
+                </div>
 
-              <GridItem>
-                <FormControl isInvalid={!!errors.libelle}>
-                  <FormLabel color={labelColor}>Libellé</FormLabel>
-                  <Controller
-                    name="libelle"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Libellé" {...getFieldStyles(!!errors.libelle)} isDisabled={readOnly} />
-                    )}
-                  />
-                  {errors.libelle && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.libelle.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Code circonscription</Label>
+                      <Input
+                    value={garantie.circonscription || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'circonscription', e.target.value)}
+                    placeholder="Code circonscription"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
+                      />
+                  <p className="text-xs text-gray-500">Note: L'API pour les circonscriptions n'est pas encore disponible</p>
+                </div>
 
-              <GridItem>
-                <FormControl isInvalid={!!errors.terrain}>
-                  <FormLabel color={labelColor}>Terrain</FormLabel>
-                  <Controller
-                    name="terrain"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Terrain" {...getFieldStyles(!!errors.terrain)} isDisabled={readOnly} />
-                    )}
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Numéro titre foncier</Label>
+                  <Input
+                    value={garantie.titreFoncier || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'titreFoncier', e.target.value)}
+                    placeholder="Numéro titre foncier"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                    disabled={readOnly}
                   />
-                  {errors.terrain && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.terrain.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
-            </Grid>
+                </div>
+              </div>
 
-            <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-              <GridItem>
-                <FormControl isInvalid={!!errors.logement}>
-                  <FormLabel color={labelColor}>Logement</FormLabel>
-                  <Controller
-                    name="logement"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Logement" {...getFieldStyles(!!errors.logement)} isDisabled={readOnly} />
-                    )}
-                  />
-                  {errors.logement && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.logement.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Code terrain</Label>
+                      <Input
+                    value={garantie.terrain || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'terrain', e.target.value)}
+                    placeholder="Code terrain (optionnel)"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                        disabled={readOnly}
+                      />
+                </div>
 
-              <GridItem>
-                <FormControl isInvalid={!!errors.code}>
-                  <FormLabel color={labelColor}>Code</FormLabel>
-                  <Controller
-                    name="code"
-                    control={control}
-                    render={({ field }) => (
-                      <Input {...field} placeholder="Code" {...getFieldStyles(!!errors.code)} isDisabled={readOnly} />
-                    )}
+                <div className="space-y-2">
+                  <Label style={{ color: labelColor }}>Code logement</Label>
+                  <Input
+                    value={garantie.logement || ''}
+                    onChange={(e) => updateGarantie(garantie.id, 'logement', e.target.value)}
+                    placeholder="Code logement (optionnel)"
+                    style={{ borderColor: primaryGreen }}
+                    className="focus:ring-2"
+                    disabled={readOnly}
                   />
-                  {errors.code && (
-                    <Text color={errorRed} fontSize="sm">{String(errors.code.message)}</Text>
-                  )}
-                </FormControl>
-              </GridItem>
-            </Grid>
-          </VStack>
-          </Box>
+                </div>
+              </div>
+            </div>
+          </div>
         ))}
 
         {watchedTypeGarantie === "reelles" && !readOnly && (
           <Button
-            leftIcon={<Text>+</Text>}
             onClick={addGarantie}
-            bg={primaryGreen}
-            color="white"
-            _hover={{ bg: primaryGreenHover }}
+            className="text-white"
+            style={{ backgroundColor: primaryGreen }}
             size="sm"
-            alignSelf="flex-start"
           >
+            <span className="mr-2">+</span>
             Ajouter une garantie réelle
           </Button>
         )}
-    </VStack>
-  );
+      </div>
+    );
   };
 
   const renderCurrentStep = () => {
     switch (currentStep) {
-      case 1: return renderStep1();
-      case 2: return renderStep2();
-      case 3: return renderStep3();
-      case 4: return renderStep4();
-      case 5: return renderStep5();
+      case 1: return renderStep1(); // Informations générales (fusion step1 + step2)
+      case 2: return renderStep2(); // Détails financiers (ancien step3)
+      case 3: return renderStep4(); // Pièces jointes
+      case 4: return renderStep5(); // Garanties
       default: return null;
     }
   };
 
   return (
-    <Box
-      sx={{
-        '.chakra-form-control': {
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        },
-        '.chakra-form__label': {
-          marginBottom: 0,
-          width: '120px',
-          fontWeight: 600,
-          color: '#111827',
-          fontSize: '0.875rem',
-          marginRight: '6px'
-        },
-        '.chakra-input, .chakra-textarea': {
-          flex: 1,
-          borderColor: '#d1d5db',
-          backgroundColor: '#ffffff'
-        },
-        '.chakra-select': {
-          flex: 1,
-          borderColor: '#28A325 !important',
-          backgroundColor: '#f3f4f6 !important',
-          color: '#374151 !important',
-          // Style pour les options du select
-          '& option': {
-            backgroundColor: 'white !important',
-            color: 'black !important'
-          }
-        },
-        '.chakra-input[readonly], .chakra-textarea[readonly]': {
-          borderColor: '#28A325',
-          backgroundColor: '#f3f4f6' // gray.100
-        },
-        // Bordure verte pour tous les champs désactivés/grisés
-        '.chakra-input[disabled], .chakra-select[disabled], .chakra-textarea[disabled],\
-         .chakra-input[aria-disabled="true"], .chakra-select[aria-disabled="true"], .chakra-textarea[aria-disabled="true"],\
-         .chakra-input[data-disabled="true"], .chakra-select[data-disabled="true"], .chakra-textarea[data-disabled="true"]': {
-          borderColor: '#28A325',
-          backgroundColor: '#f3f4f6'
-        }
-      }}
-    >
+    <div>
       {renderCurrentStep()}
-    </Box>
+    </div>
   );
 });
 

@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useToast } from "@chakra-ui/react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import CreanceForm from "@/components/creance-form/creance-form";
 import { useApiClient } from "@/hooks/useApiClient";
@@ -22,7 +22,6 @@ const EditerCreancePageInner = () => {
   const searchParams = useSearchParams();
   const creanceId = searchParams.get('id');
   const apiClient = useApiClient();
-  const toast = useToast();
 
   const steps = [
     { id: 1, title: "Informations générales", description: "Débiteur, groupe créance, type d'objet, capital initial" },
@@ -112,21 +111,14 @@ const EditerCreancePageInner = () => {
       } catch (error: any) {
         console.error('Erreur lors du chargement de la créance:', error);
         setError(error.message || "Impossible de charger la créance");
-        toast({
-          title: "Erreur de chargement",
-          description: error.message || "Impossible de charger la créance",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-          position: "top",
-        });
+        toast.error(error.message || "Impossible de charger la créance");
       } finally {
         setLoading(false);
       }
     };
 
     loadCreance();
-  }, [creanceId, apiClient, toast]);
+  }, [creanceId, apiClient]);
 
   const validateCurrentStep = () => {
     if (!formRef.current) return false;
@@ -171,28 +163,14 @@ const EditerCreancePageInner = () => {
       const response = await CreanceService.update(apiClient, creanceId, creanceData);
 
       if (response.success) {
-        toast({
-          title: "Créance mise à jour",
-          description: "La créance a été mise à jour avec succès",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-          position: "top",
-        });
+        toast.success("La créance a été mise à jour avec succès");
         router.push("/etude_creance/creance/views");
       } else {
         throw new Error(response.message || "Erreur lors de la mise à jour");
       }
     } catch (error: any) {
       console.error("Erreur lors de la mise à jour:", error);
-      toast({
-        title: "Erreur de mise à jour",
-        description: error.message || "Impossible de mettre à jour la créance",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-        position: "top",
-      });
+      toast.error(error.message || "Impossible de mettre à jour la créance");
     } finally {
       setIsSubmitting(false);
     }

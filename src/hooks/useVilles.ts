@@ -3,24 +3,63 @@ import { VilleService } from "@/services/ville.service";
 import { VilleCreateRequest, VilleUpdateRequest } from "@/types/ville";
 import { useApiClient } from "./useApiClient";
 import { useSessionWrapper } from "./useSessionWrapper";
+import { useSession } from "next-auth/react";
+import { PaginationParams } from "@/types/pagination";
 import { toast } from "sonner";
 
 export const villeKeys = {
   all: ["villes"] as const,
   lists: () => [...villeKeys.all, "list"] as const,
   list: (filters: Record<string, unknown>) => [...villeKeys.lists(), { filters }] as const,
+  paginated: (params: PaginationParams) => [...villeKeys.all, "paginated", params] as const,
   details: () => [...villeKeys.all, "detail"] as const,
   detail: (id: string) => [...villeKeys.details(), id] as const,
   search: (term: string) => [...villeKeys.all, "search", term] as const,
 };
 
+/**
+ * Hook pour récupérer les villes avec pagination côté serveur
+ */
+export function useVillesPaginated(params: PaginationParams = {}) {
+  const apiClient = useApiClient();
+  const { data: session, status } = useSession();
+  
+  return useQuery({
+    queryKey: villeKeys.paginated(params),
+    queryFn: () => VilleService.getAll(apiClient, params),
+    enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken,
+    retry: (failureCount, error: unknown) => {
+      if ((error as { response?: { status?: number } })?.response?.status === 401) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+}
+
+/**
+ * Hook pour récupérer toutes les villes (méthode legacy)
+ */
 export function useVilles() {
   const apiClient = useApiClient();
   const { data: session, status } = useSessionWrapper();
 
   return useQuery({
     queryKey: villeKeys.lists(),
-    queryFn: () => VilleService.getAll(apiClient).then((res) => res.data),
+    queryFn: async () => {
+      try {
+        const res = await VilleService.getAllLegacy(apiClient);
+        console.log('📦 Réponse brute villes:', res);
+        // Structure réelle de l'API: { data: { content: [...], totalElements, ... } }
+        const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || [];
+        console.log('✅ Données villes transformées:', data);
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('❌ Erreur chargement villes:', error);
+        return [];
+      }
+    },
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {

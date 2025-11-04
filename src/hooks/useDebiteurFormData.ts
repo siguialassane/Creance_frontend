@@ -62,12 +62,12 @@ export function useDebiteurFormData() {
 
         // Step 2
         apiClient.get('/civilites').catch(() => ({ data: { data: [] } })),
-        apiClient.get('/quartiers/all').catch(() => ({ data: { data: [] } })),
-        apiClient.get('/nationalites/all').catch(() => ({ data: { data: [] } })),
-        apiClient.get('/fonctions/all').catch(() => ({ data: { data: [] } })),
+        apiClient.get('/quartiers').catch(() => ({ data: { data: [] } })),
+        apiClient.get('/nationalites').catch(() => ({ data: { data: [] } })),
+        apiClient.get('/fonctions').catch(() => ({ data: { data: [] } })),
         apiClient.get('/professions/all').catch(() => ({ data: { data: [] } })),
         apiClient.get('/entites/all').catch(() => ({ data: { data: [] } })),
-        apiClient.get('/statuts-salarie/all').catch(() => ({ data: { data: [] } })),
+        apiClient.get('/status-salaries/all').catch(() => ({ data: { data: [] } })),
 
         // Step 3
         apiClient.get('/types/AC_TYPE_DOMICIL').catch(() => ({ data: { data: [] } })),

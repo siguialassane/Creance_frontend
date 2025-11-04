@@ -33,10 +33,25 @@ apiClient.interceptors.request.use(
     try {
       if (typeof window !== 'undefined') {
         const { getSession } = await import("next-auth/react");
-        const session = await getSession();
+        // Attendre que la session soit chargée (retry jusqu'à 3 fois avec délai)
+        let session = null;
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (!session && attempts < maxAttempts) {
+          session = await getSession();
+          if (!session && attempts < maxAttempts - 1) {
+            // Attendre un peu avant de réessayer (session en cours de chargement)
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          attempts++;
+        }
+        
         const token = (session as any)?.accessToken as string | undefined;
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+        } else {
+          console.warn('⚠️ Pas de token disponible dans la session');
         }
       }
     } catch (error) {
@@ -56,7 +71,7 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Gérer les erreurs 401 (session expirée)
+    // Gérer les erreurs 401 (session expirée ou token manquant)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -64,7 +79,20 @@ apiClient.interceptors.response.use(
         // Tenter de rafraîchir le token automatiquement
         if (typeof window !== 'undefined') {
           const { getSession } = await import("next-auth/react");
-          const session = await getSession();
+          
+          // Attendre que la session soit chargée
+          let session = null;
+          let attempts = 0;
+          const maxAttempts = 5;
+          
+          while (!session && attempts < maxAttempts) {
+            session = await getSession();
+            if (!session && attempts < maxAttempts - 1) {
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            attempts++;
+          }
+          
           const refreshToken = (session as any)?.refreshToken;
 
           if (refreshToken) {
@@ -75,17 +103,29 @@ apiClient.interceptors.response.use(
               headers: { Authorization: `Bearer ${refreshToken}` },
             });
 
-            if (refreshRes.data?.data?.token) {
-              const newAccessToken = refreshRes.data.data.token;
-              console.log('✅ Token rafraîchi avec succès, nouvelle tentative de la requête...');
+            const data = refreshRes.data?.data ?? refreshRes.data;
+            const newAccessToken = data?.token || data?.accessToken;
+            const newRefreshToken = data?.refreshToken;
+            const tokenType = data?.type || 'Bearer';
+            const accessTokenExpiresAt = data?.expiresAt;
 
-              // Note: La session sera mise à jour par TokenRefresher au prochain cycle
+            if (newAccessToken) {
+              console.log('✅ Token rafraîchi avec succès, mise à jour de la session...');
+
+              // Mettre à jour la session NextAuth immédiatement
+              // Note: update() n'est disponible que dans un composant React
+              // Le TokenRefresher se chargera de mettre à jour la session au prochain cycle
               // Pour l'instant, on utilise directement le nouveau token pour cette requête
+              console.log('✅ Session sera mise à jour par TokenRefresher au prochain cycle');
 
               // Réessayer la requête originale avec le nouveau token
-              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+              originalRequest.headers.Authorization = `${tokenType} ${newAccessToken}`;
               return apiClient(originalRequest);
+            } else {
+              console.error('❌ Pas de token dans la réponse de refresh');
             }
+          } else {
+            console.warn('⚠️ Pas de refresh token disponible dans la session');
           }
         }
       } catch (refreshError) {
@@ -93,9 +133,25 @@ apiClient.interceptors.response.use(
       }
 
       // Si le refresh échoue, rediriger vers login
+      // Ne pas rediriger si on est déjà sur la page de login pour éviter les boucles
       if (typeof window !== 'undefined') {
-        console.warn('Session expirée et impossible à rafraîchir, redirection vers /login');
-        window.location.href = "/login";
+        const currentPath = window.location.pathname;
+        if (currentPath !== '/login' && !currentPath.startsWith('/login')) {
+          console.warn('Session expirée et impossible à rafraîchir, redirection vers /login');
+          
+          // Déconnecter d'abord en utilisant la fonction helper qui nettoie tout
+          try {
+            const { handleSignOut } = await import("@/lib/auth-helpers");
+            // Utiliser handleSignOut qui nettoie complètement la session et les cookies
+            await handleSignOut('/login');
+            // handleSignOut gère déjà la redirection, donc on ne fait rien d'autre
+            return Promise.reject(error);
+          } catch (signOutError) {
+            console.error('Erreur lors de la déconnexion:', signOutError);
+            // Fallback: redirection manuelle
+            window.location.replace('/login?signout=true&t=' + Date.now());
+          }
+        }
       }
     }
 

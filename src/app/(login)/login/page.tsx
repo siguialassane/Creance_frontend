@@ -31,17 +31,46 @@ export default function LoginPage() {
   })
 
   // Vérifier la session au chargement
+  // Ajouter un petit délai pour éviter les sessions "fantômes" après déconnexion
   React.useEffect(() => {
     const checkSession = async () => {
       try {
+        // Attendre un peu pour que la déconnexion se termine complètement
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Vérifier si on vient d'une déconnexion (query param)
+        const isFromSignOut = typeof window !== 'undefined' && 
+          new URLSearchParams(window.location.search).has('signout');
+        
+        if (isFromSignOut) {
+          // Ignorer la session et permettre l'affichage du formulaire
+          // Ne pas vérifier getSession() car il peut encore retourner une session en cache
+          setIsChecking(false);
+          return;
+        }
+        
         const session = await getSession()
+        
+        // Vérifier que la session est vraiment valide (pas juste un cache)
         if (session?.user?.sessionId) {
-          setIsAuthenticated(true)
-          router.push("/overview")
+          // Double vérification : s'assurer que ce n'est pas une session "fantôme"
+          // Si on a été redirigé vers login, c'est probablement après une déconnexion
+          const wasRedirectedToLogin = typeof window !== 'undefined' && 
+            document.referrer && 
+            !document.referrer.includes('/login');
+          
+          if (!wasRedirectedToLogin) {
+            setIsAuthenticated(true)
+            router.push("/overview")
+          } else {
+            // Probablement une session fantôme après déconnexion
+            setIsChecking(false);
+          }
+        } else {
+          setIsChecking(false)
         }
       } catch (error) {
         console.error("Error checking session:", error)
-      } finally {
         setIsChecking(false)
       }
     }

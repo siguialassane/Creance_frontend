@@ -6,7 +6,7 @@ import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
 
 export const statutSalarieKeys = {
-  all: ["statuts-salarie"] as const,
+  all: ["status-salaries"] as const,
   lists: () => [...statutSalarieKeys.all, "list"] as const,
   list: (filters: Record<string, unknown>) => [...statutSalarieKeys.lists(), { filters }] as const,
   details: () => [...statutSalarieKeys.all, "detail"] as const,
@@ -28,7 +28,9 @@ export function useStatutsSalarie(options: UseStatutsSalarieOptions = {}) {
     queryKey: statutSalarieKeys.lists(),
     queryFn: async () => {
       const res = await StatutSalarieService.getAll(apiClient);
-      const data = res.data?.content || res.data?.data || res.data || res;
+      // Structure réelle de l'API: { data: { content: [...], totalElements, ... } }
+      // Le service retourne response.data, donc res = { data: { content: [...] }, ... }
+      const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || res;
       console.log('✅ Données statuts salarié chargées depuis l\'API:', data);
       return Array.isArray(data) ? data : [];
     },

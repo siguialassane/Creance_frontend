@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useCallback, ReactNode } from "react";
-import { Box, Button, HStack, VStack, Text, Progress } from "@chakra-ui/react";
 
 export type StepConfig = {
   id: number;
@@ -25,6 +24,14 @@ type MultiStepFormProps = {
    * Afficher les erreurs de validation
    */
   onValidationError?: (message: string) => void;
+  /**
+   * Label personnalisé pour le bouton de soumission
+   */
+  submitButtonLabel?: string;
+  /**
+   * Cacher le bouton de soumission (utile en mode lecture seule)
+   */
+  hideSubmitButton?: boolean;
 };
 
 export function MultiStepForm({
@@ -35,6 +42,8 @@ export function MultiStepForm({
   isSubmitting = false,
   children,
   onValidationError,
+  submitButtonLabel = 'Enregistrer',
+  hideSubmitButton = false,
 }: MultiStepFormProps) {
   const [validatingStep, setValidatingStep] = useState(false);
 
@@ -103,91 +112,75 @@ export function MultiStepForm({
   }, [currentStepIndex, onSubmit, onValidationError, steps]);
 
   return (
-    <VStack spacing={6} align="stretch" w="full">
+    <div className="flex flex-col gap-6 w-full">
       {/* En-tête avec indicateurs de steps */}
-      <Box>
-        <HStack justify="space-between" mb={4}>
+      <div>
+        <div className="flex justify-between mb-4">
           {steps.map((step, index) => (
-            <Text
+            <p
               key={step.id}
-              fontSize="sm"
-              fontWeight="medium"
-              color={currentStep >= step.id ? 'orange.600' : 'gray.500'}
+              className={`text-sm font-medium ${
+                currentStep >= step.id ? 'text-orange-600' : 'text-gray-500'
+              }`}
             >
               {step.title}
-            </Text>
+            </p>
           ))}
-        </HStack>
-        <Progress
-          value={progressPercent}
-          size="sm"
-          colorScheme="orange"
-          borderRadius="full"
-          bg="gray.200"
-        />
-      </Box>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div
+            className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
 
       {/* Titre et description du step actuel */}
-      <Box>
-        <Text fontSize="lg" fontWeight="semibold" color="orange.600" mb={2}>
+      <div>
+        <h3 className="text-lg font-semibold text-orange-600 mb-2">
           {steps[currentStepIndex]?.title}
-        </Text>
-        <Text fontSize="sm" color="gray.600">
+        </h3>
+        <p className="text-sm text-gray-600">
           {steps[currentStepIndex]?.description}
-        </Text>
-      </Box>
+        </p>
+      </div>
 
       {/* Contenu du step (children) */}
-      <Box>{children}</Box>
+      <div>{children}</div>
 
       {/* Navigation */}
-      <HStack justify="space-between" pt={6} borderTop="1px" borderColor="gray.200">
-        <Box>
+      <div className="flex justify-between pt-6 border-t border-gray-200">
+        <div>
           {!isFirstStep && (
-            <Button
-              variant="outline"
+            <button
               onClick={handlePrevious}
-              isDisabled={isSubmitting || validatingStep}
-              px={24}
-              py={4}
-              minW="120px"
+              disabled={isSubmitting || validatingStep}
+              className="px-6 py-2 min-w-[100px] border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
             >
               Précédent
-            </Button>
+            </button>
           )}
-        </Box>
-        <Box>
+        </div>
+        <div>
           {!isLastStep ? (
-            <Button
+            <button
               onClick={handleNext}
-              bg="orange.500"
-              color="white"
-              _hover={{ bg: 'orange.600' }}
-              isLoading={validatingStep}
-              loadingText="Validation..."
-              px={24}
-              py={4}
-              minW="120px"
+              disabled={validatingStep}
+              className="px-6 py-2 min-w-[100px] bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
             >
-              Suivant
-            </Button>
-          ) : (
-            <Button
+              {validatingStep ? 'Validation...' : 'Suivant'}
+            </button>
+          ) : !hideSubmitButton ? (
+            <button
               onClick={handleSubmit}
-              bg="orange.500"
-              color="white"
-              _hover={{ bg: 'orange.600' }}
-              isLoading={isSubmitting || validatingStep}
-              loadingText={validatingStep ? "Validation..." : "Enregistrement..."}
-              px={24}
-              py={4}
-              minW="120px"}
+              disabled={isSubmitting || validatingStep}
+              className="px-6 py-2 min-w-[100px] bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
             >
-              Enregistrer
-            </Button>
-          )}
-        </Box>
-      </HStack>
-    </VStack>
+              {validatingStep ? 'Validation...' : isSubmitting ? 'Enregistrement...' : submitButtonLabel}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }

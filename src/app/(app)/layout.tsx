@@ -11,7 +11,10 @@ export default function AppLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <SessionProvider>
+    <SessionProvider
+      refetchInterval={0} // Désactiver le rafraîchissement automatique de la session
+      refetchOnWindowFocus={false} // Ne pas rafraîchir lors du retour sur la fenêtre
+    >
       <Providers>
         <TokenRefresher />
         <MainLayout>

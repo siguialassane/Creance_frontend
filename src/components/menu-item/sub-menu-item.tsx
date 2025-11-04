@@ -2,8 +2,6 @@ import Link from "next/link"
 import { useState } from "react"
 import colors from "../../lib/theme/colors"
 import { StyledMenuItem } from "../../lib/theme/typography"
-import { Stack } from "@chakra-ui/react"
-import { ChevronRightIcon } from "@chakra-ui/icons"
 import { SubMenuItem } from "../../lib/types/menu"
 import styled, { keyframes } from "styled-components"
 
@@ -74,14 +72,14 @@ const SubMenuItemComponent = ({ subMenu, isSelected, onPressed, hasLeftIndicator
                     onMouseLeave={() => setIsHovered(false)}
                 >
                     <StyledMenuItem $textColor={isSelected ? '#FFFFFF' : isHovered ? '#E5E7EB' : colors.lightGray}>
-                            
-                        <Stack direction='row' gap={2} justifyContent="start" alignItems="center" >
+
+                        <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'flex-start', alignItems: 'center' }}>
                             {/* <AnimatedSubIcon $isSelected={isSelected} $isHovered={isHovered}>
                                 {isSelected ? '▶' : '•'}
                             </AnimatedSubIcon> */}
                             <SubMenuNameStyled>{subMenu.name}</SubMenuNameStyled>
-                        </Stack>
-                        
+                        </div>
+
                     </StyledMenuItem>
                 </BorderedStyle>
             </Link>

@@ -20,7 +20,22 @@ export function useOperations() {
 
   return useQuery({
     queryKey: operationKeys.lists(),
-    queryFn: () => OperationService.getAll(apiClient).then((res) => res.data),
+    queryFn: async () => {
+      try {
+        const res = await OperationService.getAll(apiClient);
+        console.log('📦 Réponse brute operations:', res);
+        
+        // Structure réelle de l'API: { data: { content: [...], totalElements, ... } }
+        // Le service retourne response.data, donc res = { data: { content: [...] }, ... }
+        const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || [];
+        
+        console.log('✅ Données operations transformées:', data);
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('❌ Erreur chargement operations:', error);
+        return [];
+      }
+    },
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {

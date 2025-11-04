@@ -1,7 +1,5 @@
 "use client"
 
-import { Box, Image, Stack, Text } from '@chakra-ui/react'
-import { ChevronRightIcon, ChevronDownIcon } from '@chakra-ui/icons'
 import { MenuItem, SubMenuItem } from '../../lib/types/menu'
 import colors from '../../lib/theme/colors'
 import { useState, useEffect } from 'react'
@@ -116,8 +114,8 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
                         zIndex: 2
                     }}
                 >
-                    <Image 
-                        src={typeof menu.icon === 'string' ? menu.icon : menu.icon?.src} 
+                    <img
+                        src={typeof menu.icon === 'string' ? menu.icon : menu.icon?.src}
                         alt={menu.name}
                         style={iconStyle}
                     />

@@ -1,7 +1,6 @@
 "use client"
 
 import styled, { keyframes } from "styled-components"
-import { Box, Stack, Image } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { logo } from "../../lib/theme/assets";
@@ -126,47 +125,49 @@ const SideBarMenu = () => {
         return (
             <StyledSideBarMenu>
                 <StyledImage>
-                    <Image src={logo.src} w={100} mx="auto" />
+                    <img src={logo.src} alt="Logo" style={{ width: '100px', margin: '0 auto' }} />
                 </StyledImage>
-                <Box h="48px" />
-                <Stack direction="column" style={{
-                    flex: 1, overflowY:"auto", overflowX:"hidden", position: 'relative', zIndex: 2
-                }} gap={2}>
+                <div style={{ height: '48px' }} />
+                <div style={{
+                    flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', zIndex: 2,
+                    display: 'flex', flexDirection: 'column', gap: '8px'
+                }}>
                     {menuItems.map((mItem) => (
-                        <MenuItemComponent 
+                        <MenuItemComponent
                             key={mItem.id}
-                            isClose={isClose} 
-                            onPressed={handleChangeCurrentItem} 
-                            menu={mItem} 
+                            isClose={isClose}
+                            onPressed={handleChangeCurrentItem}
+                            menu={mItem}
                             isSelected={false} // Pas de sélection initiale
                         />
                     ))}
-                </Stack>
+                </div>
             </StyledSideBarMenu>
         );
     }
 
-    return (        
+    return (
         <StyledSideBarMenu>
             <StyledImage>
-                <Image src={logo.src} w={100} mx="auto" />
+                <img src={logo.src} alt="Logo" style={{ width: '100px', margin: '0 auto' }} />
             </StyledImage>
-            <Box h="48px" />
-            <Stack direction="column" style={{
-                flex: 1, overflowY:"auto", overflowX:"hidden", position: 'relative', zIndex: 2
-            }} gap={2}>
+            <div style={{ height: '48px' }} />
+            <div style={{
+                flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', zIndex: 2,
+                display: 'flex', flexDirection: 'column', gap: '8px'
+            }}>
                 {
                     menuItems.map((mItem) => (
-                        <MenuItemComponent 
+                        <MenuItemComponent
                             key={mItem.id}
-                            isClose={isClose} 
-                            onPressed={handleChangeCurrentItem} 
-                            menu={mItem} 
-                            isSelected={currentSideBarMenuId === mItem.id} 
+                            isClose={isClose}
+                            onPressed={handleChangeCurrentItem}
+                            menu={mItem}
+                            isSelected={currentSideBarMenuId === mItem.id}
                         />
                     ))
                 }
-            </Stack>
+            </div>
         </StyledSideBarMenu>
     )
 }

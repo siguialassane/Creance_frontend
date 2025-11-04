@@ -25,9 +25,13 @@ import {
 } from "lucide-react"
 
 // Données simulées pour les graphiques et KPIs
+// Utiliser des valeurs fixes pour éviter les problèmes d'hydratation
+const montants = [450, 520, 380, 610, 490, 580, 420, 550, 670, 440, 600, 530]
+// Mémoïser les noms de mois pour éviter les problèmes d'hydratation
+const moisNames = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
 const encaissements = Array.from({ length: 12 }).map((_, i) => ({
-  mois: new Date(2025, i, 1).toLocaleString('fr-FR', { month: 'short' }),
-  montant: Math.round(300 + Math.random() * 700),
+  mois: moisNames[i] || 'janv.',
+  montant: montants[i] || 500,
 }))
 
 const statutsCreances = [

@@ -1,7 +1,6 @@
 "use client"
 
 import styled, { keyframes } from "styled-components"
-import { Box, Stack, Image } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { logo } from "@/lib/theme/assets";
@@ -9,6 +8,7 @@ import MenuItemComponent from "../menu-item/menu-item-dynamic";
 import { menuItems } from "@/lib/configs/menu.data";
 import colors from "@/lib/theme/colors";
 import { MenuItem } from "@/lib/types/menu";
+import Image from "next/image";
 
 interface SidebarProps {
   isOpen?: boolean
@@ -86,11 +86,27 @@ const StyledImage = styled.div`
     margin-bottom: 20px;
     position: relative;
     z-index: 2;
-    
+
     &:hover {
         transform: scale(1.25);
         transition: transform 0.3s ease;
     }
+
+    img {
+        width: 100px;
+        height: auto;
+        object-fit: contain;
+    }
+`;
+
+const StyledStack = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+`;
+
+const StyledSpacer = styled.div`
+    height: 48px;
 `;
 
 export default function Sidebar({ isOpen = true, onClose, className }: SidebarProps) {
@@ -172,46 +188,46 @@ export default function Sidebar({ isOpen = true, onClose, className }: SidebarPr
         return (
             <StyledSideBarMenu className={className}>
                 <StyledImage>
-                    <Image src={logo.src} w={100} mx="auto" />
+                    <Image src={logo.src} alt="Logo" width={100} height={100} />
                 </StyledImage>
-                <Box h="48px" />
+                <StyledSpacer />
             <StyledNavigation>
-                <Stack direction="column" gap={2}>
+                <StyledStack>
                     {menuItems.map((mItem) => (
-                        <MenuItemComponent 
+                        <MenuItemComponent
                             key={mItem.id}
-                            isClose={isClose} 
-                            onPressed={handleChangeCurrentItem} 
-                            menu={mItem} 
+                            isClose={isClose}
+                            onPressed={handleChangeCurrentItem}
+                            menu={mItem}
                             isSelected={false} // Pas de sélection initiale
                         />
                     ))}
-                </Stack>
+                </StyledStack>
             </StyledNavigation>
             </StyledSideBarMenu>
         );
     }
 
-    return (        
+    return (
         <StyledSideBarMenu className={className}>
             <StyledImage>
-                <Image src={logo.src} w={100} mx="auto" />
+                <Image src={logo.src} alt="Logo" width={100} height={100} />
             </StyledImage>
-            <Box h="48px" />
+            <StyledSpacer />
             <StyledNavigation>
-                <Stack direction="column" gap={2}>
+                <StyledStack>
                     {
                         menuItems.map((mItem) => (
-                            <MenuItemComponent 
+                            <MenuItemComponent
                                 key={mItem.id}
-                                isClose={isClose} 
-                                onPressed={handleChangeCurrentItem} 
-                                menu={mItem} 
-                                isSelected={currentSideBarMenuId === mItem.id} 
+                                isClose={isClose}
+                                onPressed={handleChangeCurrentItem}
+                                menu={mItem}
+                                isSelected={currentSideBarMenuId === mItem.id}
                             />
                         ))
                     }
-                </Stack>
+                </StyledStack>
             </StyledNavigation>
         </StyledSideBarMenu>
     )

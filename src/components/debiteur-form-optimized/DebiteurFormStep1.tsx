@@ -1,18 +1,9 @@
 "use client"
 
 import { Control, Controller, FieldErrors } from "react-hook-form";
-import {
-  VStack,
-  Grid,
-  GridItem,
-  FormControl,
-  FormLabel,
-  Input,
-  Select,
-  Textarea,
-  Text,
-} from "@chakra-ui/react";
 import { useDebiteurFormContext } from "./DebiteurFormContext";
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 type Step1FormData = {
   codeDebiteur?: string;
@@ -39,214 +30,342 @@ const labelColor = '#374151';
 const titleColor = '#1a202c';
 
 export function DebiteurFormStep1({ control, errors, isEditMode = false, readOnly = false }: Props) {
-  const { formData } = useDebiteurFormContext();
+  const { formData, isLoadingStep1 } = useDebiteurFormContext();
 
-  const getFieldStyles = (hasError?: boolean) => ({
-    borderColor: hasError ? errorRed : borderGray,
-    bg: hasError ? errorBg : (readOnly ? 'gray.50' : 'white'),
-    _focus: { borderColor: primaryGreen },
-    isDisabled: readOnly,
-  });
+  const getFieldClassName = (hasError?: boolean, isFocused: boolean = false) => {
+    const baseClasses = "w-full px-3 py-2 rounded-md border transition-colors duration-200 focus:outline-none";
+    const errorClasses = hasError 
+      ? "border-red-500 bg-red-50 focus:border-red-500" 
+      : `border-[#28A325] bg-[#f3f4f6] focus:border-[#28A325]`;
+    const readOnlyClasses = readOnly ? "bg-gray-50 cursor-not-allowed" : "";
+    return `${baseClasses} ${errorClasses} ${readOnlyClasses}`;
+  };
 
   return (
-    <VStack spacing={2} align="stretch">
-      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>
+    <div className="flex flex-col gap-2">
+      {/* <h2 className="text-lg font-bold mb-4" style={{ color: titleColor }}>
         Informations générales
-      </Text>
+      </h2> */}
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        {/* Code Débiteur */}
-        <GridItem>
-          <FormControl isInvalid={!!errors.codeDebiteur}>
-            <FormLabel color={labelColor}>Code débiteur</FormLabel>
+      <div className="grid grid-cols-3 gap-2 mt-9">
+        {/* Code Débiteur 
+        <div>
+          <div className="mb-2">
+            <label className="block text-sm font-medium mb-1" style={{ color: labelColor }}>
+              Code débiteur
+            </label>
             <Controller
               name="codeDebiteur"
               control={control}
               render={({ field }) => (
                 isEditMode || readOnly ? (
-                  <Input
+                  <input
                     {...field}
                     value={field.value || "Code non disponible"}
-                    isReadOnly
-                    color="gray.700"
-                    {...getFieldStyles(!!errors.codeDebiteur)}
-                    bg="gray.100"
+                    readOnly
+                    className={`${getFieldClassName(!!errors.codeDebiteur)} bg-gray-100 text-gray-700`}
                   />
                 ) : (
-                  <Input
+                  <input
                     value="Sera généré automatiquement"
-                    isReadOnly
-                    color="gray.500"
-                    {...getFieldStyles(!!errors.codeDebiteur)}
-                    bg="gray.100"
+                    readOnly
+                    className={`${getFieldClassName(!!errors.codeDebiteur)} bg-gray-100 text-gray-500`}
                   />
                 )
               )}
             />
             {!isEditMode && !readOnly && (
-              <Text fontSize="xs" color="gray.500" mt={1}>
+              <p className="text-xs text-gray-500 mt-1">
                 Le code sera généré automatiquement après validation
-              </Text>
+              </p>
             )}
-          </FormControl>
-        </GridItem>
-
+          </div>
+        </div>
+*/}
         {/* Catégorie Débiteur */}
-        <GridItem>
-          <FormControl isInvalid={!!errors.categorieDebiteur} isRequired>
-            <FormLabel color={labelColor}>Catégorie débiteur</FormLabel>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '140px' }}>
+              Catégorie débiteur <span className="text-red-500">*</span>
+            </label>
             <Controller
               name="categorieDebiteur"
               control={control}
               render={({ field }) => (
-                <Select
-                  {...field}
-                  placeholder="Sélectionner une catégorie"
-                  borderColor={primaryGreen}
-                  bg="gray.100"
-                  color="gray.700"
-                  _focus={{ borderColor: primaryGreen }}
-                  _hover={{ bg: "gray.100" }}
-                  isDisabled={readOnly}
-                >
-                  {formData.categoriesDebiteur.map((categorie: any) => {
-                    const code = categorie.CATEG_DEB_CODE || categorie.id || categorie.code;
-                    const libelle = categorie.CATEG_DEB_LIB || categorie.libelle;
-                    return (
-                      <option key={code} value={code}>
-                        {libelle}
-                      </option>
-                    );
-                  })}
-                </Select>
+                <div className="relative flex-1">
+                  <select
+                    {...field}
+                    className={getFieldClassName(!!errors.categorieDebiteur) + " focus:border-[#28A325] focus:bg-[#f3f4f6] h-[40px] pr-8 w-full"}
+                    disabled={readOnly || isLoadingStep1}
+                    onFocus={(e) => {
+                      if (!errors.categorieDebiteur) {
+                        e.target.style.borderColor = primaryGreen;
+                        e.target.style.backgroundColor = '#f3f4f6';
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (errors.categorieDebiteur) {
+                        e.target.style.borderColor = errorRed;
+                        e.target.style.backgroundColor = errorBg;
+                      } else {
+                        e.target.style.borderColor = primaryGreen;
+                        e.target.style.backgroundColor = '#f3f4f6';
+                      }
+                    }}
+                    style={{ 
+                      borderColor: errors.categorieDebiteur ? errorRed : primaryGreen,
+                      backgroundColor: errors.categorieDebiteur ? errorBg : '#f3f4f6'
+                    }}
+                  >
+                    <option value="">
+                      {isLoadingStep1 ? "Chargement..." : "Sélectionner une catégorie"}
+                    </option>
+                    {formData.categoriesDebiteur?.map((categorie: any) => {
+                      const code = categorie.CATEG_DEB_CODE || categorie.id || categorie.code;
+                      const libelle = categorie.CATEG_DEB_LIB || categorie.libelle;
+                      return (
+                        <option key={code} value={code}>
+                          {libelle}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {isLoadingStep1 && (
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-[#28A325]"></div>
+                    </div>
+                  )}
+                </div>
               )}
             />
-            {errors.categorieDebiteur && (
-              <Text color={errorRed} fontSize="sm">{String(errors.categorieDebiteur.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
+          </div>
+          {errors.categorieDebiteur && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.categorieDebiteur.message)}</p>
+          )}
+        </div>
 
-        {/* Adresse Postale */}
-        <GridItem>
-          <FormControl isInvalid={!!errors.adressePostale} isRequired>
-            <FormLabel color={labelColor}>Adresse postale</FormLabel>
-            <Controller
-              name="adressePostale"
-              control={control}
-              render={({ field }) => (
-                <Textarea
-                  {...field}
-                  placeholder="Ex: Cocody"
-                  rows={2}
-                  {...getFieldStyles(!!errors.adressePostale)}
-                />
-              )}
-            />
-            {errors.adressePostale && (
-              <Text color={errorRed} fontSize="sm">{String(errors.adressePostale.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        {/* Email */}
-        <GridItem>
-          <FormControl isInvalid={!!errors.email} isRequired>
-            <FormLabel color={labelColor}>Email</FormLabel>
-            <Controller
-              name="email"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  placeholder="Ex: debiteur@example.com"
-                  type="email"
-                  {...getFieldStyles(!!errors.email)}
-                />
-              )}
-            />
-            {errors.email && (
-              <Text color={errorRed} fontSize="sm">{String(errors.email.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-
-        {/* Téléphone */}
-        <GridItem>
-          <FormControl isInvalid={!!errors.telephone}>
-            <FormLabel color={labelColor}>Téléphone</FormLabel>
-            <Controller
-              name="telephone"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  placeholder="Ex: +225 27 12 34 56 78"
-                  {...getFieldStyles(!!errors.telephone)}
-                />
-              )}
-            />
-          </FormControl>
-        </GridItem>
-
-        {/* N° Cellulaire */}
-        <GridItem>
-          <FormControl isInvalid={!!errors.numeroCell}>
-            <FormLabel color={labelColor}>N° Cellulaire</FormLabel>
-            <Controller
-              name="numeroCell"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  placeholder="Ex: +225 07 12 34 56 78"
-                  {...getFieldStyles(!!errors.numeroCell)}
-                />
-              )}
-            />
-          </FormControl>
-        </GridItem>
-      </Grid>
-
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
         {/* Type Débiteur */}
-        <GridItem>
-          <FormControl isInvalid={!!errors.typeDebiteur} isRequired>
-            <FormLabel color={labelColor}>Type débiteur</FormLabel>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '140px' }}>
+              Type débiteur <span className="text-red-500">*</span>
+            </label>
             <Controller
               name="typeDebiteur"
               control={control}
               render={({ field }) => (
-                <Select
-                  {...field}
-                  placeholder="Sélectionner un type"
-                  borderColor={primaryGreen}
-                  bg="gray.100"
-                  color="gray.700"
-                  _focus={{ borderColor: primaryGreen }}
-                  _hover={{ bg: "gray.100" }}
-                  isDisabled={readOnly}
-                >
-                  {formData.typesDebiteur.map((type: any) => {
-                    const code = type.TYPDEB_CODE || type.code || type.id;
-                    const libelle = type.TYPDEB_LIB || type.libelle;
-                    return (
-                      <option key={code} value={code}>
-                        {libelle}
-                      </option>
-                    );
-                  })}
-                </Select>
+                <div className="relative flex-1">
+                  <select
+                    {...field}
+                    className={getFieldClassName(!!errors.typeDebiteur) + " focus:border-[#28A325] focus:bg-[#f3f4f6] h-[40px] pr-8 w-full"}
+                    disabled={readOnly || isLoadingStep1}
+                    onFocus={(e) => {
+                      if (!errors.typeDebiteur) {
+                        e.target.style.borderColor = primaryGreen;
+                        e.target.style.backgroundColor = '#f3f4f6';
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (errors.typeDebiteur) {
+                        e.target.style.borderColor = errorRed;
+                        e.target.style.backgroundColor = errorBg;
+                      } else {
+                        e.target.style.borderColor = primaryGreen;
+                        e.target.style.backgroundColor = '#f3f4f6';
+                      }
+                    }}
+                    style={{ 
+                      borderColor: errors.typeDebiteur ? errorRed : primaryGreen,
+                      backgroundColor: errors.typeDebiteur ? errorBg : '#f3f4f6'
+                    }}
+                  >
+                    <option value="">
+                      {isLoadingStep1 ? "Chargement..." : "Sélectionner un type"}
+                    </option>
+                    {formData.typesDebiteur?.map((type: any) => {
+                      const code = type.TYPDEB_CODE || type.code || type.id;
+                      const libelle = type.TYPDEB_LIB || type.libelle;
+                      return (
+                        <option key={code} value={code}>
+                          {libelle}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {isLoadingStep1 && (
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-[#28A325]"></div>
+                    </div>
+                  )}
+                </div>
               )}
             />
-            {errors.typeDebiteur && (
-              <Text color={errorRed} fontSize="sm">{String(errors.typeDebiteur.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-    </VStack>
+          </div>
+          {errors.typeDebiteur && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.typeDebiteur.message)}</p>
+          )}
+        </div>
+
+        {/* Adresse Postale */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '140px' }}>
+              Adresse postale <span className="text-red-500">*</span>
+            </label>
+            <Controller
+              name="adressePostale"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  value={field.value || ""}
+                  placeholder="Ex: Cocody"
+                  type="text"
+                  className={`${getFieldClassName(!!errors.adressePostale)} focus:border-[#28A325] focus:bg-[#f3f4f6] flex-1`}
+                  disabled={readOnly}
+                  style={{
+                    borderColor: errors.adressePostale ? errorRed : primaryGreen,
+                    backgroundColor: errors.adressePostale ? errorBg : '#f3f4f6'
+                  }}
+                  onFocus={(e) => {
+                    if (!errors.adressePostale) {
+                      e.target.style.borderColor = primaryGreen;
+                      e.target.style.backgroundColor = '#f3f4f6';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (errors.adressePostale) {
+                      e.target.style.borderColor = errorRed;
+                      e.target.style.backgroundColor = errorBg;
+                    } else {
+                      e.target.style.borderColor = primaryGreen;
+                      e.target.style.backgroundColor = '#f3f4f6';
+                    }
+                  }}
+                />
+              )}
+            />
+          </div>
+          {errors.adressePostale && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.adressePostale.message)}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {/* Email */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '140px' }}>
+              Email <span className="text-red-500">*</span>
+            </label>
+            <Controller
+              name="email"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  value={field.value || ""}
+                  placeholder="Ex: debiteur@example.com"
+                  type="email"
+                  className={`${getFieldClassName(!!errors.email)} focus:border-[#28A325] focus:bg-[#f3f4f6] flex-1`}
+                  disabled={readOnly}
+                  style={{
+                    borderColor: errors.email ? errorRed : primaryGreen,
+                    backgroundColor: errors.email ? errorBg : '#f3f4f6'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = primaryGreen;
+                    e.target.style.backgroundColor = '#f3f4f6';
+                  }}
+                  onBlur={(e) => {
+                    if (errors.email) {
+                      e.target.style.borderColor = errorRed;
+                      e.target.style.backgroundColor = errorBg;
+                    } else {
+                      e.target.style.borderColor = primaryGreen;
+                      e.target.style.backgroundColor = '#f3f4f6';
+                    }
+                  }}
+                />
+              )}
+            />
+          </div>
+          {errors.email && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.email.message)}</p>
+          )}
+        </div>
+
+        {/* Téléphone */}
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '140px' }}>
+              Téléphone
+            </label>
+            <Controller
+              name="telephone"
+              control={control}
+              render={({ field }) => {
+                const hasValue = !!field.value;
+                const hasError = !!errors.telephone;
+                const phoneInputClassName = `PhoneInput ${hasValue ? 'PhoneInput--hasValue' : ''} ${hasError ? 'PhoneInput--hasError' : ''}`;
+                
+                return (
+                  <div className="relative flex-1">
+                    <PhoneInput
+                      {...field}
+                      defaultCountry="CI"
+                      international
+                      placeholder="Ex: +225 27 12 34 56 78"
+                      className={phoneInputClassName}
+                      disabled={readOnly}
+                      style={{
+                        width: '100%',
+                      }}
+                    />
+                  </div>
+                );
+              }}
+            />
+          </div>
+        </div>
+
+        {/* N° Cellulaire */}
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '140px' }}>
+              N° Cellulaire
+            </label>
+            <Controller
+              name="numeroCell"
+              control={control}
+              render={({ field }) => {
+                const hasValue = !!field.value;
+                const hasError = !!errors.numeroCell;
+                const phoneInputClassName = `PhoneInput ${hasValue ? 'PhoneInput--hasValue' : ''} ${hasError ? 'PhoneInput--hasError' : ''}`;
+                
+                return (
+                  <div className="relative flex-1">
+                    <PhoneInput
+                      {...field}
+                      defaultCountry="CI"
+                      international
+                      placeholder="Ex: +225 07 12 34 56 78"
+                      className={phoneInputClassName}
+                      disabled={readOnly}
+                      style={{
+                        width: '100%',
+                      }}
+                    />
+                  </div>
+                );
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+    
+    </div>
   );
 }

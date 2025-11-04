@@ -1,24 +1,19 @@
 "use client"
 
-import { Control, Controller, FieldErrors } from "react-hook-form";
-import {
-  VStack,
-  Grid,
-  GridItem,
-  FormControl,
-  FormLabel,
-  Input,
-  Select,
-  Text,
-} from "@chakra-ui/react";
+import { Control, Controller, FieldErrors, useFieldArray } from "react-hook-form";
 import { useDebiteurFormContext } from "./DebiteurFormContext";
-import { useAgencesByBanque } from "@/hooks/useDebiteurFormData";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useBanquesSearchable } from "@/hooks/useBanquesSearchable";
+import { useAgencesBanqueSearchable } from "@/hooks/useAgencesBanqueSearchable";
+import { Button } from "@/components/ui/button";
+import { Plus, Trash2 } from "lucide-react";
 
 const primaryGreen = '#28A325';
-const borderGray = '#d1d5db';
 const errorRed = '#ef4444';
-const errorBg = '#fef2f2';
 const labelColor = '#374151';
 const titleColor = '#1a202c';
 
@@ -27,161 +22,369 @@ type Props = {
   errors: FieldErrors<any>;
   readOnly?: boolean;
   watch: any; // react-hook-form watch function
+  setValue?: (name: string, value: any) => void; // react-hook-form setValue function
 };
 
-export function DebiteurFormStep3({ control, errors, readOnly = false, watch }: Props) {
-  const { formData } = useDebiteurFormContext();
-  const [selectedBanque, setSelectedBanque] = useState<string | null>(null);
-
-  // Écouter les changements de banque pour filtrer les agences
-  useEffect(() => {
-    const subscription = watch((value: any) => {
-      if (value.banque) {
-        setSelectedBanque(value.banque);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [watch]);
-
-  // Obtenir les agences filtrées par banque sélectionnée
-  const agencesFiltrees = useAgencesByBanque(formData, selectedBanque);
-
-  const getFieldStyles = (hasError?: boolean) => ({
-    borderColor: hasError ? errorRed : borderGray,
-    bg: hasError ? errorBg : (readOnly ? 'gray.50' : 'white'),
-    _focus: { borderColor: primaryGreen },
-    isDisabled: readOnly,
+export function DebiteurFormStep3({ control, errors, readOnly = false, watch, setValue }: Props) {
+  const { formData, isLoadingStep3 } = useDebiteurFormContext();
+  
+  // Utiliser useFieldArray pour gérer le tableau de domiciliations
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "domiciliations",
+    keyName: "id", // Utiliser 'id' comme clé
   });
 
+  // Référence pour éviter les doubles initialisations
+  const hasInitialized = useRef(false);
+  
+  // Observer les valeurs du formulaire pour détecter les domiciliations chargées
+  const watchedDomiciliations = watch("domiciliations");
+
+  // Initialiser avec une seule domiciliation vide si le tableau est vide (une seule fois)
+  // NE PAS initialiser si on est en mode lecture seule ou si des données existent déjà
+  useEffect(() => {
+    // Vérifier si des domiciliations existent déjà dans le formulaire (chargées depuis l'API)
+    const hasExistingDomiciliations = watchedDomiciliations && 
+      Array.isArray(watchedDomiciliations) && 
+      watchedDomiciliations.length > 0;
+    
+    // Si on a déjà des domiciliations (chargées depuis l'API), ne rien faire
+    if (hasExistingDomiciliations || fields.length > 0) {
+      hasInitialized.current = true;
+      return;
+    }
+    
+    // Réinitialiser le flag si on passe en mode readOnly
+    if (readOnly) {
+      hasInitialized.current = false;
+      return;
+    }
+    
+    // Ajouter une seule domiciliation si le tableau est vide et qu'on n'a pas déjà initialisé
+    // Et seulement si on n'est pas en train d'attendre des données
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      append({
+        type: "",
+        numeroCompte: "",
+        libelle: "",
+        banque: "",
+        banqueAgence: "",
+      }, { shouldFocus: false });
+    }
+  }, [fields.length, watchedDomiciliations, append, readOnly]);
+
+  // États pour les banques sélectionnées par domiciliation
+  const [selectedBanques, setSelectedBanques] = useState<Record<number, string | null>>({});
+
+  // Hooks pour les banques et agences avec recherche et pagination infinie
+  const {
+    items: banquesItems,
+    isLoading: isLoadingBanques,
+    hasMore: hasMoreBanques,
+    loadMore: loadMoreBanques,
+    isFetchingMore: isFetchingMoreBanques,
+    search: banquesSearch,
+    setSearch: setBanquesSearch,
+  } = useBanquesSearchable();
+
+  // Hook global pour toutes les agences (on filtrera côté client)
+  const {
+    items: allAgencesItems,
+    isLoading: isLoadingAgences,
+    hasMore: hasMoreAgences,
+    loadMore: loadMoreAgences,
+    isFetchingMore: isFetchingMoreAgences,
+    search: agencesSearch,
+    setSearch: setAgencesSearch,
+  } = useAgencesBanqueSearchable(null); // On charge toutes les agences, puis on filtre
+
+  const handleAddDomiciliation = () => {
+    append({
+      type: "",
+      numeroCompte: "",
+      libelle: "",
+      banque: "",
+      banqueAgence: "",
+    });
+  };
+
+  const handleRemoveDomiciliation = (index: number) => {
+    if (fields.length > 1) {
+      remove(index);
+      // Supprimer aussi l'état de la banque sélectionnée
+      const newSelectedBanques = { ...selectedBanques };
+      delete newSelectedBanques[index];
+      // Réindexer les banques
+      const reindexed: Record<number, string | null> = {};
+      Object.keys(newSelectedBanques).forEach((key) => {
+        const oldIndex = parseInt(key);
+        if (oldIndex > index) {
+          reindexed[oldIndex - 1] = newSelectedBanques[oldIndex];
+        } else if (oldIndex < index) {
+          reindexed[oldIndex] = newSelectedBanques[oldIndex];
+        }
+      });
+      setSelectedBanques(reindexed);
+    }
+  };
+
+  const handleBanqueChange = (index: number, banqueCode: string | null) => {
+    setSelectedBanques((prev) => ({ ...prev, [index]: banqueCode }));
+    // Réinitialiser l'agence si la banque change
+    if (setValue) {
+      setValue(`domiciliations.${index}.banqueAgence`, "");
+    }
+  };
+
   return (
-    <VStack spacing={2} align="stretch">
-      <Text fontSize="lg" fontWeight="bold" mb={4} color={titleColor}>
-        Domiciliation
-      </Text>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-bold" style={{ color: titleColor }}>
+          Domiciliations
+        </h3>
+        {!readOnly && (
+          <Button
+            type="button"
+            onClick={handleAddDomiciliation}
+            size="sm"
+            className="bg-[#28A325] hover:bg-[#1e7a1c] text-white"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Ajouter
+          </Button>
+        )}
+      </div>
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.type} isRequired>
-            <FormLabel color={labelColor}>Type</FormLabel>
-            <Controller
-              name="type"
-              control={control}
-              render={({ field }) => (
-                <Select {...field} placeholder="Sélectionner" bg="gray.100" borderColor={primaryGreen}>
-                  {formData.typesDomicil.map((type: any) => (
-                    <option key={type.TYPDOM_CODE || type.code} value={type.TYPDOM_CODE || type.code}>
-                      {type.TYPDOM_LIB || type.libelle}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            />
-            {errors.type && <Text color={errorRed} fontSize="sm">{String(errors.type.message)}</Text>}
-          </FormControl>
-        </GridItem>
+      {fields.length === 0 ? (
+        <p className="text-sm text-gray-500">Aucune domiciliation ajoutée</p>
+      ) : (
+        <div className="space-y-4">
+          {fields.map((field, index) => {
+            const domiciliationsErrors = errors.domiciliations as any;
+            const domiciliationErrors = domiciliationsErrors?.[index] as FieldErrors<any> | undefined;
+            const canRemove = fields.length > 1;
+            
+            // Filtrer les agences selon la banque sélectionnée pour cette domiciliation
+            const filteredAgences = selectedBanques[index] 
+              ? allAgencesItems.filter((a: any) => a.BQ_CODE === selectedBanques[index])
+              : allAgencesItems;
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.numeroCompte} isRequired>
-            <FormLabel color={labelColor}>Numéro du compte</FormLabel>
-            <Controller
-              name="numeroCompte"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Ex: 1234567890123456" {...getFieldStyles(!!errors.numeroCompte)} />
-              )}
-            />
-            {errors.numeroCompte && (
-              <Text color={errorRed} fontSize="sm">{String(errors.numeroCompte.message)}</Text>
-            )}
-          </FormControl>
-        </GridItem>
+            return (
+              <div key={field.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-gray-700">
+                    Domiciliation {index + 1}
+                  </span>
+                  {!readOnly && (
+                    <Button
+                      type="button"
+                      onClick={() => handleRemoveDomiciliation(index)}
+                      disabled={!canRemove}
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.libelle} isRequired>
-            <FormLabel color={labelColor}>Libellé</FormLabel>
-            <Controller
-              name="libelle"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Ex: Compte principal" {...getFieldStyles(!!errors.libelle)} />
-              )}
-            />
-            {errors.libelle && <Text color={errorRed} fontSize="sm">{String(errors.libelle.message)}</Text>}
-          </FormControl>
-        </GridItem>
-      </Grid>
+                {/* Tous les champs sur une ligne */}
+                <div className="grid grid-cols-12 gap-3">
+                  {/* Numéro de compte */}
+                  <div className="col-span-2">
+                    <Label className="text-xs font-medium mb-1 block" style={{ color: labelColor }}>
+                      N° Compte
+                    </Label>
+                    <Controller
+                      name={`domiciliations.${index}.numeroCompte`}
+                      control={control}
+                      render={({ field: fieldCtrl }) => (
+                        <Input
+                          {...fieldCtrl}
+                          value={fieldCtrl.value || ""}
+                          placeholder="Ex: CI106..."
+                          disabled={readOnly}
+                          className={`h-9 text-sm ${
+                            domiciliationErrors?.numeroCompte 
+                              ? 'border-red-500 bg-red-50' 
+                              : fieldCtrl.value 
+                              ? 'border-[#28A325] bg-[#f3f4f6]' 
+                              : 'border-gray-300 bg-white'
+                          }`}
+                        />
+                      )}
+                    />
+                    {domiciliationErrors?.numeroCompte && (
+                      <p className="text-xs text-red-500 mt-0.5">
+                        {String(domiciliationErrors.numeroCompte.message)}
+                      </p>
+                    )}
+                  </div>
 
-      <Grid templateColumns="repeat(3, 1fr)" gap={2}>
-        <GridItem>
-          <FormControl isInvalid={!!errors.banque} isRequired>
-            <FormLabel color={labelColor}>Banque</FormLabel>
-            <Controller
-              name="banque"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  {...field}
-                  placeholder="Sélectionner"
-                  bg="gray.100"
-                  borderColor={primaryGreen}
-                  onChange={(e) => {
-                    field.onChange(e);
-                    setSelectedBanque(e.target.value);
-                  }}
-                >
-                  {formData.banques.map((banque: any) => {
-                    const code = banque.BQ_CODE || banque.code;
-                    const libelle = banque.BQ_LIB || banque.libelle;
-                    return (
-                      <option key={code} value={code}>
-                        {code} - {libelle}
-                      </option>
-                    );
-                  })}
-                </Select>
-              )}
-            />
-            {errors.banque && <Text color={errorRed} fontSize="sm">{String(errors.banque.message)}</Text>}
-          </FormControl>
-        </GridItem>
+                  {/* Type */}
+                  <div className="col-span-2">
+                    <Label className="text-xs font-medium mb-1 block" style={{ color: labelColor }}>
+                      Type <span className="text-red-500">*</span>
+                    </Label>
+                    <Controller
+                      name={`domiciliations.${index}.type`}
+                      control={control}
+                      render={({ field: fieldCtrl }) => (
+                        <Select 
+                          onValueChange={fieldCtrl.onChange} 
+                          value={fieldCtrl.value || ""} 
+                          disabled={readOnly}
+                        >
+                          <SelectTrigger className={`h-9 text-sm ${
+                            domiciliationErrors?.type 
+                              ? 'border-red-500 bg-red-50' 
+                              : fieldCtrl.value 
+                              ? 'border-[#28A325] bg-[#f3f4f6]' 
+                              : 'border-gray-300 bg-white'
+                          }`}>
+                            <SelectValue placeholder="Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {formData.typesDomicil?.map((type: any) => (
+                              <SelectItem key={type.TYPDOM_CODE || type.code} value={type.TYPDOM_CODE || type.code}>
+                                {type.TYPDOM_LIB || type.libelle}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {domiciliationErrors?.type && (
+                      <p className="text-xs text-red-500 mt-0.5">
+                        {String(domiciliationErrors.type.message)}
+                      </p>
+                    )}
+                  </div>
 
-        <GridItem>
-          <FormControl isInvalid={!!errors.banqueAgence} isRequired>
-            <FormLabel color={labelColor}>Agence de banque</FormLabel>
-            <Controller
-              name="banqueAgence"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  {...field}
-                  placeholder={selectedBanque ? "Sélectionner une agence" : "Sélectionner d'abord une banque"}
-                  bg="gray.100"
-                  borderColor={primaryGreen}
-                  isDisabled={!selectedBanque || readOnly}
-                >
-                  {agencesFiltrees.map((agence: any) => {
-                    const num = agence.BQAG_NUM || agence.code;
-                    const libelle = agence.BQAG_LIB || agence.libelle;
-                    return (
-                      <option key={num} value={num}>
-                        {num} - {libelle}
-                      </option>
-                    );
-                  })}
-                </Select>
-              )}
-            />
-            {errors.banqueAgence && (
-              <Text color={errorRed} fontSize="sm">{String(errors.banqueAgence.message)}</Text>
-            )}
-            {!selectedBanque && (
-              <Text fontSize="xs" color="gray.500" mt={1}>
-                Veuillez d'abord sélectionner une banque
-              </Text>
-            )}
-          </FormControl>
-        </GridItem>
-      </Grid>
-    </VStack>
+                  {/* Libellé */}
+                  <div className="col-span-2">
+                    <Label className="text-xs font-medium mb-1 block" style={{ color: labelColor }}>
+                      Libellé
+                    </Label>
+                    <Controller
+                      name={`domiciliations.${index}.libelle`}
+                      control={control}
+                      render={({ field: fieldCtrl }) => (
+                        <Input
+                          {...fieldCtrl}
+                          value={fieldCtrl.value || ""}
+                          placeholder="Ex: Principal"
+                          disabled={readOnly}
+                          className={`h-9 text-sm ${
+                            domiciliationErrors?.libelle 
+                              ? 'border-red-500 bg-red-50' 
+                              : fieldCtrl.value 
+                              ? 'border-[#28A325] bg-[#f3f4f6]' 
+                              : 'border-gray-300 bg-white'
+                          }`}
+                        />
+                      )}
+                    />
+                  </div>
+
+                  {/* Banque (plus petit) */}
+                  <div className="col-span-2">
+                    <Label className="text-xs font-medium mb-1 block" style={{ color: labelColor }}>
+                      Banque
+                    </Label>
+                    <Controller
+                      name={`domiciliations.${index}.banque`}
+                      control={control}
+                      render={({ field: fieldCtrl }) => (
+                        <SearchableSelect
+                          value={fieldCtrl.value || ""}
+                          onValueChange={(value) => {
+                            fieldCtrl.onChange(value);
+                            handleBanqueChange(index, value || null);
+                          }}
+                          items={banquesItems}
+                          placeholder={isLoadingBanques ? "..." : "Banque"}
+                          searchPlaceholder="Rechercher..."
+                          emptyMessage="Aucune banque"
+                          disabled={readOnly}
+                          isLoading={isLoadingBanques}
+                          hasMore={hasMoreBanques}
+                          onLoadMore={loadMoreBanques}
+                          isFetchingMore={isFetchingMoreBanques}
+                          onSearchChange={setBanquesSearch}
+                          className={`h-9 text-sm ${
+                            fieldCtrl.value 
+                              ? 'border-[#28A325] bg-[#f3f4f6]' 
+                              : 'border-gray-300 bg-white'
+                          }`}
+                        />
+                      )}
+                    />
+                  </div>
+
+                  {/* Agence de banque */}
+                  <div className="col-span-3">
+                    <Label className="text-xs font-medium mb-1 block" style={{ color: labelColor }}>
+                      Agence <span className="text-red-500">*</span>
+                    </Label>
+                    <Controller
+                      name={`domiciliations.${index}.banqueAgence`}
+                      control={control}
+                      render={({ field: fieldCtrl }) => (
+                        <SearchableSelect
+                          value={fieldCtrl.value || ""}
+                          onValueChange={(agenceCode) => {
+                            fieldCtrl.onChange(agenceCode);
+                            
+                            if (agenceCode) {
+                              const selectedAgence = filteredAgences.find((a: any) => a.value === agenceCode);
+                              if (selectedAgence?.BQ_CODE && setValue && !selectedBanques[index]) {
+                                setValue(`domiciliations.${index}.banque`, selectedAgence.BQ_CODE);
+                                handleBanqueChange(index, selectedAgence.BQ_CODE);
+                              }
+                            }
+                          }}
+                          items={filteredAgences}
+                            placeholder={isLoadingAgences ? "..." : "Agence"}
+                            searchPlaceholder="Rechercher..."
+                            emptyMessage="Aucune agence"
+                            disabled={readOnly}
+                            isLoading={isLoadingAgences}
+                            hasMore={hasMoreAgences}
+                            onLoadMore={loadMoreAgences}
+                            isFetchingMore={isFetchingMoreAgences}
+                            onSearchChange={setAgencesSearch}
+                            className={`h-9 text-sm ${
+                              domiciliationErrors?.banqueAgence 
+                                ? 'border-red-500 bg-red-50' 
+                                : fieldCtrl.value 
+                                ? 'border-[#28A325] bg-[#f3f4f6]' 
+                                : 'border-gray-300 bg-white'
+                            }`}
+                        />
+                      )}
+                    />
+                    {domiciliationErrors?.banqueAgence && (
+                      <p className="text-xs text-red-500 mt-0.5">
+                        {String(domiciliationErrors.banqueAgence.message)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {fields.length === 0 && !readOnly && (
+        <p className="text-xs text-gray-500 mt-2">
+          Ajoutez au moins une domiciliation si nécessaire
+        </p>
+      )}
+    </div>
   );
 }

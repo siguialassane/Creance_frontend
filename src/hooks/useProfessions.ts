@@ -28,7 +28,9 @@ export function useProfessions(options: UseProfessionsOptions = {}) {
     queryKey: professionKeys.lists(),
     queryFn: async () => {
       const res = await ProfessionService.getAll(apiClient);
-      const data = res.data?.content || res.data?.data || res.data || res;
+      // Structure réelle de l'API: { data: { content: [...], totalElements, ... } }
+      // Le service retourne response.data, donc res = { data: { content: [...] }, ... }
+      const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || res;
       console.log('✅ Données professions chargées depuis l\'API:', data);
       return Array.isArray(data) ? data : [];
     },

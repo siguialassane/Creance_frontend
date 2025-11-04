@@ -1,31 +1,22 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react";
-import {
-  Box,
-  Button,
-  Text,
-  VStack,
-  HStack,
-  Input,
-  Select,
-  Badge,
-  IconButton,
-  useToast,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogContent,
-  AlertDialogOverlay,
-  useDisclosure
-} from "@chakra-ui/react";
-import { EditIcon, DeleteIcon, ViewIcon } from "@chakra-ui/icons";
+import { useState, useEffect } from "react";
+import { Eye, Pencil, Trash2, Building2, User, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
 import { useApiClient } from "@/hooks/useApiClient";
 import { DebiteurService } from "@/services/debiteur.service";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { PaginationParams, PaginationInfo, extractPaginatedData } from "@/types/pagination";
 
 // Types pour les débiteurs
 interface Debiteur {
@@ -35,7 +26,7 @@ interface Debiteur {
   typeDebiteur: string;
   email: string;
   adressePostale: string;
-  
+
   // Personne physique
   nom?: string;
   prenom?: string;
@@ -48,7 +39,7 @@ interface Debiteur {
   fonction?: string;
   employeur?: string;
   statutSalarie?: string;
-  
+
   // Personne morale
   raisonSociale?: string;
   registreCommerce?: string;
@@ -56,7 +47,7 @@ interface Debiteur {
   domaineActivite?: string;
   siegeSocial?: string;
   nomGerant?: string;
-  
+
   // Métadonnées
   dateCreation: string;
   statut: string;
@@ -64,151 +55,115 @@ interface Debiteur {
 
 const DebiteurPage = () => {
   const [debiteurs, setDebiteurs] = useState<Debiteur[]>([]);
-  const [filteredDebiteurs, setFilteredDebiteurs] = useState<Debiteur[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [categorieFilter, setCategorieFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    totalElements: 0,
+    totalPages: 0,
+    size: 20,
+    number: 0,
+    first: true,
+    last: false,
+    hasNext: false,
+    hasPrevious: false,
+    numberOfElements: 0,
+  });
+  const [paginationParams, setPaginationParams] = useState<PaginationParams>({
+    page: 0,
+    size: 20,
+    search: undefined,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
   const router = useRouter();
-  const toast = useToast();
   const apiClient = useApiClient();
 
-  // Charger les données depuis l'API backend
-  useEffect(() => {
-    if (hasLoaded) return; // Éviter les appels multiples
-    
-    let isMounted = true;
-    
-    const loadDebiteurs = async () => {
-      if (!isMounted || hasLoaded) return;
-      
-      setLoading(true);
-      setError(null);
-      
-      try {
-        console.log('Chargement des débiteurs...');
-        const response = await DebiteurService.getAll(apiClient);
-        console.log('Réponse API:', response);
+  // Transformer les données de l'API pour correspondre à notre interface
+  const transformDebiteurData = (item: any): Debiteur => ({
+    id: item.DEB_CODE?.toString() || `debiteur_${item.DEB_CODE || 'unknown'}`,
+    codeDebiteur: item.DEB_CODE?.toString() || 'N/A',
+    categorieDebiteur: item.CATEG_DEB_CODE || 'N/A',
+    typeDebiteur: item.TYPDEB_CODE === 'P' ? 'Physique' : item.TYPDEB_CODE === 'M' ? 'Morale' : 'N/A',
+    email: item.DEB_EMAIL || '',
+    adressePostale: item.DEB_ADRPOST || '',
 
-        if (response.status === "SUCCESS" && response.data) {
-          // Extraire le contenu paginé
-          const debiteursList = response.data.content || response.data;
-          console.log('Liste des débiteurs extraite:', debiteursList);
+    // Personne physique - colonnes réelles d'Oracle
+    nom: item.DEB_NOM || '',
+    prenom: item.DEB_PREN || '',
+    civilite: item.CIV_CODE || '',
+    nationalite: item.NAT_CODE || '',
+    quartier: item.QUART_CODE || '',
+    numeroCellulaire: item.DEB_CEL || '',
+    numeroTelephone: item.DEB_TELBUR || '',
+    profession: item.PROFES_CODE || '',
+    fonction: item.FONCT_CODE || '',
+    employeur: item.EMP_CODE || '',
+    statutSalarie: item.STATSAL_CODE || '',
 
-          // Transformer les données de l'API pour correspondre à notre interface
-          const transformedDebiteurs = Array.isArray(debiteursList) ? debiteursList.map((item: any) => ({
-            id: item.DEB_CODE?.toString() || Math.random().toString(),
-            codeDebiteur: item.DEB_CODE?.toString() || 'N/A',
-            categorieDebiteur: item.CATEG_DEB_CODE || 'N/A',
-            typeDebiteur: item.TYPDEB_CODE === 'P' ? 'Physique' : item.TYPDEB_CODE === 'M' ? 'Morale' : 'N/A',
-            email: item.DEB_EMAIL || '',
-            adressePostale: item.DEB_ADRPOST || '',
+    // Personne morale - colonnes réelles d'Oracle
+    raisonSociale: item.DEB_RAIS_SOCIALE || 'N/A',
+    registreCommerce: item.DEB_REGISTCOM || '',
+    formeJuridique: item.DEB_FORM_JURID || '',
+    domaineActivite: item.DEB_DOM_ACTIV || '',
+    siegeSocial: item.DEB_SIEG_SOCIAL || '',
+    nomGerant: item.DEB_NOM_GERANT || '',
 
-            // Personne physique - colonnes réelles d'Oracle
-            nom: item.DEB_NOM || '',
-            prenom: item.DEB_PREN || '',
-            civilite: item.CIV_CODE || '',
-            nationalite: item.NAT_CODE || '',
-            quartier: item.QUART_CODE || '',
-            numeroCellulaire: item.DEB_CEL || '',
-            numeroTelephone: item.DEB_TELBUR || '',
-            profession: item.PROFES_CODE || '',
-            fonction: item.FONCT_CODE || '',
-            employeur: item.EMP_CODE || '',
-            statutSalarie: item.STATSAL_CODE || '',
+    // Métadonnées
+    dateCreation: item.DEB_DATE_CTL ? new Date(item.DEB_DATE_CTL).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    statut: 'Actif' // Par défaut actif
+  });
 
-            // Personne morale - colonnes réelles d'Oracle
-            raisonSociale: item.DEB_RAIS_SOCIALE || 'N/A',
-            registreCommerce: item.DEB_REGISTCOM || '',
-            formeJuridique: item.DEB_FORM_JURID || '',
-            domaineActivite: item.DEB_DOM_ACTIV || '',
-            siegeSocial: item.DEB_SIEG_SOCIAL || '',
-            nomGerant: item.DEB_NOM_GERANT || '',
+  // Charger les données depuis l'API backend avec pagination
+  const loadDebiteurs = async (params: PaginationParams = paginationParams) => {
+    setLoading(true);
+    setError(null);
 
-            // Métadonnées
-            dateCreation: item.DEB_DATE_CTL ? new Date(item.DEB_DATE_CTL).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            statut: 'Actif' // Par défaut actif
-          })) : [];
+    try {
+      console.log('Chargement des débiteurs avec pagination:', params);
+      const response = await DebiteurService.getAll(apiClient, params);
+      console.log('Réponse API:', response);
 
-          console.log('Débiteurs transformés:', transformedDebiteurs);
-          
-          if (isMounted) {
-            setDebiteurs(transformedDebiteurs);
-            setHasLoaded(true);
-          }
-        } else {
-          throw new Error(response.message || 'Erreur lors du chargement des débiteurs');
-        }
-      } catch (error: any) {
-        console.error('Erreur lors du chargement des débiteurs:', error);
-        
-        if (isMounted) {
-          setError(error.message || 'Erreur lors du chargement des données');
-          
-          toast({
-            title: "Erreur de chargement",
-            description: "Impossible de charger la liste des débiteurs. Vérifiez votre connexion.",
-            status: "error",
-            duration: 5000,
-            isClosable: true,
-            position: "top",
-          });
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+      if (response.status === "SUCCESS" && response.data) {
+        // Extraire le contenu paginé
+        const debiteursList = response.data.content || [];
+        console.log('Liste des débiteurs extraite:', debiteursList);
+
+        // Transformer les données de l'API pour correspondre à notre interface
+        const transformedDebiteurs = Array.isArray(debiteursList) 
+          ? debiteursList.map(transformDebiteurData) 
+          : [];
+
+        console.log('Débiteurs transformés:', transformedDebiteurs);
+
+        // Mettre à jour les données et les infos de pagination
+        setDebiteurs(transformedDebiteurs);
+        setPagination({
+          totalElements: response.data.totalElements || 0,
+          totalPages: response.data.totalPages || 0,
+          size: response.data.size || 20,
+          number: response.data.number || 0,
+          first: response.data.first ?? true,
+          last: response.data.last ?? false,
+          hasNext: response.data.hasNext ?? false,
+          hasPrevious: response.data.hasPrevious ?? false,
+          numberOfElements: response.data.numberOfElements || 0,
+        });
+      } else {
+        throw new Error(response.message || 'Erreur lors du chargement des débiteurs');
       }
-    };
-
-    loadDebiteurs();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [hasLoaded]); // Dépendance sur hasLoaded pour éviter les appels multiples
-
-  useEffect(() => {
-    // Filtrage des débiteurs
-    let filtered = debiteurs;
-
-    if (searchTerm) {
-      filtered = filtered.filter(debiteur => {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          debiteur.codeDebiteur.toLowerCase().includes(searchLower) ||
-          (debiteur.nom && debiteur.nom.toLowerCase().includes(searchLower)) ||
-          (debiteur.prenom && debiteur.prenom.toLowerCase().includes(searchLower)) ||
-          (debiteur.raisonSociale && debiteur.raisonSociale.toLowerCase().includes(searchLower)) ||
-          (debiteur.registreCommerce && debiteur.registreCommerce.toLowerCase().includes(searchLower)) ||
-          (debiteur.nomGerant && debiteur.nomGerant.toLowerCase().includes(searchLower)) ||
-          debiteur.email.toLowerCase().includes(searchLower) ||
-          (debiteur.numeroCellulaire && debiteur.numeroCellulaire.includes(searchTerm))
-        );
-      });
-    }
-
-    if (categorieFilter) {
-      filtered = filtered.filter(debiteur => debiteur.categorieDebiteur === categorieFilter);
-    }
-
-    if (typeFilter) {
-      filtered = filtered.filter(debiteur => debiteur.typeDebiteur === typeFilter);
-    }
-
-    setFilteredDebiteurs(filtered);
-  }, [debiteurs, searchTerm, categorieFilter, typeFilter]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Actif": return "green";
-      case "Inactif": return "red";
-      case "Suspendu": return "orange";
-      default: return "gray";
+    } catch (error: any) {
+      console.error('Erreur lors du chargement des débiteurs:', error);
+      setError(error.message || 'Erreur lors du chargement des données');
+      toast.error("Impossible de charger la liste des débiteurs. Vérifiez votre connexion.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Charger les données au montage et quand les paramètres de pagination changent
+  useEffect(() => {
+    loadDebiteurs(paginationParams);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paginationParams.page, paginationParams.size, paginationParams.search]);
+
 
   const getDisplayName = (debiteur: Debiteur) => {
     if (debiteur.typeDebiteur === "Physique") {
@@ -218,16 +173,16 @@ const DebiteurPage = () => {
     }
   };
 
-  const getDisplayInfo = (debiteur: Debiteur) => {
-    if (debiteur.typeDebiteur === "Physique") {
-      return `${debiteur.civilite || ''} - ${debiteur.profession || 'Profession non renseignée'}`;
-    } else {
-      return `${debiteur.formeJuridique || ''} - ${debiteur.domaineActivite || 'Domaine non renseigné'}`;
-    }
+  const getTypeVariant = (type: string): "default" | "secondary" | "destructive" | "outline" => {
+    return type === "Physique" ? "default" : "secondary";
   };
 
-  const getTypeColor = (type: string) => {
-    return type === "Physique" ? "blue" : "purple";
+  const getTypeIcon = (type: string) => {
+    return type === "Physique" ? (
+      <User className="h-3.5 w-3.5" />
+    ) : (
+      <Building2 className="h-3.5 w-3.5" />
+    );
   };
 
   const handleViewDebiteur = (debiteur: Debiteur) => {
@@ -244,29 +199,15 @@ const DebiteurPage = () => {
     if (confirm(`Êtes-vous sûr de vouloir supprimer le débiteur ${debiteur.codeDebiteur} ?`)) {
       try {
         await DebiteurService.delete(apiClient, debiteur.codeDebiteur);
-        
+
         // Mettre à jour la liste locale
         const updatedDebiteurs = debiteurs.filter(d => d.id !== debiteur.id);
         setDebiteurs(updatedDebiteurs);
-        
-        toast({
-          title: "Débiteur supprimé avec succès !",
-          description: `Le débiteur ${debiteur.codeDebiteur} a été supprimé avec succès.`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-          position: "top",
-        });
+
+        toast.success(`Le débiteur ${debiteur.codeDebiteur} a été supprimé avec succès.`);
       } catch (error: any) {
         console.error('Erreur lors de la suppression:', error);
-        toast({
-          title: "Erreur de suppression",
-          description: "Impossible de supprimer le débiteur. Vérifiez votre connexion.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-          position: "top",
-        });
+        toast.error("Impossible de supprimer le débiteur. Vérifiez votre connexion.");
       }
     }
   };
@@ -275,98 +216,175 @@ const DebiteurPage = () => {
     router.push("/etude_creance/debiteur/create");
   };
 
-  // Configuration des colonnes pour DataTable - Colonnes essentielles uniquement
+  // Configuration des colonnes pour DataTable - Design sobre et professionnel
   const columns: ColumnDef<Debiteur>[] = [
     {
       accessorKey: "codeDebiteur",
       header: "Code",
       cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("codeDebiteur")}</div>
+        <div className="font-semibold text-gray-900">
+          {row.getValue("codeDebiteur")}
+        </div>
       ),
     },
     {
       accessorKey: "typeDebiteur",
       header: "Type",
-      cell: ({ row }) => (
-        <Badge colorScheme={getTypeColor(row.getValue("typeDebiteur") as string)}>
-          {row.getValue("typeDebiteur")}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const type = row.getValue("typeDebiteur") as string;
+        return (
+          <Badge
+            variant={getTypeVariant(type)}
+            className="flex items-center gap-1.5 px-2.5 py-1 font-medium"
+          >
+            {getTypeIcon(type)}
+            {type}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "nom",
       header: "Nom / Raison sociale",
       cell: ({ row }) => (
-        <div className="font-medium">{getDisplayName(row.original)}</div>
+        <div className="font-medium text-gray-900">
+          {getDisplayName(row.original)}
+        </div>
       ),
     },
     {
       accessorKey: "email",
       header: "Email",
       cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("email")}</div>
+        <div className="text-sm text-gray-600">{row.getValue("email") || "-"}</div>
       ),
     },
     {
-      accessorKey: "numeroCellulaire",
+      accessorKey: "numeroTelephone",
       header: "Téléphone",
       cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("numeroCellulaire") || '-'}</div>
+        <div className="text-sm text-gray-600">
+          {row.getValue("numeroTelephone") || "-"}
+        </div>
       ),
     },
     {
       id: "actions",
-      header: "Actions",
+      header: "",
       cell: ({ row }) => {
         const debiteur = row.original;
         return (
-          <div className="flex items-center gap-2">
-            <IconButton
-              aria-label="Voir"
-              icon={<ViewIcon />}
-              size="sm"
-              variant="ghost"
-              colorScheme="blue"
-              onClick={() => handleViewDebiteur(debiteur)}
-            />
-            <IconButton
-              aria-label="Modifier"
-              icon={<EditIcon />}
-              size="sm"
-              variant="ghost"
-              colorScheme="green"
-              onClick={() => handleEditDebiteur(debiteur)}
-            />
-            <IconButton
-              aria-label="Supprimer"
-              icon={<DeleteIcon />}
-              size="sm"
-              variant="ghost"
-              colorScheme="red"
-              onClick={() => handleDeleteDebiteur(debiteur)}
-            />
-          </div>
+          <TooltipProvider delayDuration={300}> 
+            <div className="flex items-center justify-end gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleViewDebiteur(debiteur)}
+                    className="h-8 w-8 p-0 hover:bg-blue-50 cursor-pointer"
+                    aria-label="Consulter"
+                  >
+                    <Eye className="h-4 w-4 text-blue-600" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Consulter</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditDebiteur(debiteur)}
+                    className="h-8 w-8 p-0 hover:bg-green-50 cursor-pointer"
+                  >
+                    <Pencil className="h-4 w-4 text-green-600" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Modifier</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteDebiteur(debiteur)}
+                    className="h-8 w-8 p-0 hover:bg-red-50 cursor-pointer"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Supprimer</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         );
       },
     },
   ];
 
+  // Gestion de la recherche serveur
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleSearchSubmit = async () => {
+    // Réinitialiser à la page 0 et déclencher le chargement avec la recherche
+    setPaginationParams({
+      ...paginationParams,
+      page: 0,
+      search: searchValue || undefined,
+    });
+  };
+
+  const handleSearchReset = () => {
+    setSearchValue("");
+    // Réinitialiser la pagination et recharger toutes les données
+    setPaginationParams({
+      page: 0,
+      size: paginationParams.size || 20,
+      search: undefined,
+    });
+  };
+
+  // Gestion du changement de pagination
+  const handlePaginationChange = (params: { page?: number; size?: number; search?: string }) => {
+    setPaginationParams({
+      ...paginationParams,
+      ...(params.page !== undefined && { page: params.page }),
+      ...(params.size !== undefined && { size: params.size }),
+      ...(params.search !== undefined && { search: params.search }),
+    });
+  };
+
   return (
     <div className="h-full flex flex-col bg-white">
       <DataTable
-        title="Gestion des Débiteurs"
-        description="Consultez et gérez tous vos débiteurs"
+        title="DÉBITEURS"
+        description=""
         columns={columns}
-        data={filteredDebiteurs}
+        data={debiteurs}
         searchKey="codeDebiteur"
-        searchPlaceholder="Rechercher par code, nom, raison sociale, RC..."
+        searchPlaceholder="Rechercher par code, nom, raison sociale, RC, email..."
         onAdd={handleCreateDebiteur}
         addButtonText="Nouveau débiteur"
-        status={loading ? 'pending' : undefined}
-        useServerPagination={false}
+        status={loading ? "pending" : undefined}
+        useServerPagination={true}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        isPaginationLoading={loading}
         isTableLoading={loading}
-        sectionTitle="DÉBITEURS"
-        listTitle="LISTE DES DÉBITEURS"
+        sectionTitle=""
+        listTitle=""
+        searchValue={searchValue}
+        onSearchValueChange={setSearchValue}
+        onSearchSubmit={handleSearchSubmit}
+        onSearchReset={handleSearchReset}
+        onRefresh={() => loadDebiteurs(paginationParams)}
       />
     </div>
   );

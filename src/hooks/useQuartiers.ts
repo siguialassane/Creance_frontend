@@ -25,8 +25,10 @@ export function useQuartiers() {
         const res = await QuartierService.getAll(apiClient);
         console.log('📦 Réponse brute quartiers:', res);
 
-        // Structure: { data: { content: [...], totalElements, totalPages }, message: "OK", status: "SUCCESS" }
-        const data = res.data?.content || res.data?.data || res.data || [];
+        // Structure réelle de l'API: 
+        // { data: { content: [...], totalElements, totalPages }, message: "OK", status: "SUCCESS" }
+        // Le service retourne response.data, donc res = { data: { content: [...] }, ... }
+        const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || [];
 
         console.log('✅ Données quartiers transformées:', data);
         return Array.isArray(data) ? data : [];
@@ -39,7 +41,7 @@ export function useQuartiers() {
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: Infinity,
-    cacheTime: Infinity,
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,

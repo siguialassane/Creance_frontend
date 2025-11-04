@@ -20,7 +20,22 @@ export function useMessages() {
 
   return useQuery({
     queryKey: messageKeys.lists(),
-    queryFn: () => MessageService.getAll(apiClient).then((res) => res.data),
+    queryFn: async () => {
+      try {
+        const res = await MessageService.getAll(apiClient);
+        console.log('📦 Réponse brute messages:', res);
+        
+        // Structure réelle de l'API: { data: { content: [...], totalElements, ... } }
+        // Le service retourne response.data, donc res = { data: { content: [...] }, ... }
+        const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || [];
+        
+        console.log('✅ Données messages transformées:', data);
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('❌ Erreur chargement messages:', error);
+        return [];
+      }
+    },
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {

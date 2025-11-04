@@ -27,22 +27,18 @@ export function useFonctions(options: UseFonctionsOptions = {}) {
   return useQuery({
     queryKey: fonctionKeys.lists(),
     queryFn: async () => {
-      console.log('🔍 [useFonctions] Début du chargement...');
-      console.log('🔍 [useFonctions] Session status:', status);
-      console.log('🔍 [useFonctions] isSessionReady:', isSessionReady);
-      console.log('🔍 [useFonctions] accessToken présent:', !!(session as any)?.accessToken);
-
       try {
         const res = await FonctionService.getAll(apiClient);
-        console.log('📦 [useFonctions] Réponse brute:', res);
-        console.log('📦 [useFonctions] res.data:', res.data);
-        console.log('📦 [useFonctions] res.data?.content:', res.data?.content);
-
-        // L'API retourne { data: { content: [...], totalElements, ... } }
-        const data = res.data?.content || res.data?.data || res.data || res;
-        console.log('✅ [useFonctions] Données finales:', data);
-        console.log('✅ [useFonctions] Nombre d\'éléments:', Array.isArray(data) ? data.length : 'N/A');
-
+        // Extraire les données selon le format de réponse
+        // Format paginé: { data: { content: [...] } }
+        // Format direct: { data: [...] }
+        const data = Array.isArray(res.data) 
+          ? res.data 
+          : (typeof res.data === 'object' && res.data !== null && 'content' in res.data)
+            ? (res.data as any).content || []
+            : (typeof res.data === 'object' && res.data !== null && 'data' in res.data)
+              ? (res.data as any).data || []
+              : [];
         return Array.isArray(data) ? data : [];
       } catch (error) {
         console.error('❌ [useFonctions] Erreur:', error);
@@ -50,8 +46,9 @@ export function useFonctions(options: UseFonctionsOptions = {}) {
       }
     },
     enabled: enabled && isSessionReady,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retry: 1, // Réduire à 1 retry pour éviter les délais trop longs
+    retryDelay: 1000, // Délai de 1 seconde entre les retries
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 

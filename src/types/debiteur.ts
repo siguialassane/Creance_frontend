@@ -2,7 +2,7 @@
 
 export interface DebiteurPersonnePhysique {
   // Informations générales (Étape 1)
-  typeDebiteur: "P" | "physique";
+  typeDebiteur: "P" | "M" | "physique" | "moral";
   categorieDebiteur: string;
   adressePostale: string;
   email: string;
@@ -49,36 +49,38 @@ export interface DebiteurPersonnePhysique {
   prenomsMere?: string;
   rue?: string;
 
-  // Domiciliation (Étape 3)
-  type: string;
-  numeroCompte: string;
-  libelle: string;
-  banque: string;
-  banqueAgence: string;
+  // Domiciliation (Étape 3) - Optionnelle
+  type?: string;
+  numeroCompte?: string;
+  libelle?: string;
+  banque?: string; // Non envoyé au backend, seulement pour UI
+  banqueAgence?: string;
 }
 
 export interface DebiteurPersonneMorale {
   // Informations générales (Étape 1)
-  typeDebiteur: "M" | "moral";
+  typeDebiteur: "P" | "M" | "physique" | "moral";
   categorieDebiteur: string;
   adressePostale: string;
   email: string;
+  telephone?: string;
+  numeroCell?: string;
 
   // Personne morale (Étape 2B)
   registreCommerce: string;
   raisonSociale: string;
-  capitalSocial?: string;
+  capitalSocial?: number;
   formeJuridique: string;
   domaineActivite: string;
   siegeSocial: string;
   nomGerant: string;
 
-  // Domiciliation (Étape 3)
-  type: string;
-  numeroCompte: string;
-  libelle: string;
-  banque: string;
-  banqueAgence: string;
+  // Domiciliation (Étape 3) - Optionnelle
+  type?: string;
+  numeroCompte?: string;
+  libelle?: string;
+  banque?: string; // Non envoyé au backend, seulement pour UI
+  banqueAgence?: string;
 }
 
 export type DebiteurCreateRequest = DebiteurPersonnePhysique | DebiteurPersonneMorale;

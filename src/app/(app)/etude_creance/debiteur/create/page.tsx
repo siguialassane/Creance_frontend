@@ -1,60 +1,216 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
-import DebiteurForm from "@/components/debiteur-form/debiteur-form"
-import { useToast } from "@chakra-ui/react"
-import { useApiClient } from "@/hooks/useApiClient"
-import { useSession } from "next-auth/react"
-import { DebiteurService } from "@/services/debiteur.service"
-import { DebiteurCreateRequest } from "@/types/debiteur"
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useApiClient } from "@/hooks/useApiClient";
+import { useSession } from "next-auth/react";
+import { DebiteurService } from "@/services/debiteur.service";
+import { DebiteurCreateRequest } from "@/types/debiteur";
+import { MultiStepForm, StepConfig } from "@/components/multi-step/MultiStepForm";
+import { DebiteurFormProvider } from "@/components/debiteur-form-optimized/DebiteurFormContext";
+import { useDebiteurMultiStepForm } from "@/hooks/useDebiteurMultiStepForm";
+import { DebiteurFormStep1 } from "@/components/debiteur-form-optimized/DebiteurFormStep1";
+import { DebiteurFormStep2Physical } from "@/components/debiteur-form-optimized/DebiteurFormStep2Physical";
+import { DebiteurFormStep2Moral } from "@/components/debiteur-form-optimized/DebiteurFormStep2Moral";
+import { DebiteurFormStep3 } from "@/components/debiteur-form-optimized/DebiteurFormStep3";
+import { ArrowLeft } from "lucide-react";
+import { useFormState } from "react-hook-form";
 
+/**
+ * Page de création d'un nouveau débiteur
+ * Utilise un formulaire multi-step professionnel et modulaire
+ */
 export default function NouveauDebiteurPage() {
-  const router = useRouter()
-  const toast = useToast()
-  const apiClient = useApiClient()
-  const { data: session } = useSession()
-  const [step, setStep] = React.useState(0)
-  const [formData, setFormData] = React.useState({})
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const formRef = React.useRef<any>(null)
+  const router = useRouter();
+  const apiClient = useApiClient();
+  const { data: session } = useSession();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const steps = [
-    { id: 0, title: "Informations générales", description: "Code, catégorie, adresse, email et type de débiteur" },
-    { id: 1, title: "Personne physique/morale", description: "Informations détaillées selon le type sélectionné" },
-    { id: 2, title: "Domiciliation", description: "Type, compte, banque et agence" }
-  ]
+  // Hook personnalisé pour gérer le formulaire multi-step
+  const {
+    currentStep,
+    formData,
+    typeDebiteur,
+    form,
+    goToNextStep,
+    goToPreviousStep,
+    validateCurrentStep,
+    goToStep,
+  } = useDebiteurMultiStepForm({
+    onDataChange: (data) => {
+      // Les données sont automatiquement synchronisées par le hook
+    },
+  });
 
-  const handleSubmit = async (data: any) => {
-    console.log("Données du débiteur à envoyer:", data);
+  // Configuration des étapes
+  const steps: StepConfig[] = React.useMemo(
+    () => [
+      {
+        id: 1,
+        title: "Informations générales",
+        description: "Les champs marqués d'un astérisque sont obligatoires",
+        validate: async () => {
+          return await validateCurrentStep();
+        },
+      },
+      {
+        id: 2,
+        title:
+          typeDebiteur === "P" || typeDebiteur === "physique"
+            ? "Personne physique"
+            : "Personne morale",
+        description:
+          typeDebiteur === "P" || typeDebiteur === "physique"
+            ? "Informations de la personne physique"
+            : "Informations de la personne morale",
+        validate: async () => {
+          return await validateCurrentStep();
+        },
+      },
+      {
+        id: 3,
+        title: "Domiciliation",
+        description: "Les champs marqués d'un astérisque sont obligatoires",
+        validate: async () => {
+          return await validateCurrentStep();
+        },
+      },
+    ],
+    [typeDebiteur, validateCurrentStep]
+  );
+
+  // Gestion de la soumission finale
+  const handleSubmit = React.useCallback(async () => {
+    // Valider la dernière étape
+    const isValid = await validateCurrentStep();
+    if (!isValid) {
+      toast.error("Veuillez corriger les erreurs avant de continuer");
+      return;
+    }
+
+    console.log("Données du débiteur à envoyer:", formData);
 
     setIsSubmitting(true);
 
     try {
-      // Ajouter l'utilisateur connecté au payload
-      // Le nettoyage des champs numériques est maintenant fait dans DebiteurService
-      const payload = {
-        ...data,
-        utilisateur: (session as any)?.user?.username || (session as any)?.user?.name
+      // Normaliser le typeDebiteur (P ou M)
+      const normalizedTypeDebiteur = 
+        formData.typeDebiteur === "physique" ? "P" :
+        formData.typeDebiteur === "moral" ? "M" :
+        formData.typeDebiteur;
+
+      // Préparer le payload selon la documentation backend
+      const payload: any = {
+        typeDebiteur: normalizedTypeDebiteur,
+        categorieDebiteur: formData.categorieDebiteur,
+        email: formData.email,
+        adressePostale: formData.adressePostale,
+        telephone: formData.telephone,
+        numeroCell: formData.numeroCell,
       };
 
-      console.log("Payload avec utilisateur:", payload);
+      // Ajouter les champs spécifiques selon le type
+      if (normalizedTypeDebiteur === "M") {
+        // Personne morale
+        payload.registreCommerce = formData.registreCommerce;
+        payload.raisonSociale = formData.raisonSociale;
+        payload.capitalSocial = typeof formData.capitalSocial === 'string' 
+          ? (formData.capitalSocial ? parseFloat(formData.capitalSocial) : undefined)
+          : formData.capitalSocial;
+        payload.formeJuridique = formData.formeJuridique;
+        payload.domaineActivite = formData.domaineActivite;
+        payload.siegeSocial = formData.siegeSocial;
+        payload.nomGerant = formData.nomGerant;
+      } else if (normalizedTypeDebiteur === "P") {
+        // Personne physique
+        payload.civilite = formData.civilite;
+        payload.nom = formData.nom;
+        payload.prenom = formData.prenom;
+        payload.dateNaissance = formData.dateNaissance;
+        payload.lieuNaissance = formData.lieuNaissance;
+        payload.quartier = formData.quartier;
+        payload.nationalite = formData.nationalite;
+        payload.fonction = formData.fonction;
+        payload.profession = formData.profession;
+        payload.employeur = formData.employeur;
+        payload.statutSalarie = formData.statutSalarie;
+        payload.sexe = formData.sexe;
+        
+        // Champs optionnels personne physique
+        if (formData.matricule) payload.matricule = formData.matricule;
+        if (formData.dateDeces) payload.dateDeces = formData.dateDeces;
+        if (formData.naturePieceIdentite) payload.naturePieceIdentite = formData.naturePieceIdentite;
+        if (formData.numeroPieceIdentite) payload.numeroPieceIdentite = formData.numeroPieceIdentite;
+        if (formData.dateEtablie) payload.dateEtablie = formData.dateEtablie;
+        if (formData.lieuEtablie) payload.lieuEtablie = formData.lieuEtablie;
+        if (formData.statutMatrimonial) payload.statutMatrimonial = formData.statutMatrimonial;
+        if (formData.regimeMariage) payload.regimeMariage = formData.regimeMariage;
+        if (formData.nombreEnfant !== undefined && formData.nombreEnfant !== null && formData.nombreEnfant !== '') {
+          payload.nombreEnfant = typeof formData.nombreEnfant === 'number' 
+            ? formData.nombreEnfant 
+            : parseInt(formData.nombreEnfant.toString());
+        }
+        if (formData.rue) payload.rue = formData.rue;
+        if (formData.nomConjoint) payload.nomConjoint = formData.nomConjoint;
+        if (formData.prenomsConjoint) payload.prenomsConjoint = formData.prenomsConjoint;
+        if (formData.dateNaissanceConjoint) payload.dateNaissanceConjoint = formData.dateNaissanceConjoint;
+        if (formData.telConjoint) payload.telConjoint = formData.telConjoint;
+        if (formData.numeroPieceConjoint) payload.numeroPieceConjoint = formData.numeroPieceConjoint;
+        if (formData.adresseConjoint) payload.adresseConjoint = formData.adresseConjoint;
+        if (formData.nomPere) payload.nomPere = formData.nomPere;
+        if (formData.prenomsPere) payload.prenomsPere = formData.prenomsPere;
+        if (formData.nomMere) payload.nomMere = formData.nomMere;
+        if (formData.prenomsMere) payload.prenomsMere = formData.prenomsMere;
+      }
+
+      // Domiciliations bancaires (tableau)
+      if (formData.domiciliations && Array.isArray(formData.domiciliations)) {
+        // Filtrer les domiciliations valides (avec type et banqueAgence au minimum)
+        const validDomiciliations = formData.domiciliations
+          .filter((dom: any) => {
+            // Une domiciliation est valide si elle a au moins type et banqueAgence
+            return dom.type && dom.type.trim() !== "" && dom.banqueAgence && dom.banqueAgence.trim() !== "";
+          })
+          .map((dom: any) => {
+            const domiciliation: any = {
+              type: dom.type,
+              banqueAgence: dom.banqueAgence,
+            };
+            
+            // Ajouter libelle seulement s'il est renseigné
+            if (dom.libelle && dom.libelle.trim() !== "") {
+              domiciliation.libelle = dom.libelle;
+            }
+            
+            // Ajouter numeroCompte seulement s'il est renseigné
+            if (dom.numeroCompte && dom.numeroCompte.trim() !== "") {
+              domiciliation.numeroCompte = dom.numeroCompte;
+            }
+            
+            return domiciliation;
+          });
+        
+        if (validDomiciliations.length > 0) {
+          payload.domiciliations = validDomiciliations;
+        }
+      }
+
+      console.log("Payload avec normalisation:", payload);
 
       // Appeler l'API pour créer le débiteur
-      const response = await DebiteurService.create(apiClient, payload as DebiteurCreateRequest);
+      const response = await DebiteurService.create(
+        apiClient,
+        payload as unknown as DebiteurCreateRequest
+      );
 
       console.log("Réponse de l'API:", response);
 
       // Afficher l'alerte de succès
-      toast({
-        title: "Débiteur enregistré avec succès !",
-        description: `Le débiteur ${response.data?.DEB_CODE || ''} a été créé avec succès.`,
-        status: "success",
-        duration: 5000,
-        isClosable: true,
-        position: "top",
-      });
+      toast.success(
+        `Le débiteur ${response.data?.DEB_CODE || ""} a été créé avec succès.`
+      );
 
       // Rediriger vers la liste après un court délai
       setTimeout(() => {
@@ -63,121 +219,121 @@ export default function NouveauDebiteurPage() {
     } catch (error: any) {
       console.error("Erreur lors de la création du débiteur:", error);
 
-      // Afficher l'erreur
-      toast({
-        title: "Erreur lors de l'enregistrement",
-        description: error.response?.data?.error?.message || error.message || "Une erreur est survenue",
-        status: "error",
-        duration: 7000,
-        isClosable: true,
-        position: "top",
-      });
+      // Si c'est une erreur 401, l'intercepteur a déjà géré la déconnexion
+      // Ne pas afficher d'erreur supplémentaire pour éviter les confusions
+      if (error.response?.status === 401) {
+        // L'intercepteur gère déjà la déconnexion et la redirection
+        return;
+      }
+
+      // Afficher l'erreur pour les autres types d'erreurs
+      toast.error(
+        error.response?.data?.error?.message ||
+          error.message ||
+          "Une erreur est survenue"
+      );
     } finally {
       setIsSubmitting(false);
+    }
+  }, [formData, apiClient, session, router, validateCurrentStep]);
+
+  // Gestion des erreurs de validation
+  const handleValidationError = React.useCallback((message: string) => {
+    toast.error(message);
+  }, []);
+
+  // Récupérer les erreurs du formulaire de manière réactive avec useFormState
+  // Cela force un re-render quand les erreurs changent
+  const formState = useFormState({ 
+    control: form.control,
+  });
+  const errors = formState.errors;
+
+  // Rendre le contenu de l'étape actuelle
+  const renderStepContent = () => {
+    const { control, watch } = form;
+
+    switch (currentStep) {
+      case 1:
+        return (
+          <DebiteurFormStep1
+            control={control}
+            errors={errors}
+            isEditMode={false}
+            readOnly={false}
+          />
+        );
+      case 2:
+        return typeDebiteur === "P" || typeDebiteur === "physique" ? (
+          <DebiteurFormStep2Physical
+            control={control}
+            errors={errors}
+            readOnly={false}
+          />
+        ) : (
+          <DebiteurFormStep2Moral
+            control={control}
+            errors={errors}
+            readOnly={false}
+          />
+        );
+      case 3:
+        return (
+          <DebiteurFormStep3
+            control={control}
+            errors={errors}
+            readOnly={false}
+            watch={watch}
+            setValue={(name: string, value: any) => form.setValue(name as any, value)}
+          />
+        );
+      default:
+        return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-6xl px-6 py-6">
-        {/* En-tête comme dans l'image */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-semibold" style={{ color: '#28A325' }}>Ajouter un débiteur</h1>
-            <Button 
-              onClick={() => {
-                console.log("Bouton Consulter cliqué");
-                router.push("/etude_creance/debiteur/views");
-              }}
-              className="text-white px-24 py-4 text-base min-w-[120px]"
-              style={{ backgroundColor: '#28A325', color: 'white' }}
+    <DebiteurFormProvider currentStep={currentStep}>
+      <div className="min-h-screen bg-gray-50">
+        <div className="mx-auto ">
+          {/* Barre verte avec titre (même style que les listing) */}
+          <div 
+            className="px-8 py-4"
+            style={{
+              backgroundColor: '#28A325',
+              color: 'white',
+            }}
+          >
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                onClick={() => router.push("/etude_creance/debiteur/views")}
+                className="hover:bg-white/10 text-white border-white/20 flex items-center"
+              >
+                <ArrowLeft className="h-4 w-4 mt-0.5" />
+                RETOUR
+              </Button>
+              <h1 className="text-xl font-semibold text-white">
+                AJOUTER UN DEBITEUR
+              </h1>
+            </div>
+          </div>
+
+          {/* Formulaire multi-step avec mêmes marges que le tableau */}
+          <div className="bg-white px-8 py-6 mt-9">
+            <MultiStepForm
+              steps={steps}
+              currentStep={currentStep}
+              onStepChange={goToStep}
+              onSubmit={handleSubmit}
+              isSubmitting={isSubmitting}
+              onValidationError={handleValidationError}
             >
-              Consulter
-            </Button>
-          </div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center justify-between w-full">
-              <div className={`text-sm font-medium ${step >= 0 ? 'text-orange-600' : 'text-gray-500'}`}>
-                Informations générales
-              </div>
-              <div className={`text-sm font-medium ${step >= 1 ? 'text-orange-600' : 'text-gray-500'}`}>
-                Personne physique/morale
-              </div>
-              <div className={`text-sm font-medium ${step >= 2 ? 'text-orange-600' : 'text-gray-500'}`}>
-                Domiciliation
-              </div>
-            </div>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-1">
-            <div 
-              className="bg-orange-500 h-1 rounded-full transition-all duration-300" 
-              style={{ width: `${((step + 1) / 3) * 100}%` }}
-            ></div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-12 space-y-6">
-
-            {/* Contenu du formulaire */}
-            <div className="bg-white rounded-lg border p-6 shadow-sm">
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-orange-600 mb-2">
-                  {steps[step].title}
-                </h2>
-                <p className="text-sm text-gray-600">
-                  {steps[step].description}
-                </p>
-              </div>
-
-              <DebiteurForm
-                ref={formRef}
-                currentStep={step + 1}
-                formData={formData}
-                onDataChange={setFormData}
-                onSubmit={handleSubmit}
-              />
-            </div>
-
-            {/* Navigation comme dans l'image - pied de page */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="flex justify-between items-center">
-                <div>
-                  {step > 0 && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setStep(step - 1)}
-                      className="text-gray-600 border-gray-300 hover:bg-gray-50 bg-white px-24 py-4 text-base min-w-[120px]"
-                    >
-                      Précédent
-                    </Button>
-                  )}
-                </div>
-                <div>
-                  {step < 2 ? (
-                    <Button 
-                      onClick={() => setStep(step + 1)}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px]"
-                      style={{ backgroundColor: '#f97316', color: 'white' }}
-                    >
-                      Suivant
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => handleSubmit(formData)}
-                      disabled={isSubmitting}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-24 py-4 text-base min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: '#f97316', color: 'white' }}
-                    >
-                      {isSubmitting ? "Enregistrement..." : "Enregistrer"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
+              {renderStepContent()}
+            </MultiStepForm>
           </div>
         </div>
       </div>
-    </div>
-  )
+    </DebiteurFormProvider>
+  );
 }

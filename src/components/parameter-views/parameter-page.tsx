@@ -51,6 +51,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { DataTable } from "@/components/ui/data-table"
 import { PaginationInfo } from "@/types/pagination"
 import { toast } from "sonner"
@@ -90,6 +96,7 @@ interface ParameterPageProps<T extends BaseParameterItem> {
   onSearchValueChange?: (value: string) => void
   onSearchSubmit?: () => void
   onSearchReset?: () => void
+  onRefresh?: () => void
 }
 
 export function ParameterPage<T extends BaseParameterItem>({
@@ -117,6 +124,7 @@ export function ParameterPage<T extends BaseParameterItem>({
   onSearchValueChange,
   onSearchSubmit,
   onSearchReset,
+  onRefresh,
 }: ParameterPageProps<T>) {
   const [pendingDelete, setPendingDelete] = React.useState<T | null>(null)
   
@@ -147,96 +155,126 @@ export function ParameterPage<T extends BaseParameterItem>({
           const item = row.original
 
           return (
-            <div className="flex items-center gap-2">
-              {/* Actions rapides pour les actions principales */}
-              {onView && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onView(item)}
-                  className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-              )}
-              {onEdit && (
-                <Button
-                aria-label="Modifier"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onEdit(item)}
-                  className="h-8 w-8 p-0 text-secondary hover:bg-emerald-50"
-                >
-                  <Edit className="h-4 w-4 text-orange-600" />
-                </Button>
-              )}
-              {onDelete && (
-                <>
-                  <Button
-                    aria-label="Supprimer"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPendingDelete(item)}
-                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </Button>
-                  <DeleteConfirmationDialog
-                    isOpen={pendingDelete?.id === item.id}
-                    onClose={() => setPendingDelete(null)}
-                    onConfirm={() => {
-                      if (pendingDelete) {
-                        onDelete(pendingDelete)
-                        toast.success("Élément supprimé avec succès")
-                        setPendingDelete(null)
-                      }
-                    }}
-                  />
-                </>
-              )}
+            <TooltipProvider>
+              <div className="flex items-center gap-2">
+                {/* Actions rapides pour les actions principales */}
+                {onView && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onView(item)}
+                        className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Voir les détails</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                {onEdit && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        aria-label="Modifier"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEdit(item)}
+                        className="h-8 w-8 p-0 text-secondary hover:bg-emerald-50"
+                      >
+                        <Edit className="h-4 w-4 text-orange-600" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Modifier</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                {onDelete && (
+                  <>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          aria-label="Supprimer"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPendingDelete(item)}
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Supprimer</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <DeleteConfirmationDialog
+                      isOpen={pendingDelete?.id === item.id}
+                      onClose={() => setPendingDelete(null)}
+                      onConfirm={() => {
+                        if (pendingDelete) {
+                          onDelete(pendingDelete)
+                          toast.success("Élément supprimé avec succès")
+                          setPendingDelete(null)
+                        }
+                      }}
+                    />
+                  </>
+                )}
 
               {/* Menu déroulant pour plus d'actions si nécessaire */}
               {(onEdit && onDelete && onView) && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      aria-label="Ouvrir le menu"
-                        variant="ghost" 
-                      className="h-8 w-8 p-0"
-                    >
-                      <span className="sr-only">Ouvrir le menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {onView && (
-                      <DropdownMenuItem aria-label="Voir" onClick={() => onView(item)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Voir
-                      </DropdownMenuItem>
-                    )}
-                    {onEdit && (
-                      <DropdownMenuItem aria-label="Modifier" onClick={() => onEdit(item)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Modifier
-                      </DropdownMenuItem>
-                    )}
-                    {onDelete && (
-                      <DropdownMenuItem 
-                        aria-label="Supprimer"
-                        onClick={() => onDelete(item)}
-                        className="text-red-600 focus:text-red-600"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Supprimer
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          aria-label="Ouvrir le menu"
+                          variant="ghost" 
+                          className="h-8 w-8 p-0"
+                        >
+                          <span className="sr-only">Ouvrir le menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {onView && (
+                          <DropdownMenuItem aria-label="Voir" onClick={() => onView(item)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Voir
+                          </DropdownMenuItem>
+                        )}
+                        {onEdit && (
+                          <DropdownMenuItem aria-label="Modifier" onClick={() => onEdit(item)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Modifier
+                          </DropdownMenuItem>
+                        )}
+                        {onDelete && (
+                          <DropdownMenuItem 
+                            aria-label="Supprimer"
+                            onClick={() => onDelete(item)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Plus d'actions</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
+            </TooltipProvider>
           )
         },
         enableSorting: false,
@@ -268,6 +306,7 @@ export function ParameterPage<T extends BaseParameterItem>({
       onSearchValueChange={onSearchValueChange}
       onSearchSubmit={onSearchSubmit}
       onSearchReset={onSearchReset}
+      onRefresh={onRefresh}
     />
   )
 }

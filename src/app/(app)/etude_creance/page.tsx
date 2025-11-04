@@ -1,33 +1,22 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { 
-  Box, 
-  Button, 
-  Card, 
-  CardBody, 
-  CardHeader, 
-  Heading, 
-  Text, 
-  VStack, 
-  HStack, 
-  Input, 
-  Select, 
-  InputGroup, 
-  InputLeftElement,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  Badge,
-  IconButton,
-  useToast
-} from "@chakra-ui/react";
-import { SearchIcon, AddIcon, EditIcon, DeleteIcon, ViewIcon } from "@chakra-ui/icons";
+import { Search, Plus, Eye, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // Types pour les créances
 interface Creance {
@@ -56,7 +45,6 @@ const EtudeCreancePage = () => {
   const [groupeFilter, setGroupeFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const toast = useToast();
 
   // Données de test
   const mockCreances: Creance[] = [
@@ -153,12 +141,12 @@ const EtudeCreancePage = () => {
     }).format(amount);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
-      case "En cours": return "green";
-      case "En retard": return "red";
-      case "Remboursé": return "blue";
-      default: return "gray";
+      case "En cours": return "default";
+      case "En retard": return "destructive";
+      case "Remboursé": return "secondary";
+      default: return "outline";
     }
   };
 
@@ -173,13 +161,7 @@ const EtudeCreancePage = () => {
   const handleDeleteCreance = (creance: Creance) => {
     if (confirm(`Êtes-vous sûr de vouloir supprimer la créance ${creance.numeroCreance} ?`)) {
       setCreances(creances.filter(c => c.id !== creance.id));
-      toast({
-        title: "Créance supprimée",
-        description: `La créance ${creance.numeroCreance} a été supprimée avec succès.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+      toast.success(`La créance ${creance.numeroCreance} a été supprimée avec succès.`);
     }
   };
 
@@ -188,182 +170,167 @@ const EtudeCreancePage = () => {
   };
 
   return (
-    <Box p={6} maxW="1400px" mx="auto">
-      <VStack spacing={6} align="stretch">
+    <div className="p-6 max-w-[1400px] mx-auto">
+      <div className="space-y-6">
         {/* En-tête avec bouton de création */}
-        <HStack justify="space-between">
-          <Box>
-            <Heading 
-              size="xl" 
-              mb={2} 
-              color="black" 
-              fontWeight="900"
-              fontSize="2rem"
-            >
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-black text-black mb-2">
               Gestion des Créances
-            </Heading>
-            <Text color="black">Programme de gestion des créances</Text>
-          </Box>
+            </h1>
+            <p className="text-black">Programme de gestion des créances</p>
+          </div>
           <Button
-            leftIcon={<AddIcon />}
             onClick={handleCreateCreance}
-            colorScheme="green"
-            bg="#28A325"
-            _hover={{ bg: "#047857" }}
+            className="bg-[#28A325] hover:bg-[#047857] text-white"
             size="lg"
           >
+            <Plus className="mr-2 h-4 w-4" />
             Nouvelle créance
           </Button>
-        </HStack>
+        </div>
 
         {/* Actions et filtres */}
         <Card>
-          <CardBody>
-            <VStack spacing={4}>
-              <HStack w="full" justify="space-between">
-                <HStack spacing={4} flex={1}>
-                  <InputGroup maxW="400px">
-                    <InputLeftElement pointerEvents="none">
-                      <SearchIcon color="gray.300" />
-                    </InputLeftElement>
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              <div className="flex justify-between w-full">
+                <div className="flex gap-4 flex-1">
+                  <div className="relative max-w-[400px]">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                       placeholder="Rechercher par numéro, objet ou débiteur..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      borderColor="#d1d5db"
-                      _focus={{ borderColor: "#28A325" }}
+                      className="pl-10 border-gray-300 focus:border-[#28A325]"
                     />
-                  </InputGroup>
-                  
-                  <Select
-                    placeholder="Tous les statuts"
+                  </div>
+
+                  <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    maxW="200px"
-                    borderColor="#d1d5db"
-                    _focus={{ borderColor: "#28A325" }}
+                    className="max-w-[200px] border border-gray-300 rounded-md px-3 py-2 focus:border-[#28A325] focus:outline-none"
                   >
+                    <option value="">Tous les statuts</option>
                     <option value="En cours">En cours</option>
                     <option value="En retard">En retard</option>
                     <option value="Remboursé">Remboursé</option>
-                  </Select>
+                  </select>
 
-                  <Select
-                    placeholder="Tous les groupes"
+                  <select
                     value={groupeFilter}
                     onChange={(e) => setGroupeFilter(e.target.value)}
-                    maxW="200px"
-                    borderColor="#d1d5db"
-                    _focus={{ borderColor: "#28A325" }}
+                    className="max-w-[200px] border border-gray-300 rounded-md px-3 py-2 focus:border-[#28A325] focus:outline-none"
                   >
+                    <option value="">Tous les groupes</option>
                     <option value="Prêts immobiliers">Prêts immobiliers</option>
                     <option value="Prêts véhicules">Prêts véhicules</option>
                     <option value="Prêts consommation">Prêts consommation</option>
-                  </Select>
-                </HStack>
-              </HStack>
+                  </select>
+                </div>
+              </div>
 
-              <HStack w="full" justify="space-between">
-                <Text fontSize="sm" color="gray.600">
+              <div className="flex justify-between w-full">
+                <p className="text-sm text-gray-600">
                   {filteredCreances.length} créance(s) trouvée(s)
-                </Text>
-                <Text fontSize="sm" color="gray.600">
+                </p>
+                <p className="text-sm text-gray-600">
                   Total solde: {formatCurrency(filteredCreances.reduce((sum, c) => sum + c.totalSolde, 0))}
-                </Text>
-              </HStack>
-            </VStack>
-          </CardBody>
+                </p>
+              </div>
+            </div>
+          </CardContent>
         </Card>
 
         {/* Tableau des créances */}
         <Card>
           <CardHeader>
-            <Heading size="md" color="#1a202c">Liste des créances</Heading>
+            <CardTitle className="text-[#1a202c]">Liste des créances</CardTitle>
           </CardHeader>
-          <CardBody>
-            <TableContainer>
-              <Table variant="simple">
-                <Thead>
-                  <Tr>
-                    <Th color="#374151">Numéro</Th>
-                    <Th color="#374151">Objet</Th>
-                    <Th color="#374151">Débiteur</Th>
-                    <Th color="#374151">Capital initial</Th>
-                    <Th color="#374151">Montant impayé</Th>
-                    <Th color="#374151">Total solde</Th>
-                    <Th color="#374151">Statut</Th>
-                    <Th color="#374151">Date création</Th>
-                    <Th color="#374151">Actions</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[#374151]">Numéro</TableHead>
+                    <TableHead className="text-[#374151]">Objet</TableHead>
+                    <TableHead className="text-[#374151]">Débiteur</TableHead>
+                    <TableHead className="text-[#374151]">Capital initial</TableHead>
+                    <TableHead className="text-[#374151]">Montant impayé</TableHead>
+                    <TableHead className="text-[#374151]">Total solde</TableHead>
+                    <TableHead className="text-[#374151]">Statut</TableHead>
+                    <TableHead className="text-[#374151]">Date création</TableHead>
+                    <TableHead className="text-[#374151]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {loading ? (
-                    <Tr>
-                      <Td colSpan={9} textAlign="center" py={8}>
-                        <Text color="gray.500">Chargement des créances...</Text>
-                      </Td>
-                    </Tr>
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8">
+                        <p className="text-gray-500">Chargement des créances...</p>
+                      </TableCell>
+                    </TableRow>
                   ) : filteredCreances.length === 0 ? (
-                    <Tr>
-                      <Td colSpan={9} textAlign="center" py={8}>
-                        <Text color="gray.500">Aucune créance trouvée</Text>
-                      </Td>
-                    </Tr>
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8">
+                        <p className="text-gray-500">Aucune créance trouvée</p>
+                      </TableCell>
+                    </TableRow>
                   ) : (
                     filteredCreances.map((creance) => (
-                      <Tr key={creance.id} _hover={{ bg: "gray.50" }}>
-                        <Td fontWeight="medium">{creance.numeroCreance}</Td>
-                        <Td>{creance.objetCreance}</Td>
-                        <Td>{creance.debiteurNom} {creance.debiteurPrenom}</Td>
-                        <Td>{formatCurrency(creance.capitalInitial)}</Td>
-                        <Td>{formatCurrency(creance.montantImpaye)}</Td>
-                        <Td fontWeight="bold" color={creance.totalSolde > 0 ? "red.500" : "green.500"}>
+                      <TableRow key={creance.id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium">{creance.numeroCreance}</TableCell>
+                        <TableCell>{creance.objetCreance}</TableCell>
+                        <TableCell>{creance.debiteurNom} {creance.debiteurPrenom}</TableCell>
+                        <TableCell>{formatCurrency(creance.capitalInitial)}</TableCell>
+                        <TableCell>{formatCurrency(creance.montantImpaye)}</TableCell>
+                        <TableCell className={`font-bold ${creance.totalSolde > 0 ? 'text-red-500' : 'text-green-500'}`}>
                           {formatCurrency(creance.totalSolde)}
-                        </Td>
-                        <Td>
-                          <Badge colorScheme={getStatusColor(creance.statutCreance)}>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(creance.statutCreance)}>
                             {creance.statutCreance}
                           </Badge>
-                        </Td>
-                        <Td>{new Date(creance.dateCreation).toLocaleDateString('fr-FR')}</Td>
-                        <Td>
-                          <HStack spacing={1}>
-                            <IconButton
-                              aria-label="Voir"
-                              icon={<ViewIcon />}
-                              size="sm"
+                        </TableCell>
+                        <TableCell>{new Date(creance.dateCreation).toLocaleDateString('fr-FR')}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button
                               variant="ghost"
-                              colorScheme="blue"
+                              size="sm"
                               onClick={() => handleViewCreance(creance)}
-                            />
-                            <IconButton
-                              aria-label="Modifier"
-                              icon={<EditIcon />}
-                              size="sm"
+                              className="h-8 w-8 p-0"
+                            >
+                              <Eye className="h-4 w-4 text-blue-600" />
+                            </Button>
+                            <Button
                               variant="ghost"
-                              colorScheme="green"
+                              size="sm"
                               onClick={() => handleEditCreance(creance)}
-                            />
-                            <IconButton
-                              aria-label="Supprimer"
-                              icon={<DeleteIcon />}
-                              size="sm"
+                              className="h-8 w-8 p-0"
+                            >
+                              <Pencil className="h-4 w-4 text-green-600" />
+                            </Button>
+                            <Button
                               variant="ghost"
-                              colorScheme="red"
+                              size="sm"
                               onClick={() => handleDeleteCreance(creance)}
-                            />
-                          </HStack>
-                        </Td>
-                      </Tr>
+                              className="h-8 w-8 p-0"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     ))
                   )}
-                </Tbody>
+                </TableBody>
               </Table>
-            </TableContainer>
-          </CardBody>
+            </div>
+          </CardContent>
         </Card>
-      </VStack>
-    </Box>
+      </div>
+    </div>
   );
 };
 

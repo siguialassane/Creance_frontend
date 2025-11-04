@@ -1,9 +1,21 @@
 import { Ville, VilleApiResponse, VilleCreateRequest, VilleUpdateRequest } from "@/types/ville";
+import { PaginationParams, ApiResponse } from "@/types/pagination";
+import { fetchPaginatedData, ApiClient } from "@/lib/api";
 
 export class VilleService {
   private static readonly BASE_URL = "/villes";
 
-  static async getAll(apiClient: any): Promise<VilleApiResponse> {
+  /**
+   * Récupère toutes les villes avec pagination
+   */
+  static async getAll(apiClient: ApiClient, params: PaginationParams = {}): Promise<ApiResponse<Ville>> {
+    return await fetchPaginatedData<Ville>(this.BASE_URL, params);
+  }
+
+  /**
+   * Récupère toutes les villes (méthode legacy pour compatibilité)
+   */
+  static async getAllLegacy(apiClient: any): Promise<VilleApiResponse> {
     const response = await apiClient.get<VilleApiResponse>(this.BASE_URL);
     return response.data;
   }

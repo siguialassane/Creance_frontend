@@ -1,4 +1,6 @@
 import { DebiteurCreateRequest, DebiteurApiResponse, DebiteurResponse } from "@/types/debiteur";
+import { PaginationParams, ApiResponse } from "@/types/pagination";
+import { fetchPaginatedData, ApiClient } from "@/lib/api";
 
 export class DebiteurService {
   private static readonly BASE_URL = "/debiteurs";
@@ -23,7 +25,17 @@ export class DebiteurService {
     return cleaned;
   }
 
-  static async getAll(apiClient: any): Promise<any> {
+  /**
+   * Récupère tous les débiteurs avec pagination
+   */
+  static async getAll(apiClient: ApiClient, params: PaginationParams = {}): Promise<ApiResponse<any>> {
+    return await fetchPaginatedData<any>(this.BASE_URL, params);
+  }
+
+  /**
+   * Récupère tous les débiteurs (méthode legacy pour compatibilité)
+   */
+  static async getAllLegacy(apiClient: any): Promise<any> {
     const response = await apiClient.get(`${this.BASE_URL}`);
     return response.data;
   }
