@@ -1,19 +1,28 @@
 "use client"
 
+import { useState } from "react"
 import { useSession } from "next-auth/react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { User, Mail, Calendar, Shield, Settings, Edit } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useBanques } from "@/hooks/useBanques"
+import { User, Mail, Calendar, Shield, Edit, Save, X } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
+import { useApiClient } from "@/hooks/useApiClient"
 
 export default function ProfilePage() {
-  const { data: session } = useSession()
-  const router = useRouter()
-  const { data: banques, isLoading, error } = useBanques()
+  const { data: session, update } = useSession()
+  const apiClient = useApiClient()
+  const [isEditing, setIsEditing] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    name: (session as any)?.user?.name || "",
+    email: (session as any)?.user?.email || "",
+    username: (session as any)?.user?.username || "",
+  })
 
   // Get user initials for avatar fallback
   const getInitials = (username: string) => {
@@ -26,25 +35,61 @@ export default function ProfilePage() {
   }
 
   const handleEditProfile = () => {
-    // TODO: Implement edit profile functionality
-    console.log("Edit profile clicked")
+    setFormData({
+      name: (session as any)?.user?.name || "",
+      email: (session as any)?.user?.email || "",
+      username: (session as any)?.user?.username || "",
+    })
+    setIsEditing(true)
   }
 
-  const handleChangePassword = () => {
-    // TODO: Implement change password functionality
-    console.log("Change password clicked")
+  const handleSaveProfile = async () => {
+    setIsLoading(true)
+    try {
+      // Ici vous pouvez ajouter un appel API pour mettre à jour le profil
+      // Pour l'instant, on met juste à jour la session locale
+      await update({
+        ...session,
+        user: {
+          ...(session as any)?.user,
+          name: formData.name,
+          email: formData.email,
+          username: formData.username,
+        }
+      })
+      
+      toast.success("Profil mis à jour avec succès")
+      setIsEditing(false)
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du profil:", error)
+      toast.error("Erreur lors de la mise à jour du profil")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleCancel = () => {
+    setFormData({
+      name: (session as any)?.user?.name || "",
+      email: (session as any)?.user?.email || "",
+      username: (session as any)?.user?.username || "",
+    })
+    setIsEditing(false)
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Mon Profil</h1>
-            <p className="text-gray-600 mt-1">Gérez vos informations personnelles et paramètres de compte</p>
+            <p className="text-gray-600 mt-1">Gérez vos informations personnelles</p>
           </div>
-          <Button onClick={handleEditProfile} className="bg-emerald-600 hover:bg-emerald-700">
+          <Button 
+            onClick={handleEditProfile} 
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
             <Edit className="mr-2 h-4 w-4" />
             Modifier
           </Button>
@@ -53,7 +98,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profile Card */}
           <div className="lg:col-span-1">
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden shadow-lg">
               <CardHeader className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-center pb-8">
                 <div className="flex justify-center mb-4">
                   <Avatar className="h-24 w-24 ring-4 ring-white/20">
@@ -75,17 +120,14 @@ export default function ProfilePage() {
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Session ID</span>
-                    <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                      {(session as any)?.user?.sessionId || "N/A"}
-                    </span>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Statut</span>
-                    <Badge variant="outline" className="text-green-600 border-green-600">
+                    <Badge variant="outline" className="text-emerald-600 border-emerald-600">
                       En ligne
                     </Badge>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <span className="text-sm text-gray-600">Dernière connexion</span>
+                    <span className="text-sm text-gray-900">Aujourd'hui</span>
                   </div>
                 </div>
               </CardContent>
@@ -95,7 +137,7 @@ export default function ProfilePage() {
           {/* Details Cards */}
           <div className="lg:col-span-2 space-y-6">
             {/* Personal Information */}
-            <Card>
+            <Card className="shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <User className="mr-2 h-5 w-5 text-emerald-600" />
@@ -105,129 +147,58 @@ export default function ProfilePage() {
                   Vos informations de base et coordonnées
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Nom complet</label>
-                    <p className="text-sm text-gray-900 mt-1">{(session as any)?.user?.name || "Non renseigné"}</p>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-600">Nom complet</Label>
+                    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                      <User className="h-4 w-4 text-gray-400" />
+                      <p className="text-sm text-gray-900 font-medium">
+                        {(session as any)?.user?.name || "Non renseigné"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Nom d'utilisateur</label>
-                    <p className="text-sm text-gray-900 mt-1">{(session as any)?.user?.username || "Non renseigné"}</p>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-600">Nom d'utilisateur</Label>
+                    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                      <User className="h-4 w-4 text-gray-400" />
+                      <p className="text-sm text-gray-900 font-medium">
+                        {(session as any)?.user?.username || "Non renseigné"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Email</label>
-                    <p className="text-sm text-gray-900 mt-1">{(session as any)?.user?.email || "Non renseigné"}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">ID utilisateur</label>
-                    <p className="text-sm text-gray-900 mt-1 font-mono">{(session as any)?.user?.id || "N/A"}</p>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-sm font-medium text-gray-600">Email</Label>
+                    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <p className="text-sm text-gray-900 font-medium">
+                        {(session as any)?.user?.email || "Non renseigné"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Account Security */}
-            <Card>
+            <Card className="shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Shield className="mr-2 h-5 w-5 text-emerald-600" />
                   Sécurité du compte
                 </CardTitle>
                 <CardDescription>
-                  Gérez la sécurité de votre compte et vos mots de passe
+                  Informations de sécurité de votre compte
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center">
-                    <Mail className="mr-3 h-5 w-5 text-gray-400" />
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-5 w-5 text-gray-400" />
                     <div>
-                      <p className="font-medium">Mot de passe</p>
-                      {/* <p className="text-sm text-gray-600">Dernière modification il y a 30 jours</p> */}
+                      <p className="font-medium text-gray-900">Mot de passe</p>
+                      <p className="text-sm text-gray-500">Pour des raisons de sécurité, la modification du mot de passe doit être effectuée par un administrateur</p>
                     </div>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={handleChangePassword}>
-                    Modifier
-                  </Button>
-                </div>
-                {/* <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center">
-                    <Calendar className="mr-3 h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="font-medium">Session active</p>
-                      <p className="text-sm text-gray-600">Connecté depuis aujourd'hui</p>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-green-600 border-green-600">
-                    Actif
-                  </Badge>
-                </div> */}
-              </CardContent>
-            </Card>
-
-            {/* System Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Settings className="mr-2 h-5 w-5 text-emerald-600" />
-                  Informations système
-                </CardTitle>
-                <CardDescription>
-                  Détails techniques de votre session
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Session ID</label>
-                    <p className="text-sm text-gray-900 mt-1 font-mono break-all">
-                      {(session as any)?.user?.sessionId || "N/A"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Type de session</label>
-                    <p className="text-sm text-gray-900 mt-1">JWT</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Dernière connexion</label>
-                    <p className="text-sm text-gray-900 mt-1">Aujourd'hui</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Statut</label>
-                    <Badge variant="outline" className="text-green-600 border-green-600">
-                      Authentifié
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Test API */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Test API</CardTitle>
-                <CardDescription>
-                  Test de l'authentification avec l'API des banques
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 border rounded-lg">
-                  <p className="text-sm font-medium mb-2">Statut de l'API :</p>
-                  {isLoading && <p className="text-blue-600">🔄 Chargement...</p>}
-                  {error && <p className="text-red-600">❌ Erreur: {error.message}</p>}
-                  {banques && <p className="text-green-600">✅ API accessible - {banques.length} banques trouvées</p>}
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <p className="text-sm font-medium mb-2">Token d'authentification :</p>
-                  <p className="text-xs font-mono break-all bg-gray-100 p-2 rounded">
-                    {(session as any)?.accessToken ? 
-                      `Bearer ${(session as any).accessToken.substring(0, 50)}...` : 
-                      'Aucun token trouvé'
-                    }
-                  </p>
-                  <div className="mt-2 text-xs text-gray-500">
-                    <p>Session complète : {JSON.stringify(session, null, 2)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -235,6 +206,67 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Dialog de modification */}
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Modifier mon profil</DialogTitle>
+            <DialogDescription>
+              Mettez à jour vos informations personnelles
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nom complet</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Votre nom complet"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="username">Nom d'utilisateur</Label>
+              <Input
+                id="username"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                placeholder="Votre nom d'utilisateur"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="Votre adresse email"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
+              <X className="mr-2 h-4 w-4" />
+              Annuler
+            </Button>
+            <Button onClick={handleSaveProfile} disabled={isLoading} className="bg-emerald-600 hover:bg-emerald-700">
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Enregistrement...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Enregistrer
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

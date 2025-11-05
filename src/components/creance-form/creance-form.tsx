@@ -242,6 +242,88 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
     }];
   });
 
+
+  // Mettre à jour les garanties et pièces quand formData change (pour l'édition)
+  useEffect(() => {
+    // Traiter les garanties réelles et personnelles depuis l'API
+    if (formData?.garantiesReelles && Array.isArray(formData.garantiesReelles) && formData.garantiesReelles.length > 0) {
+      const garantiesReellesFormatted = formData.garantiesReelles.map((g: any, idx: number) => ({
+        id: idx + 1,
+        type: g.GAREEL_TYPGAR || g.type || '',
+        typeGarantie: 'reelles',
+        description: g.GAR_REEL_DESCRIPTION || g.description || '',
+        valeur: g.GAR_REEL_VALEUR || g.valeur || '',
+        adresse: g.GAR_REEL_ADRESSE || g.adresse || '',
+        surface: g.GAR_REEL_SURFACE || g.surface || '',
+        circonscription: g.CIRCONSCRIPTION_CODE || g.circonscription || '',
+        titreFoncier: g.TITRE_FONCIER_NUM || g.titreFoncier || '',
+        terrain: g.TERRAIN_CODE || g.terrain || '',
+        logement: g.LOGEMENT_CODE || g.logement || '',
+        ...g
+      }));
+      
+      // Si on a des garanties réelles, les ajouter ou remplacer
+      setGaranties((prev) => {
+        const hasReelles = prev.some(g => g.typeGarantie === 'reelles' || g.type === 'reelles');
+        if (hasReelles) {
+          // Remplacer les garanties réelles existantes
+          return [...prev.filter(g => g.typeGarantie !== 'reelles' && g.type !== 'reelles'), ...garantiesReellesFormatted];
+        } else {
+          return [...prev, ...garantiesReellesFormatted];
+        }
+      });
+    }
+
+    // Traiter les garanties personnelles depuis l'API
+    if (formData?.garantiesPersonnelles && Array.isArray(formData.garantiesPersonnelles) && formData.garantiesPersonnelles.length > 0) {
+      const garantiesPersonnellesFormatted = formData.garantiesPersonnelles.map((g: any, idx: number) => ({
+        id: (formData?.garantiesReelles?.length || 0) + idx + 1,
+        type: g.GARPHYS_TYPGAR || g.type || '',
+        typeGarantie: 'personnelles',
+        nom: g.DEB_NOM || g.nom || '',
+        prenoms: g.DEB_PREN || g.prenoms || '',
+        tel: g.GARPHYS_TEL || g.tel || '',
+        adressePostale: g.GARPHYS_ADR || g.adressePostale || '',
+        profession: g.GARPHYS_PROFESSION || g.profession || '',
+        employeur: g.GARPHYS_EMPLOYEUR || g.employeur || '',
+        revenu: g.GARPHYS_REVENU || g.revenu || '',
+        civCode: g.CIV_CODE || g.civCode || '',
+        quartier: g.QUART_CODE || g.quartier || '',
+        ville: g.VILLE_CODE || g.ville || '',
+        debCode: g.DEB_CODE || g.debCode || '',
+        numeroGarantie: g.GARPHYS_CODE || g.numeroGarantie || '',
+        ...g
+      }));
+      
+      // Si on a des garanties personnelles, les ajouter ou remplacer
+      setGaranties((prev) => {
+        const hasPersonnelles = prev.some(g => g.typeGarantie === 'personnelles' || (g.type !== 'reelles' && g.type));
+        if (hasPersonnelles) {
+          // Remplacer les garanties personnelles existantes
+          return [...prev.filter(g => g.typeGarantie !== 'personnelles' && (g.type === 'reelles' || !g.type)), ...garantiesPersonnellesFormatted];
+        } else {
+          return [...prev, ...garantiesPersonnellesFormatted];
+        }
+      });
+    }
+
+    // Traiter les pièces depuis l'API
+    if (formData?.pieces && Array.isArray(formData.pieces) && formData.pieces.length > 0) {
+      const piecesFormatted = formData.pieces.map((p: any, idx: number) => ({
+        id: idx + 1,
+        typePieceCode: p.PIECE_TYPE || p.TYPE_PIECE_CODE || p.typePieceCode || '',
+        numero: p.PIECE_NUM || p.numero || '',
+        date: p.PIECE_DATEDEP || p.PIECE_DATE || p.date || '',
+        description: p.PIECE_DESCRIPTION || p.description || '',
+        fichier: p.PIECE_FICHIER || p.fichier || null,
+        file: p.file || null,
+        ...p
+      }));
+      
+      setPieces(piecesFormatted);
+    }
+  }, [formData?.garantiesReelles, formData?.garantiesPersonnelles, formData?.pieces]);
+
   // Hooks pour les données dynamiques - chargés seulement sur les steps appropriés
   // Step 1: débiteurs, groupes créance, objets créance
   const debiteursSearchable = useDebiteursSearchable();
@@ -801,7 +883,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         </div>
       </div>
 
-      <div className="space-y-2">
+        <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Détail de l'objet</Label>
           <Controller
@@ -822,8 +904,8 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         </div>
         {errors.objetDetail && (
           <p className="text-sm" style={{ color: errorRed }}>{String(errors.objetDetail.message)}</p>
-        )}
-      </div>
+          )}
+        </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
@@ -869,7 +951,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               />
             )}
           />
-          </div>
+        </div>
           {errors.montantDecaisse && (
             <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantDecaisse.message)}</p>
           )}
@@ -896,7 +978,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             <p className="text-sm" style={{ color: errorRed }}>{String(errors.numeroPrecedent.message)}</p>
           )}
         </div>
-      </div>
+        </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
@@ -906,8 +988,8 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             name="numeroAncien"
             control={control}
             render={({ field }) => (
-                <Input
-                  {...field}
+              <Input
+                {...field}
                 placeholder="Numéro ancien"
                 className={`${!!errors.numeroAncien ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
                 style={{ borderColor: !!errors.numeroAncien ? errorRed : primaryGreen }}
@@ -920,7 +1002,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             <p className="text-sm" style={{ color: errorRed }}>{String(errors.numeroAncien.message)}</p>
           )}
         </div>
-        </div>
+      </div>
 
       {/* Section Dates et conditions - déplacée depuis step2 */}
       <Separator className="my-6" />
@@ -930,7 +1012,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         const dateDeblocage = watch("dateDeblocage");
         return (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
@@ -951,11 +1033,11 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               />
             )}
           />
-                </div>
+        </div>
                 {errors.dateDeblocage && (
                   <p className="text-sm" style={{ color: errorRed }}>{String(errors.dateDeblocage.message)}</p>
           )}
-      </div>
+        </div>
 
         <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -977,7 +1059,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               />
             )}
           />
-                </div>
+        </div>
                 {errors.dateEcheance && (
                   <p className="text-sm" style={{ color: errorRed }}>{String(errors.dateEcheance.message)}</p>
           )}
@@ -987,14 +1069,14 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                 <div className="flex items-center gap-2">
                   <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Périodicité</Label>
           <Controller
-                    name="periodicite"
+            name="periodicite"
             control={control}
             render={({ field }) => (
               readOnly ? (
                 <Input
                           value={field.value === 'M' ? 'Mensuel' : field.value === 'T' ? 'Trimestriel' : field.value === 'S' ? 'Semestriel' : field.value === 'A' ? 'Annuel' : field.value}
                           className="bg-gray-100 text-gray-700 flex-1"
-                          style={{ borderColor: !!errors.periodicite ? errorRed : primaryGreen }}
+                  style={{ borderColor: !!errors.periodicite ? errorRed : primaryGreen }}
                   disabled
                 />
               ) : (
@@ -1003,7 +1085,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                           className="flex h-10 w-full rounded-md border bg-gray-100 px-3 py-2 text-sm text-gray-700 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 flex-1"
                   style={{ borderColor: primaryGreen }}
                 >
-                          <option value="">Sélectionner une périodicité</option>
+                  <option value="">Sélectionner une périodicité</option>
                           <option value="M">Mensuel (M)</option>
                           <option value="T">Trimestriel (T)</option>
                           <option value="S">Semestriel (S)</option>
@@ -1013,11 +1095,11 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             )}
           />
                 </div>
-                {errors.periodicite && (
-                  <p className="text-sm" style={{ color: errorRed }}>{String(errors.periodicite.message)}</p>
+          {errors.periodicite && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.periodicite.message)}</p>
           )}
         </div>
-      </div>
+        </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <div className="space-y-2">
@@ -1030,7 +1112,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                       <NumberInputField
                         value={field.value}
                         onChange={field.onChange}
-                        placeholder="0"
+                placeholder="0"
                         min={1}
                         className={`${!!errors.duree ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
                         style={{ borderColor: !!errors.duree ? errorRed : primaryGreen }}
@@ -1058,11 +1140,11 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                         step={0.1}
                         className={`${!!errors.tauxInteretConventionnel ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
                         style={{ borderColor: !!errors.tauxInteretConventionnel ? errorRed : primaryGreen }}
-                        disabled={readOnly}
-                      />
-                    )}
-                  />
-                </div>
+                disabled={readOnly}
+              />
+            )}
+          />
+        </div>
                 {errors.tauxInteretConventionnel && (
                   <p className="text-sm" style={{ color: errorRed }}>{String(errors.tauxInteretConventionnel.message)}</p>
           )}
@@ -1086,7 +1168,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               />
             )}
           />
-                </div>
+        </div>
                 {errors.tauxInteretRetard && (
                   <p className="text-sm" style={{ color: errorRed }}>{String(errors.tauxInteretRetard.message)}</p>
           )}
@@ -1105,7 +1187,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                     rules={{ required: "L'ordonnateur est obligatoire" }}
             render={({ field }) => (
               readOnly ? (
-                <Input
+              <Input
                           value={getOrdonnateurLibelle(field.value)}
                           className="bg-gray-100 text-gray-700 flex-1"
                           style={{ borderColor: !!errors.ordonnateur ? errorRed : primaryGreen }}
@@ -1125,8 +1207,8 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                             onLoadMore={ordonnateursSearchable.loadMore}
                             isFetchingMore={ordonnateursSearchable.isFetchingMore}
                             onSearchChange={ordonnateursSearchable.setSearch}
-                            disabled={readOnly}
-                          />
+                disabled={readOnly}
+              />
                         </div>
               )
             )}
@@ -1191,12 +1273,12 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                       )
                     )}
                   />
-                </div>
+        </div>
                 {errors.statut && (
                   <p className="text-sm" style={{ color: errorRed }}>{String(errors.statut.message)}</p>
           )}
         </div>
-            </div>
+      </div>
           </>
         );
       })()}
@@ -1588,16 +1670,16 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label style={{ color: labelColor }}>Type de pièce</Label>
+        <div className="space-y-2">
+          <Label style={{ color: labelColor }}>Type de pièce</Label>
                 {readOnly ? (
-                  <Input
+                <Input
                     value={piece.typePieceCode || ''}
-                    className="bg-gray-100 text-gray-700"
+                  className="bg-gray-100 text-gray-700"
                     style={{ borderColor: primaryGreen }}
-                    disabled
-                  />
-                ) : (
+                  disabled
+                />
+              ) : (
                   <SearchableSelect
                     value={piece.typePieceCode || ""}
                     onValueChange={(value) => updatePiece(piece.id, 'typePieceCode', value)}
@@ -1612,49 +1694,49 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                     onSearchChange={typePiecesSearchable.setSearch}
                     disabled={readOnly}
                   />
-                )}
-              </div>
+          )}
+        </div>
 
-              <div className="space-y-2">
+        <div className="space-y-2">
                 <Label style={{ color: labelColor }}>Numéro</Label>
-                <Input
+              <Input
                   value={piece.numero || ''}
                   onChange={(e) => updatePiece(piece.id, 'numero', e.target.value)}
                   placeholder="Numéro de la pièce"
                   style={{ borderColor: primaryGreen }}
                   className="focus:ring-2"
-                  disabled={readOnly}
-                />
-              </div>
+                disabled={readOnly}
+              />
+        </div>
 
-              <div className="space-y-2">
+        <div className="space-y-2">
                 <Label style={{ color: labelColor }}>Date</Label>
-                <Input
-                  type="date"
+              <Input
+                type="date"
                   value={piece.date || ''}
                   onChange={(e) => updatePiece(piece.id, 'date', e.target.value)}
                   style={{ borderColor: primaryGreen }}
                   className="focus:ring-2"
-                  disabled={readOnly}
-                />
-              </div>
+                disabled={readOnly}
+              />
+      </div>
 
-              <div className="space-y-2">
+        <div className="space-y-2">
                 <Label style={{ color: labelColor }}>Description</Label>
                 <Input
                   value={piece.description || ''}
                   onChange={(e) => updatePiece(piece.id, 'description', e.target.value)}
-                  placeholder="Description de la pièce"
+                placeholder="Description de la pièce"
                   style={{ borderColor: primaryGreen }}
                   className="focus:ring-2"
-                  disabled={readOnly}
-                />
-              </div>
+                disabled={readOnly}
+              />
+        </div>
 
               <div className="space-y-2 md:col-span-2">
                 <Label style={{ color: labelColor }}>Fichier</Label>
                 {readOnly ? (
-                  <Input
+              <Input
                     value={piece.fichier || ''}
                     className="bg-gray-100 text-gray-700"
                     style={{ borderColor: primaryGreen }}
@@ -1676,8 +1758,8 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   <p className="text-xs text-gray-500 mt-1">
                     Fichier sélectionné : {piece.file.name}
                   </p>
-                )}
-              </div>
+          )}
+        </div>
             </div>
           </div>
         ))}
@@ -2204,15 +2286,15 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
 
                 <div className="space-y-2">
                   <Label style={{ color: labelColor }}>Valeur</Label>
-                  <Input
+                      <Input
                     type="number"
                     value={garantie.valeur || ''}
                     onChange={(e) => updateGarantie(garantie.id, 'valeur', e.target.value ? parseFloat(e.target.value) : '')}
                     placeholder="Valeur de la garantie"
                     style={{ borderColor: primaryGreen }}
                     className="focus:ring-2"
-                    disabled={readOnly}
-                  />
+                        disabled={readOnly}
+                      />
                 </div>
 
                 <div className="space-y-2">
@@ -2232,14 +2314,14 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label style={{ color: labelColor }}>Adresse</Label>
-                  <Input
+                      <Input
                     value={garantie.adresse || ''}
                     onChange={(e) => updateGarantie(garantie.id, 'adresse', e.target.value)}
                     placeholder="Adresse de la garantie"
                     style={{ borderColor: primaryGreen }}
                     className="focus:ring-2"
-                    disabled={readOnly}
-                  />
+                        disabled={readOnly}
+                      />
                 </div>
 
                 <div className="space-y-2">
@@ -2257,14 +2339,14 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
 
                 <div className="space-y-2">
                   <Label style={{ color: labelColor }}>Numéro titre foncier</Label>
-                  <Input
+                      <Input
                     value={garantie.titreFoncier || ''}
                     onChange={(e) => updateGarantie(garantie.id, 'titreFoncier', e.target.value)}
                     placeholder="Numéro titre foncier"
                     style={{ borderColor: primaryGreen }}
                     className="focus:ring-2"
-                    disabled={readOnly}
-                  />
+                        disabled={readOnly}
+                      />
                 </div>
               </div>
 

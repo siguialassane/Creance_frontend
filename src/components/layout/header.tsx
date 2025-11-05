@@ -75,38 +75,38 @@ export default function Header({ onMenuToggle, isMobile }: HeaderProps) {
       <div className="hidden lg:block flex-1"></div>
 
       {/* Profil utilisateur */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <div className="hidden md:block text-right">
-          <p className="text-sm font-medium text-black">
+          <p className="text-sm font-semibold text-gray-900">
             {(session as any)?.user?.username || "Utilisateur"}
           </p>
-          <p className="text-xs text-green-200 font-medium">En ligne</p>
+          <p className="text-xs text-emerald-600 font-medium">En ligne</p>
         </div>
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-12 w-12 rounded-full hover:bg-green-600/30">
-              <Avatar className="h-10 w-10 ring-2 ring-green-300">
+            <Button variant="ghost" className="relative h-12 w-12 rounded-full hover:bg-gray-100 p-0">
+              <Avatar className="h-11 w-11 ring-2 ring-emerald-200">
                 <AvatarImage src="/avatars/default.png" alt="Profil" />
-                <AvatarFallback className="bg-green-500 text-white font-semibold">
+                <AvatarFallback className="bg-emerald-600 text-white font-semibold text-sm">
                   {(session as any)?.user?.username ? getInitials((session as any).user.username) : "U"}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-400 border-2 border-green-800 rounded-full"></div>
+              <div className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-emerald-500 border-2 border-white rounded-full"></div>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
-            <DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-72">
+            <DropdownMenuLabel className="px-4 py-3">
               <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-12 w-12">
                   <AvatarImage src="/avatars/default.png" alt="Profil" />
-                  <AvatarFallback className="bg-emerald-600 text-black font-semibold">
+                  <AvatarFallback className="bg-emerald-600 text-white font-semibold">
                     {(session as any)?.user?.username ? getInitials((session as any).user.username) : "U"}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="font-medium">{(session as any)?.user?.username || "Utilisateur"}</p>
-                  <p className="text-xs text-gray-500">{(session as any)?.user?.email || ""}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 truncate">{(session as any)?.user?.username || "Utilisateur"}</p>
+                  <p className="text-xs text-gray-500 truncate">{(session as any)?.user?.email || ""}</p>
                 </div>
               </div>
             </DropdownMenuLabel>

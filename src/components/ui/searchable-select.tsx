@@ -40,6 +40,7 @@ interface SearchableSelectProps {
   isFetchingMore?: boolean
   onSearchChange?: (search: string) => void
   displayValue?: (item: SearchableSelectItem) => string
+  search?: string
 }
 
 export function SearchableSelect({
@@ -57,26 +58,26 @@ export function SearchableSelect({
   isFetchingMore = false,
   onSearchChange,
   displayValue,
+  search: externalSearch,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false)
-  const [search, setSearch] = React.useState("")
+  const [internalSearch, setInternalSearch] = React.useState("")
+  const currentSearch = externalSearch !== undefined ? externalSearch : internalSearch
+  
   const listRef = React.useRef<HTMLDivElement>(null)
   const commandInputRef = React.useRef<HTMLInputElement>(null)
 
   // Trouver l'item sélectionné pour afficher son label
   const selectedItem = items.find((item) => item.value === value)
 
-  // Réinitialiser la recherche quand on ferme/ouvre le popover
+  // Réinitialiser la recherche quand on ferme le popover (pas quand on l'ouvre pour éviter les fermetures)
   React.useEffect(() => {
     if (!open) {
-      setSearch("")
+      setInternalSearch("")
       onSearchChange?.("")
     } else {
-      // Quand on ouvre, réinitialiser aussi la recherche dans le parent
-      setSearch("")
-      onSearchChange?.("")
+      // Quand on ouvre, ne pas réinitialiser la recherche immédiatement pour éviter les fermetures
       // Mettre le focus sur le champ de recherche quand le popover s'ouvre
-      // Utiliser un petit délai pour s'assurer que le DOM est prêt
       setTimeout(() => {
         if (commandInputRef.current) {
           commandInputRef.current.focus()
@@ -96,9 +97,11 @@ export function SearchableSelect({
 
   // Gérer le changement de recherche
   const handleSearchChange = React.useCallback((newSearch: string) => {
-    setSearch(newSearch)
+    if (externalSearch === undefined) {
+      setInternalSearch(newSearch)
+    }
     onSearchChange?.(newSearch)
-  }, [onSearchChange])
+  }, [externalSearch, onSearchChange])
 
   // Observer pour détecter le scroll et charger plus d'items
   React.useEffect(() => {
@@ -125,7 +128,10 @@ export function SearchableSelect({
 
       if (!scrollElement) return
 
-      const handleScroll = () => {
+      const handleScroll = (e: Event) => {
+        // Empêcher la propagation du scroll vers le drawer parent
+        e.stopPropagation()
+        
         if (!scrollElement || isFetchingMore) return
         const { scrollTop, scrollHeight, clientHeight } = scrollElement
         // Charger plus quand on est à 90% du scroll
@@ -134,11 +140,11 @@ export function SearchableSelect({
         }
       }
 
-      scrollElement.addEventListener("scroll", handleScroll, { passive: true })
+      scrollElement.addEventListener("scroll", handleScroll, { passive: true, capture: true })
       
       cleanup = () => {
         if (scrollElement) {
-          scrollElement.removeEventListener("scroll", handleScroll)
+          scrollElement.removeEventListener("scroll", handleScroll, { capture: true })
         }
       }
     }, 150)
@@ -154,7 +160,13 @@ export function SearchableSelect({
   return (
     <Popover 
       open={disabled ? false : open} 
-      onOpenChange={disabled ? undefined : setOpen}
+      onOpenChange={(newOpen) => {
+        // Ne pas fermer pendant le chargement
+        if (!newOpen && (isLoading || isFetchingMore)) {
+          return
+        }
+        setOpen(newOpen)
+      }}
       modal={false}
     >
       <PopoverTrigger asChild>
@@ -203,41 +215,96 @@ export function SearchableSelect({
       <PopoverContent 
         className="w-[var(--radix-popover-trigger-width)] p-0 z-[100]" 
         align="start"
-        onInteractOutside={(e) => {
+        sideOffset={4}
+        onPointerDownOutside={(e) => {
           const target = e.target as HTMLElement
           
-          // Ne jamais fermer si on clique dans le formulaire (Dialog ou form parent)
-          const isFormElement = target.closest('form') || 
-                                target.closest('[role="dialog"]') ||
-                                target.tagName === 'INPUT' ||
-                                target.tagName === 'TEXTAREA' ||
-                                target.tagName === 'SELECT' ||
-                                target.closest('button[type="submit"]') ||
-                                target.closest('button[type="button"]')
+          // Ne jamais fermer si on clique dans le formulaire (Dialog, Sheet, ou form parent)
+          const isInsideDialog = target.closest('[role="dialog"]') || 
+                                target.closest('[data-slot="sheet"]') ||
+                                target.closest('[data-slot="sheet-content"]')
           
-          // Ne fermer que si on clique vraiment en dehors du formulaire
-          // Mais ne pas empêcher si c'est dans le popover lui-même
-          if (isFormElement && 
-              !target.closest('[cmdk-root]') && 
-              !target.closest('[data-slot="popover-content"]') &&
-              !target.closest('[data-slot="popover"]')) {
+          // Ne jamais fermer si on clique dans le popover lui-même ou dans le Command
+          const isInsidePopover = target.closest('[cmdk-root]') || 
+                                 target.closest('[data-slot="popover-content"]') ||
+                                 target.closest('[data-slot="popover"]') ||
+                                 target.closest('[data-slot="command"]')
+          
+          // Ne jamais fermer si on clique dans un autre Select (SelectContent de Radix)
+          const isInsideSelect = target.closest('[role="listbox"]') ||
+                                target.closest('[data-radix-select-content]')
+          
+          // Ne jamais fermer pendant le chargement pour éviter les fermetures intempestives
+          if (isLoading || isFetchingMore) {
+            e.preventDefault()
+            return
+          }
+          
+          // Ne fermer que si on clique vraiment en dehors du formulaire ET du popover ET des selects
+          if (isInsideDialog || isInsidePopover || isInsideSelect) {
             e.preventDefault()
           }
         }}
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement
+          
+          // Ne jamais fermer si on clique dans le formulaire (Dialog, Sheet, ou form parent)
+          const isInsideDialog = target.closest('[role="dialog"]') || 
+                                target.closest('[data-slot="sheet"]') ||
+                                target.closest('[data-slot="sheet-content"]')
+          
+          // Ne jamais fermer si on clique dans le popover lui-même ou dans le Command
+          const isInsidePopover = target.closest('[cmdk-root]') || 
+                                 target.closest('[data-slot="popover-content"]') ||
+                                 target.closest('[data-slot="popover"]') ||
+                                 target.closest('[data-slot="command"]')
+          
+          // Ne jamais fermer si on clique dans un autre Select (SelectContent de Radix)
+          const isInsideSelect = target.closest('[role="listbox"]') ||
+                                target.closest('[data-radix-select-content]')
+          
+          // Ne jamais fermer pendant le chargement pour éviter les fermetures intempestives
+          if (isLoading || isFetchingMore) {
+            e.preventDefault()
+            return
+          }
+          
+          // Ne fermer que si on clique vraiment en dehors du formulaire ET du popover ET des selects
+          if (isInsideDialog || isInsidePopover || isInsideSelect) {
+            e.preventDefault()
+          }
+        }}
+        onWheel={(e) => {
+          // Empêcher la propagation du wheel vers le drawer parent quand on scroll dans le popover
+          e.stopPropagation()
+        }}
         onEscapeKeyDown={() => {
-          // Permettre la fermeture avec Escape
-          setOpen(false)
+          // Permettre la fermeture avec Escape seulement si on n'est pas en train de charger
+          if (!isLoading && !isFetchingMore) {
+            setOpen(false)
+          }
         }}
       >
         <Command shouldFilter={false}>
           <CommandInput
             ref={commandInputRef}
             placeholder={searchPlaceholder}
-            value={search}
+            value={currentSearch}
             onValueChange={handleSearchChange}
             autoFocus={open}
           />
-          <CommandList ref={listRef} className="max-h-[300px] overflow-y-auto scroll-smooth">
+          <CommandList 
+            ref={listRef} 
+            className="max-h-[300px] overflow-y-auto scroll-smooth overscroll-contain"
+            onPointerDown={(e) => {
+              // Empêcher la propagation du pointer down vers le drawer
+              e.stopPropagation()
+            }}
+            onWheel={(e) => {
+              // Empêcher la propagation du wheel vers le drawer quand on scroll dans le popover
+              e.stopPropagation()
+            }}
+          >
             {isLoading && items.length === 0 ? (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -254,7 +321,10 @@ export function SearchableSelect({
                     onSelect={() => {
                       onValueChange(item.value === value ? "" : item.value)
                       setOpen(false)
-                      setSearch("")
+                      if (externalSearch === undefined) {
+                        setInternalSearch("")
+                      }
+                      onSearchChange?.("")
                     }}
                   >
                     <Check

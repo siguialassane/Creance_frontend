@@ -9,11 +9,14 @@ import { menuItems } from "@/lib/configs/menu.data";
 import colors from "@/lib/theme/colors";
 import { MenuItem } from "@/lib/types/menu";
 import Image from "next/image";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SidebarProps {
   isOpen?: boolean
   onClose?: () => void
   className?: string
+  isCollapsed?: boolean
+  onToggleCollapse?: () => void
 }
 
 const StyledSideBarMenu = styled.div`
@@ -109,7 +112,37 @@ const StyledSpacer = styled.div`
     height: 48px;
 `;
 
-export default function Sidebar({ isOpen = true, onClose, className }: SidebarProps) {
+const StyledToggleButton = styled.button`
+  position: absolute;
+  top: 20px;
+  right: -8px;
+  width: 36px;
+  height: 36px;
+  background: ${colors.green};
+  border: 3px solid white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 111;
+  transition: all 0.3s ease;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  
+  &:hover {
+    background: ${colors.green};
+    transform: scale(1.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+  
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+`;
+
+export default function Sidebar({ isOpen = true, onClose, className, isCollapsed = false, onToggleCollapse }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const [currentSideBarMenuId, setCurrentItem] = useState<number>(0);
@@ -187,9 +220,19 @@ export default function Sidebar({ isOpen = true, onClose, className }: SidebarPr
     if (!isClient) {
         return (
             <StyledSideBarMenu className={className}>
-                <StyledImage>
-                    <Image src={logo.src} alt="Logo" width={100} height={100} />
-                </StyledImage>
+                <StyledToggleButton onClick={onToggleCollapse || (() => {})} title={isCollapsed ? "Agrandir le menu" : "Réduire le menu"}>
+                    {isCollapsed ? <ChevronRight /> : <ChevronLeft />}
+                </StyledToggleButton>
+                {!isCollapsed && (
+                    <StyledImage>
+                        <Image src={logo.src} alt="Logo" width={100} height={100} />
+                    </StyledImage>
+                )}
+                {isCollapsed && (
+                    <StyledImage>
+                        <Image src={logo.src} alt="Logo" width={40} height={40} />
+                    </StyledImage>
+                )}
                 <StyledSpacer />
             <StyledNavigation>
                 <StyledStack>
@@ -200,6 +243,7 @@ export default function Sidebar({ isOpen = true, onClose, className }: SidebarPr
                             onPressed={handleChangeCurrentItem}
                             menu={mItem}
                             isSelected={false} // Pas de sélection initiale
+                            isCollapsed={isCollapsed}
                         />
                     ))}
                 </StyledStack>
@@ -210,9 +254,19 @@ export default function Sidebar({ isOpen = true, onClose, className }: SidebarPr
 
     return (
         <StyledSideBarMenu className={className}>
-            <StyledImage>
-                <Image src={logo.src} alt="Logo" width={100} height={100} />
-            </StyledImage>
+            <StyledToggleButton onClick={onToggleCollapse} title={isCollapsed ? "Agrandir le menu" : "Réduire le menu"}>
+                {isCollapsed ? <ChevronRight /> : <ChevronLeft />}
+            </StyledToggleButton>
+            {!isCollapsed && (
+                <StyledImage>
+                    <Image src={logo.src} alt="Logo" width={100} height={100} />
+                </StyledImage>
+            )}
+            {isCollapsed && (
+                <StyledImage>
+                    <Image src={logo.src} alt="Logo" width={40} height={40} />
+                </StyledImage>
+            )}
             <StyledSpacer />
             <StyledNavigation>
                 <StyledStack>
@@ -224,6 +278,7 @@ export default function Sidebar({ isOpen = true, onClose, className }: SidebarPr
                                 onPressed={handleChangeCurrentItem}
                                 menu={mItem}
                                 isSelected={currentSideBarMenuId === mItem.id}
+                                isCollapsed={isCollapsed}
                             />
                         ))
                     }

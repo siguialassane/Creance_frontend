@@ -64,4 +64,46 @@ export class DebiteurService {
     const response = await apiClient.delete(`${this.BASE_URL}/${code}`);
     return response.data;
   }
+
+  /**
+   * Exporte les débiteurs en PDF
+   */
+  static async exportPDF(
+    apiClient: ApiClient,
+    params: { search?: string; page?: number; size?: number } = {}
+  ): Promise<Blob> {
+    const queryParams = new URLSearchParams();
+    if (params.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params.size !== undefined) queryParams.append('size', params.size.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    const url = `${this.BASE_URL}/export/pdf${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    
+    const response = await apiClient.get(url, {
+      responseType: 'blob',
+    });
+    
+    return response.data;
+  }
+
+  /**
+   * Exporte les débiteurs en Excel
+   */
+  static async exportExcel(
+    apiClient: ApiClient,
+    params: { search?: string; page?: number; size?: number } = {}
+  ): Promise<Blob> {
+    const queryParams = new URLSearchParams();
+    if (params.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params.size !== undefined) queryParams.append('size', params.size.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    const url = `${this.BASE_URL}/export/excel${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    
+    const response = await apiClient.get(url, {
+      responseType: 'blob',
+    });
+    
+    return response.data;
+  }
 }

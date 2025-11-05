@@ -45,16 +45,16 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
   return (
     <div className="h-screen flex bg-gray-50 border border-[black]!">
       {/* Sidebar des paramètres */}
-      <div className="w-80 bg-emerald-50 flex flex-col">
+      <div className="w-80 flex flex-col" style={{ backgroundColor: '#1d6b1b' }}>
         {/* En-tête */}
-        <div className="p-6 border-b border-[red]!">
+        <div className="p-6 border-b border-emerald-700">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-emerald-100 rounded-xl">
-              <Settings className="h-6 w-6 text-green" />
+            <div className="p-3 bg-emerald-700 rounded-xl">
+              <Settings className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">Paramètres</h1>
-              <p className="text-sm text-gray-500">Paramétrage de l'application</p>
+              <h1 className="text-xl font-semibold text-white">Paramètres</h1>
+              <p className="text-sm text-emerald-100">Paramétrage de l'application</p>
             </div>
           </div>
           
@@ -66,7 +66,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
               placeholder="Rechercher un paramètre..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-10 bg-gray-50 border rounded-none "
+              className="pl-10 h-10 bg-white border rounded-none"
               style={{
                 border: '1px solid #000',
                 padding: '0px 8px',
@@ -96,16 +96,16 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
                     variant="ghost"
                     onClick={() => handleSubMenuClick(subMenu)}
                     className={cn(
-                      "w-full justify-start h-12 px-4 text-left rounded-lg transition-all duration-200",
-                      activeSubMenu?.id === subMenu.id ? "text-[green]! font-bold bg-green-50!" : "text-gray-600",
-                      "hover:bg-green-50 hover:text-green-600"
+                      "w-full justify-start h-12 px-4 text-left rounded-lg transition-all duration-200 cursor-pointer",
+                      activeSubMenu?.id === subMenu.id ? "text-white! font-bold bg-emerald-700!" : "text-emerald-100",
+                      "hover:bg-emerald-700 hover:text-white"
                     )}
                   >
-                    <div className="flex items-center gap-3 w-full">
+                    <div className="flex items-center gap-3 w-full cursor-pointer">
                       <Icon icon={"mdi:chevron-right"} 
                         width={20}
                         height={20}
-                        color={activeSubMenu?.id === subMenu.id ? colors.green : "#64748b"}
+                        color={activeSubMenu?.id === subMenu.id ? "#ffffff" : "#a7f3d0"}
                         className="transition-colors"
                       />
                       <span className="text-sm flex-1 truncate">{subMenu.name}</span>
@@ -113,10 +113,10 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
                   </Button>
                 ))
               ) : (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-emerald-100">
                   <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">Aucun paramètre trouvé</p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-emerald-200 mt-1">
                     Essayez avec d'autres termes
                   </p>
                 </div>
@@ -126,23 +126,23 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div className="p-4 border-t border-emerald-700" style={{ backgroundColor: '#1d6b1b' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green rounded-full"></div>
-              <span className="text-xs font-medium text-gray-600">
+              <div className="w-2 h-2 bg-emerald-300 rounded-full"></div>
+              <span className="text-xs font-medium text-emerald-100">
                 {filteredSubMenus.length} paramètre{filteredSubMenus.length > 1 ? 's' : ''}
               </span>
             </div>
             {searchTerm && (
-              <span className="text-xs text-green bg-emerald-100 px-2 py-1 rounded-full">
+              <span className="text-xs text-white bg-emerald-700 px-2 py-1 rounded-full">
                 {filteredSubMenus.length}/{settingsSubMenus.length}
               </span>
             )}
           </div>
           {activeSubMenu && (
-            <div className="mt-2 pt-2 border-t border-gray-200">
-              <p className="text-xs text-green font-medium truncate">
+            <div className="mt-2 pt-2 border-t border-emerald-700">
+              <p className="text-xs text-white font-medium truncate">
                 📍 {activeSubMenu.name}
               </p>
             </div>

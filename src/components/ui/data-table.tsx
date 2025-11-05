@@ -148,26 +148,26 @@ export function DataTable<TData, TValue>({
 
   // Gestion de la recherche côté serveur
   React.useEffect(() => {
-    // Si onSearchChange est fourni, ne pas déclencher automatiquement la recherche
-    // La recherche sera gérée par le bouton de recherche
-    if (useServerPagination && onPaginationChange && !onSearchChange) {
-      // Délai pour éviter trop de requêtes
+    // Si onSearchSubmit est fourni, ne pas déclencher automatiquement la recherche
+    // La recherche sera gérée uniquement par le bouton de recherche via onSearchSubmit
+    if (useServerPagination && onPaginationChange && !onSearchChange && !onSearchSubmit) {
+      // Délai pour éviter trop de requêtes (seulement si pas de bouton de recherche)
       const timeoutId = setTimeout(() => {
         // Ne déclencher la recherche que si la query a vraiment changé
         // et n'est pas vide (pour éviter les appels inutiles)
         if (query.trim() !== '') {
-          onPaginationChange({ search: query, page: 0 })
+          onPaginationChange({ search: query, page: 0 });
         } else {
-          onPaginationChange({ search: '', page: 0 })
+          onPaginationChange({ search: '', page: 0 });
         }
-      }, 500)
+      }, 500);
 
-      return () => clearTimeout(timeoutId)
+      return () => clearTimeout(timeoutId);
     } else if (!useServerPagination) {
       // Revenir à la première page à chaque saisie pour voir immédiatement les résultats (côté client)
-      table.setPageIndex(0)
+      table.setPageIndex(0);
     }
-  }, [query, table, useServerPagination, onPaginationChange, onSearchChange])
+  }, [query, table, useServerPagination, onPaginationChange, onSearchChange, onSearchSubmit]);
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -175,7 +175,7 @@ export function DataTable<TData, TValue>({
       <div 
         className="px-8 py-4"
         style={{
-          backgroundColor: '#28A325',
+          backgroundColor: '#1d6b1b',
           color: 'white',
         }}
       >
@@ -194,62 +194,74 @@ export function DataTable<TData, TValue>({
       {/* Barre de recherche à gauche et bouton ajout à droite */}
       <div className="flex items-center justify-between gap-4 px-8 py-4 border-b border-gray-200 bg-gray-50">
         {/* Recherche avec bouton de validation - à gauche */}
-        <div className="relative flex items-center gap-2">
-          <div className="relative">
-            <Input
-              placeholder={searchPlaceholder}
-              value={onSearchValueChange ? localQuery : query}
-              onChange={(e) => {
-                const newValue = e.target.value
-                if (onSearchValueChange) {
-                  setLocalQuery(newValue)
-                } else {
-                  setQuery(newValue)
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && onSearchSubmit) {
-                  onSearchSubmit()
-                }
-              }}
-              className="h-10 text-sm border-gray-300 focus:border-[#28A325] focus:ring-[#28A325] pr-10"
-              style={{ width: '280px' }}
-            />
-            {/* Petite croix pour effacer */}
-            {onSearchValueChange && localQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setLocalQuery('')
+        <TooltipProvider>
+          <div className="relative flex items-center gap-2">
+            <div className="relative">
+              <Input
+                placeholder={searchPlaceholder}
+                value={onSearchValueChange ? localQuery : query}
+                onChange={(e) => {
+                  const newValue = e.target.value;
                   if (onSearchValueChange) {
-                    onSearchValueChange('')
-                  }
-                  if (onSearchReset) {
-                    onSearchReset()
+                    // Mettre à jour seulement la valeur locale, ne pas déclencher la recherche automatiquement
+                    setLocalQuery(newValue);
+                    onSearchValueChange(newValue);
+                  } else {
+                    setQuery(newValue);
                   }
                 }}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10"
-                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-                title="Effacer la recherche"
-              >
-                <X className="h-4 w-4" />
-              </button>
+                onKeyDown={(e) => {
+                  // Permettre la recherche avec Entrée si onSearchSubmit est fourni
+                  if (e.key === 'Enter' && onSearchSubmit) {
+                    e.preventDefault();
+                    onSearchSubmit();
+                  }
+                }}
+                className="h-10 text-sm border-gray-300 focus:border-orange-500 focus:ring-orange-500 pr-10"
+                style={{ width: '280px' }}
+              />
+              {/* Petite croix pour effacer */}
+              {onSearchValueChange && localQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLocalQuery('');
+                    if (onSearchValueChange) {
+                      onSearchValueChange('');
+                    }
+                    if (onSearchReset) {
+                      onSearchReset();
+                    }
+                  }}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                  title="Effacer la recherche"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {/* Bouton de validation pour recherche serveur */}
+            {onSearchValueChange && onSearchSubmit && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={onSearchSubmit}
+                    size="sm"
+                    className="bg-orange-500 hover:bg-orange-600 text-white h-10 px-3"
+                    disabled={isTableLoading}
+                    type="button"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Lancer la recherche</p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
-          {/* Bouton de validation pour recherche serveur */}
-          {onSearchValueChange && onSearchSubmit && (
-            <Button
-              onClick={onSearchSubmit}
-              size="sm"
-              className="bg-[#28A325] hover:bg-[#22911f] text-white h-10 px-3"
-              disabled={isTableLoading}
-              type="button"
-              title="Lancer la recherche"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+        </TooltipProvider>
 
         {/* Bouton d'ajout et rafraîchissement - à droite */}
         <TooltipProvider>
@@ -261,7 +273,7 @@ export function DataTable<TData, TValue>({
                   <Button
                     onClick={onRefresh}
                     variant="outline"
-                    className="border-gray-300 hover:bg-gray-50 text-gray-700 h-10 px-4 font-medium cursor-pointer"
+                    className="border-secondary hover:bg-secondary/10 text-secondary h-10 px-4 font-medium cursor-pointer"
                     disabled={isTableLoading}
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${isTableLoading ? 'animate-spin' : ''}`} />
@@ -278,7 +290,7 @@ export function DataTable<TData, TValue>({
                 <TooltipTrigger asChild>
                   <Button
                     onClick={onAdd}
-                    className="bg-[#28A325] hover:bg-[#22911f] text-white h-10 px-4 font-medium cursor-pointer"
+                    className="bg-secondary hover:bg-secondary/80 text-white h-10 px-4 font-medium cursor-pointer"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     {addButtonText}

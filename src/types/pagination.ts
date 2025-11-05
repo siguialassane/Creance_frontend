@@ -16,6 +16,19 @@ export interface PaginationParams {
   search?: string;
   sortDirection?: 'ASC' | 'DESC';
   sortBy?: string;
+  // Filtres pour créances
+  statutRecouvrement?: string;
+  groupeCreance?: string;
+  dateCreationFrom?: string;
+  dateCreationTo?: string;
+  dateEcheanceFrom?: string;
+  dateEcheanceTo?: string;
+  typeDebiteur?: 'P' | 'M';
+  // Filtres pour débiteurs
+  categorieDebiteur?: string;
+  quartier?: string;
+  ville?: string;
+  statutSalarie?: string;
 }
 
 export interface PaginationInfo {
@@ -115,6 +128,42 @@ export function buildQueryParams(params: PaginationParams): URLSearchParams {
     searchParams.append('sortBy', params.sortBy);
   }
 
+  // Filtres créances
+  if (params.statutRecouvrement) {
+    searchParams.append('statutRecouvrement', params.statutRecouvrement);
+  }
+  if (params.groupeCreance) {
+    searchParams.append('groupeCreance', params.groupeCreance);
+  }
+  if (params.dateCreationFrom) {
+    searchParams.append('dateCreationFrom', params.dateCreationFrom);
+  }
+  if (params.dateCreationTo) {
+    searchParams.append('dateCreationTo', params.dateCreationTo);
+  }
+  if (params.dateEcheanceFrom) {
+    searchParams.append('dateEcheanceFrom', params.dateEcheanceFrom);
+  }
+  if (params.dateEcheanceTo) {
+    searchParams.append('dateEcheanceTo', params.dateEcheanceTo);
+  }
+  if (params.typeDebiteur) {
+    searchParams.append('typeDebiteur', params.typeDebiteur);
+  }
+
+  // Filtres débiteurs
+  if (params.categorieDebiteur) {
+    searchParams.append('categorieDebiteur', params.categorieDebiteur);
+  }
+  if (params.quartier) {
+    searchParams.append('quartier', params.quartier);
+  }
+  if (params.ville) {
+    searchParams.append('ville', params.ville);
+  }
+  if (params.statutSalarie) {
+    searchParams.append('statutSalarie', params.statutSalarie);
+  }
 
   return searchParams;
 }

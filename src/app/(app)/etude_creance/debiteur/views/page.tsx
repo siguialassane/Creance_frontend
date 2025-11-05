@@ -17,6 +17,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PaginationParams, PaginationInfo, extractPaginatedData } from "@/types/pagination";
+import { ExportButton } from "@/components/ui/export-button";
+import { FilterButton } from "@/components/ui/filter-button";
+import { DebiteurFilterPanel } from "@/components/ui/debiteur-filter-panel";
 
 // Types pour les débiteurs
 interface Debiteur {
@@ -75,6 +78,14 @@ const DebiteurPage = () => {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const apiClient = useApiClient();
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [filters, setFilters] = useState<{
+    typeDebiteur?: 'P' | 'M';
+    categorieDebiteur?: string;
+    quartier?: string;
+    ville?: string;
+    statutSalarie?: string;
+  }>({});
 
   // Transformer les données de l'API pour correspondre à notre interface
   const transformDebiteurData = (item: any): Debiteur => ({
@@ -162,7 +173,7 @@ const DebiteurPage = () => {
   useEffect(() => {
     loadDebiteurs(paginationParams);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paginationParams.page, paginationParams.size, paginationParams.search]);
+  }, [paginationParams.page, paginationParams.size, paginationParams.search, paginationParams.typeDebiteur, paginationParams.categorieDebiteur, paginationParams.quartier, paginationParams.ville, paginationParams.statutSalarie]);
 
 
   const getDisplayName = (debiteur: Debiteur) => {
@@ -361,8 +372,29 @@ const DebiteurPage = () => {
     });
   };
 
+  // Appliquer les filtres
+  const handleApplyFilters = () => {
+    setPaginationParams({
+      ...paginationParams,
+      page: 0, // Réinitialiser à la première page
+      ...filters,
+    });
+  };
+
+  // Compter les filtres actifs
+  const activeFiltersCount = Object.values(filters).filter(
+    (value) => value !== undefined && value !== ''
+  ).length;
+
   return (
     <div className="h-full flex flex-col bg-white">
+      <DebiteurFilterPanel
+        open={filterPanelOpen}
+        onOpenChange={setFilterPanelOpen}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onApply={handleApplyFilters}
+      />
       <DataTable
         title="DÉBITEURS"
         description=""
@@ -385,6 +417,21 @@ const DebiteurPage = () => {
         onSearchSubmit={handleSearchSubmit}
         onSearchReset={handleSearchReset}
         onRefresh={() => loadDebiteurs(paginationParams)}
+        extraActionsSlot={
+          <>
+            <FilterButton
+              onClick={() => setFilterPanelOpen(true)}
+              activeFiltersCount={activeFiltersCount}
+              disabled={loading}
+            />
+            <ExportButton
+              onExportPDF={(params) => DebiteurService.exportPDF(apiClient, params)}
+              onExportExcel={(params) => DebiteurService.exportExcel(apiClient, params)}
+              searchValue={searchValue}
+              defaultFileName="debiteurs"
+            />
+          </>
+        }
       />
     </div>
   );

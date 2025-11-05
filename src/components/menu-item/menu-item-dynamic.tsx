@@ -11,9 +11,10 @@ interface MenuItemProps {
     isSelected: boolean
     isClose: boolean
     onPressed: (mn: MenuItem) => void
+    isCollapsed?: boolean
 }
 
-const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemProps) => {
+const MenuItemComponent = ({ menu, isSelected, onPressed, isClose, isCollapsed = false }: MenuItemProps) => {
     const [subMenuItem, setSubMenuItem] = useState<number>()
 
     useEffect(() => {
@@ -35,7 +36,7 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
     const activeBg = 'rgba(255, 255, 255, 0.12)' // blanc léger pour la sélection
 
     const menuItemStyle = {
-        padding: '14px 20px',
+        padding: isCollapsed ? '14px' : '14px 20px',
         backgroundColor: isSelected 
             ? activeBg
             : 'transparent',
@@ -51,6 +52,7 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
         overflow: 'hidden' as const,
         display: 'flex',
         alignItems: 'center',
+        justifyContent: isCollapsed ? 'center' : 'flex-start',
         gap: '12px',
         fontSize: '14px',
         fontWeight: isSelected ? '600' : '500'
@@ -122,21 +124,23 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
                 </div>
                 
                 {/* Texte du menu */}
-                <span
-                    style={{
-                        flex: 1,
-                        fontSize: '14px',
-                        fontWeight: isSelected ? '600' : '500',
-                        color: isSelected ? activeTextColor : '#fff',
-                        position: 'relative',
-                        zIndex: 2
-                    }}
-                >
-                    {menu.name}
-                </span>
+                {!isCollapsed && (
+                    <span
+                        style={{
+                            flex: 1,
+                            fontSize: '14px',
+                            fontWeight: isSelected ? '600' : '500',
+                            color: isSelected ? activeTextColor : '#fff',
+                            position: 'relative',
+                            zIndex: 2
+                        }}
+                    >
+                        {menu.name}
+                    </span>
+                )}
                 
                 {/* Flèche pour les sous-menus */}
-                {menu.path !== '/settings' && menu.subMenus && (
+                {!isCollapsed && menu.path !== '/settings' && menu.subMenus && (
                     <div
                         style={{
                             color: '#fff',
@@ -164,7 +168,7 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose }: MenuItemPro
             </div>
 
             {/* Sous-menus */}
-            {menu.path !== '/settings' && menu.subMenus && isSelected && !isClose && (
+            {!isCollapsed && menu.path !== '/settings' && menu.subMenus && isSelected && !isClose && (
                 <div style={subMenuContainerStyle}>
                     {menu.subMenus.map((subMenu, index) => (
                         <SubMenuItemComponent 

@@ -21,6 +21,9 @@ import {
 } from "@/components/ui/tooltip";
 import { PaginationParams, PaginationInfo } from "@/types/pagination";
 import { getStatutRecouvrementLibelle, getStatutRecouvrementVariant } from "@/lib/constants/statut-recouvrement";
+import { ExportButton } from "@/components/ui/export-button";
+import { FilterButton } from "@/components/ui/filter-button";
+import { CreanceFilterPanel } from "@/components/ui/creance-filter-panel";
 
 // Types pour les créances (mapping de CreanceResponse à l'interface locale)
 interface Creance {
@@ -80,6 +83,16 @@ const CreancePageInner = () => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const apiClient = useApiClient();
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [filters, setFilters] = useState<{
+    statutRecouvrement?: string;
+    groupeCreance?: string;
+    dateCreationFrom?: string;
+    dateCreationTo?: string;
+    dateEcheanceFrom?: string;
+    dateEcheanceTo?: string;
+    typeDebiteur?: 'P' | 'M';
+  }>({});
 
   // Transformation des données de l'API vers l'interface locale selon la documentation
   const transformApiDataToCreance = (apiData: any): Creance => {
@@ -152,7 +165,7 @@ const CreancePageInner = () => {
   useEffect(() => {
     loadCreances(paginationParams);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paginationParams.page, paginationParams.size, paginationParams.search]);
+  }, [paginationParams.page, paginationParams.size, paginationParams.search, paginationParams.statutRecouvrement, paginationParams.groupeCreance, paginationParams.dateCreationFrom, paginationParams.dateCreationTo, paginationParams.dateEcheanceFrom, paginationParams.dateEcheanceTo, paginationParams.typeDebiteur]);
 
 
   const formatCurrency = (amount: number) => {
@@ -177,15 +190,45 @@ const CreancePageInner = () => {
     if (confirm(`Êtes-vous sûr de vouloir supprimer la créance ${creance.numeroCreance} ?`)) {
       try {
         const response = await CreanceService.delete(apiClient, creance.id);
-        if (response.success) {
-          setCreances(creances.filter(c => c.id !== creance.id));
-          toast.success(`La créance ${creance.numeroCreance} a été supprimée avec succès.`);
+        console.log("📥 Réponse du backend (suppression):", response);
+
+        // Le backend retourne status: "SUCCESS" ou status: "ERROR"
+        const responseData = response as any;
+        if (responseData.status === "SUCCESS" || response.success === true) {
+          // Utiliser le message de data.message si disponible, sinon celui de response.message
+          const successMessage = responseData.data?.message || responseData.message || `La créance ${creance.numeroCreance} a été supprimée avec succès.`;
+          toast.success(successMessage);
+          
+          // Rafraîchir le tableau au lieu de juste filtrer
+          await loadCreances(paginationParams);
         } else {
-          throw new Error(response.message || "Erreur lors de la suppression");
+          // Gérer les erreurs métier retournées par le backend
+          const errorMessage = responseData.data?.message || responseData.message || "Erreur lors de la suppression de la créance";
+          throw new Error(errorMessage);
         }
       } catch (error: any) {
         console.error('Erreur lors de la suppression:', error);
-        toast.error(error.message || "Impossible de supprimer la créance");
+        
+        // Gérer les erreurs HTTP et les erreurs métier
+        let errorMessage = "Impossible de supprimer la créance";
+        
+        if (error.response?.data) {
+          // Erreur avec réponse du backend
+          const backendError = error.response.data;
+          console.log("📥 Erreur backend:", backendError);
+          
+          if (backendError.status === "ERROR" || backendError.status === "FAILED") {
+            errorMessage = backendError.data?.message || backendError.message || errorMessage;
+          } else if (backendError.message) {
+            errorMessage = backendError.message;
+          } else if (backendError.error?.message) {
+            errorMessage = backendError.error.message;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        toast.error(errorMessage);
       }
     }
   };
@@ -364,8 +407,29 @@ const CreancePageInner = () => {
     });
   };
 
+  // Appliquer les filtres
+  const handleApplyFilters = () => {
+    setPaginationParams({
+      ...paginationParams,
+      page: 0, // Réinitialiser à la première page
+      ...filters,
+    });
+  };
+
+  // Compter les filtres actifs
+  const activeFiltersCount = Object.values(filters).filter(
+    (value) => value !== undefined && value !== ''
+  ).length;
+
   return (
     <div className="h-full flex flex-col bg-white">
+      <CreanceFilterPanel
+        open={filterPanelOpen}
+        onOpenChange={setFilterPanelOpen}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onApply={handleApplyFilters}
+      />
       <DataTable
         title="CRÉANCES"
         description=""
@@ -388,6 +452,21 @@ const CreancePageInner = () => {
         onSearchSubmit={handleSearchSubmit}
         onSearchReset={handleSearchReset}
         onRefresh={() => loadCreances(paginationParams)}
+        extraActionsSlot={
+          <>
+            <FilterButton
+              onClick={() => setFilterPanelOpen(true)}
+              activeFiltersCount={activeFiltersCount}
+              disabled={loading}
+            />
+            <ExportButton
+              onExportPDF={(params) => CreanceService.exportPDF(apiClient, params)}
+              onExportExcel={(params) => CreanceService.exportExcel(apiClient, params)}
+              searchValue={searchValue}
+              defaultFileName="creances"
+            />
+          </>
+        }
       />
     </div>
   );

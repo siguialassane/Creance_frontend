@@ -13,6 +13,7 @@ interface MainLayoutProps {
 const MainLayout = ({ children }: MainLayoutProps) => {
     const [isMobile, setIsMobile] = useState<boolean | null>(null)
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
     // Détecter la taille d'écran
     useEffect(() => {
@@ -30,8 +31,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         return (
             <div className="h-screen flex bg-gray-50">
                 {/* Desktop Sidebar par défaut pendant le chargement */}
-                <div className="w-64 flex-shrink-0">
-                    <Sidebar />
+                <div className="w-72 flex-shrink-0">
+                    <Sidebar isCollapsed={false} onToggleCollapse={() => {}} />
                 </div>
                 <main className="flex-1 flex flex-col overflow-hidden">
                     <Header 
@@ -56,8 +57,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         <div className="h-screen flex bg-gray-50">
             {/* Desktop Sidebar */}
             {!isMobile && (
-                <div className="w-64 flex-shrink-0">
-                    <Sidebar />
+                <div className={`${sidebarCollapsed ? 'w-16' : 'w-72'} flex-shrink-0 transition-all duration-300`}>
+                    <Sidebar isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
                 </div>
             )}
 
