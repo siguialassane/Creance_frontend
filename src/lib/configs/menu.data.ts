@@ -233,14 +233,13 @@ const menuItemsData = [
       // },
     ]
   },
-<<<<<<< HEAD
+
   {
     name: "Gestion des paiements",
     path: "/gestion_paiements",
     icon: Operation,
   },
-=======
->>>>>>> 9280311a132d91dd2453d2c670cdeeaa888bfd04
+
   // {
   //   name: "Suivi Clientèle",
   //   path: "/followClient",
