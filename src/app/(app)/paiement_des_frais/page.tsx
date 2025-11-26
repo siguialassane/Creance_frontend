@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { useApiClient } from "@/hooks/useApiClient"
 import { useAgencesBanqueSearchable } from "@/hooks/useAgencesBanqueSearchable"
+import { useBanquesSearchable } from "@/hooks/useBanquesSearchable"
+import { useTypeEffetsSearchable } from "@/hooks/useTypeEffetsSearchable"
 import { useModesPaiementSearchable } from "@/hooks/useModesPaiementSearchable"
 import { useTypeFraissSearchable } from "@/hooks/useTypeFraissSearchable"
 import { useFraissSearchable } from "@/hooks/useFraissSearchable"
@@ -33,6 +35,26 @@ export default function PaiementDesFraisPage() {
     search: agencesSearch,
     setSearch: setAgencesSearch,
   } = useAgencesBanqueSearchable()
+
+  const {
+    items: banquesItems,
+    isLoading: isLoadingBanques,
+    hasMore: hasMoreBanques,
+    loadMore: loadMoreBanques,
+    isFetchingMore: isFetchingMoreBanques,
+    search: banquesSearch,
+    setSearch: setBanquesSearch,
+  } = useBanquesSearchable()
+
+  const {
+    items: typeEffetsItems,
+    isLoading: isLoadingTypeEffets,
+    hasMore: hasMoreTypeEffets,
+    loadMore: loadMoreTypeEffets,
+    isFetchingMore: isFetchingMoreTypeEffets,
+    search: typeEffetsSearch,
+    setSearch: setTypeEffetsSearch,
+  } = useTypeEffetsSearchable()
 
   const {
     items: modesPaiementItems,
@@ -111,17 +133,17 @@ export default function PaiementDesFraisPage() {
   const [modePaiement, setModePaiement] = useState("")
   
   // États pour le paiement par chèque
-  const [libellePaiementCheque, setLibellePaiementCheque] = useState("")
-  const [banqueAgenceCode, setBanqueAgenceCode] = useState("")
-  const [banqueAgenceLibelle, setBanqueAgenceLibelle] = useState("")
-  const [modePaiementCode, setModePaiementCode] = useState("")
-  const [modePaiementLibelle, setModePaiementLibelle] = useState("")
-  const [numeroEffet, setNumeroEffet] = useState("")
-  const [montant, setMontant] = useState("")
-  const [datePaiement, setDatePaiement] = useState(() => {
+  const [numeroCheque, setNumeroCheque] = useState("")
+  const [banqueCode, setBanqueCode] = useState("")
+  const [banqueLibelle, setBanqueLibelle] = useState("")
+  const [banqueAutre, setBanqueAutre] = useState("")
+  const [typeEffetCode, setTypeEffetCode] = useState("")
+  const [typeEffetLibelle, setTypeEffetLibelle] = useState("")
+  const [dateCreation, setDateCreation] = useState(() => {
     const today = new Date()
     return today.toISOString().split('T')[0]
   })
+  const [montant, setMontant] = useState("")
 
   // États pour le paiement par espèce
   const [libellePaiement, setLibellePaiement] = useState("")
@@ -305,14 +327,14 @@ export default function PaiementDesFraisPage() {
 
     if (isChequeMode()) {
       paiementData.modePaiement = "cheque"
-      paiementData.libellePaiement = libellePaiementCheque
-      paiementData.banqueAgenceCode = banqueAgenceCode
-      paiementData.banqueAgenceLibelle = banqueAgenceLibelle
-      paiementData.modePaiementCode = modePaiementCode
-      paiementData.modePaiementLibelle = modePaiementLibelle
-      paiementData.numeroEffet = numeroEffet
+      paiementData.numeroCheque = numeroCheque
+      paiementData.banqueCode = banqueCode
+      paiementData.banqueLibelle = banqueLibelle
+      paiementData.banqueAutre = banqueAutre
+      paiementData.typeEffetCode = typeEffetCode
+      paiementData.typeEffetLibelle = typeEffetLibelle
+      paiementData.dateCreation = dateCreation
       paiementData.montant = montantValue
-      paiementData.datePaiement = datePaiement
     } else if (isEspeceMode()) {
       paiementData.modePaiement = "espece"
       paiementData.libellePaiement = libellePaiement
@@ -697,85 +719,95 @@ export default function PaiementDesFraisPage() {
             <h2 className="text-lg font-semibold text-orange-500 mb-4">Paiement par chèque (Effet)</h2>
             
             <div className="space-y-3 w-full">
-              {/* Libellé Paiement */}
+              {/* Numéro */}
               <div className="flex items-center gap-2 w-full">
-                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Libellé Paiement</Label>
+                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Numéro</Label>
                 <Input
-                  value={libellePaiementCheque}
-                  onChange={(e) => setLibellePaiementCheque(e.target.value)}
-                  placeholder="Saisir le libellé du paiement"
+                  value={numeroCheque}
+                  onChange={(e) => setNumeroCheque(e.target.value)}
+                  placeholder="Saisir le numéro"
                   className="flex-1 min-w-0 bg-white"
                 />
               </div>
 
-              {/* Banque agence */}
+              {/* Banque (3 cases avec sélection) */}
               <div className="flex items-center gap-2 w-full">
-                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Banque agence</Label>
+                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Banque</Label>
                 <div className="flex gap-2 flex-1 min-w-0">
                   <div className="flex-1 min-w-0">
                     <SearchableSelect
-                      items={agencesItems}
-                      value={banqueAgenceCode}
+                      items={banquesItems}
+                      value={banqueCode}
                       onValueChange={(value) => {
-                        setBanqueAgenceCode(value)
-                        const selectedAgence = agencesItems.find((item) => item.value === value)
-                        if (selectedAgence) {
-                          setBanqueAgenceLibelle(selectedAgence.BQAG_LIB || selectedAgence.libelle || selectedAgence.label || "")
+                        setBanqueCode(value)
+                        const selectedBanque = banquesItems.find((item) => item.value === value)
+                        if (selectedBanque) {
+                          setBanqueLibelle(selectedBanque.BQ_LIB || selectedBanque.libelle || selectedBanque.label || "")
                         } else {
-                          setBanqueAgenceLibelle("")
+                          setBanqueLibelle("")
                         }
                       }}
-                      placeholder="Sélectionner une banque agence"
-                      search={agencesSearch}
-                      onSearchChange={setAgencesSearch}
-                      isLoading={isLoadingAgences}
-                      hasMore={hasMoreAgences}
-                      onLoadMore={loadMoreAgences}
-                      isFetchingMore={isFetchingMoreAgences}
+                      placeholder="Sélectionner une banque"
+                      search={banquesSearch}
+                      onSearchChange={setBanquesSearch}
+                      isLoading={isLoadingBanques}
+                      hasMore={hasMoreBanques}
+                      onLoadMore={loadMoreBanques}
+                      isFetchingMore={isFetchingMoreBanques}
                     />
                   </div>
                 </div>
-              </div>
-
-              {/* Mode de paiement */}
-              <div className="flex items-center gap-2 w-full">
-                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Mode de paiement</Label>
-                <div className="flex-1 min-w-0">
-                  <SearchableSelect
-                    items={modesPaiementItems}
-                    value={modePaiementCode}
-                    onValueChange={(value) => {
-                      setModePaiementCode(value)
-                      const selectedMode = modesPaiementItems.find((item) => item.value === value)
-                      if (selectedMode) {
-                        setModePaiementLibelle(selectedMode.TYP_PAIE_LIB || selectedMode.libelle || selectedMode.label || "")
-                      } else {
-                        setModePaiementLibelle("")
-                      }
-                    }}
-                    placeholder="Sélectionner un mode de paiement"
-                    search={modesPaiementSearch}
-                    onSearchChange={setModesPaiementSearch}
-                    isLoading={isLoadingModesPaiement}
-                    hasMore={false}
-                    onLoadMore={() => {}}
-                    isFetchingMore={false}
-                  />
-                </div>
-              </div>
-
-              {/* N effet */}
-              <div className="flex items-center gap-2 w-full">
-                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">N effet</Label>
                 <Input
-                  value={numeroEffet}
-                  onChange={(e) => setNumeroEffet(e.target.value)}
-                  placeholder="Saisir le numéro d'effet"
+                  value={banqueLibelle}
+                  className="flex-1 min-w-0 bg-gray-100"
+                  readOnly
+                  disabled
+                  placeholder="Libellé"
+                />
+                <Input
+                  value={banqueAutre}
+                  onChange={(e) => setBanqueAutre(e.target.value)}
                   className="flex-1 min-w-0 bg-white"
                 />
               </div>
 
-              {/* Montant et Date de paiement */}
+              {/* Type effet (2 cases avec sélection) */}
+              <div className="flex items-center gap-2 w-full">
+                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Type effet</Label>
+                <div className="flex gap-2 flex-1 min-w-0">
+                  <div className="flex-1 min-w-0">
+                    <SearchableSelect
+                      items={typeEffetsItems}
+                      value={typeEffetCode}
+                      onValueChange={(value) => {
+                        setTypeEffetCode(value)
+                        const selectedTypeEffet = typeEffetsItems.find((item) => item.value === value)
+                        if (selectedTypeEffet) {
+                          setTypeEffetLibelle(selectedTypeEffet.TE_LIB || selectedTypeEffet.libelle || selectedTypeEffet.label || "")
+                        } else {
+                          setTypeEffetLibelle("")
+                        }
+                      }}
+                      placeholder="Sélectionner un type d'effet"
+                      search={typeEffetsSearch}
+                      onSearchChange={setTypeEffetsSearch}
+                      isLoading={isLoadingTypeEffets}
+                      hasMore={hasMoreTypeEffets}
+                      onLoadMore={loadMoreTypeEffets}
+                      isFetchingMore={isFetchingMoreTypeEffets}
+                    />
+                  </div>
+                </div>
+                <Input
+                  value={typeEffetLibelle}
+                  className="flex-1 min-w-0 bg-gray-100"
+                  readOnly
+                  disabled
+                  placeholder="Libellé"
+                />
+              </div>
+
+              {/* Montant et Date de création */}
               <div className="flex items-center gap-2 w-full">
                 <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Montant</Label>
                 <Input
@@ -784,11 +816,11 @@ export default function PaiementDesFraisPage() {
                   placeholder="Saisir le montant"
                   className="flex-1 min-w-0 bg-white"
                 />
-                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 ml-4 pr-1">Date de paiement</Label>
+                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 ml-4 pr-1">Date de création</Label>
                 <Input
                   type="date"
-                  value={datePaiement}
-                  onChange={(e) => setDatePaiement(e.target.value)}
+                  value={dateCreation}
+                  onChange={(e) => setDateCreation(e.target.value)}
                   className="flex-1 min-w-0 bg-white"
                 />
               </div>
