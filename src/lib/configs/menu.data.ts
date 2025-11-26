@@ -236,8 +236,24 @@ const menuItemsData = [
 
   {
     name: "Gestion des paiements",
-    path: "/gestion_paiements",
     icon: Operation,
+    subMenu: [
+      {
+        name: "Paiements des creances",
+        path: "/paiements_des_creances",
+        customPath: true, // Path complet pour le sous-menu
+      },
+      {
+        name: "Paiement contrat de bail",
+        path: "/paiement_contrat_bail",
+        customPath: true, // Path complet pour le sous-menu
+      },
+      {
+        name: "Paiement des frais",
+        path: "/paiement_des_frais",
+        customPath: true, // Path complet pour le sous-menu
+      },
+    ]
   },
 
   // {
@@ -384,7 +400,7 @@ function formatLabelToPath(subMenu: any) {
 
 export const menuItems: MenuItem[] = menuItemsData.map((menuItem, index) => ({
   id: index,
-  path: menuItem.path,
+  path: menuItem.path || undefined,
   icon: menuItem.icon,
   name: menuItem.name,  
   subMenus: menuItem.subMenu?.map(

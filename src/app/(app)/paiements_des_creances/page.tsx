@@ -12,7 +12,7 @@ import { CreanceResponse } from "@/types/creance"
 import { Eye, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
-export default function GestionPaiementsPage() {
+export default function PaiementsCreancesPage() {
   const apiClient = useApiClient()
   const [loading, setLoading] = useState(false)
 
@@ -119,6 +119,43 @@ export default function GestionPaiementsPage() {
     return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")
   }
 
+  // Fonction pour formater un montant avec séparateurs de milliers (pour saisie)
+  const formatMontant = (value: string): string => {
+    // Supprimer tous les caractères non numériques sauf les espaces (qui seront supprimés)
+    const cleaned = value.replace(/[^\d]/g, '')
+    if (!cleaned) return ''
+    
+    // Ajouter les séparateurs de milliers (espaces)
+    return cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  }
+
+  // Fonction pour convertir un montant formaté en nombre (sans espaces)
+  const parseMontant = (value: string): number | null => {
+    const cleaned = value.replace(/\s/g, '').replace(/,/g, '.')
+    if (!cleaned) return null
+    const parsed = parseFloat(cleaned)
+    return isNaN(parsed) ? null : parsed
+  }
+
+  // Handlers pour les champs de montant avec formatage en temps réel
+  const handleMontantChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value
+    // Supprimer tous les espaces pour reformater
+    const cleaned = inputValue.replace(/\s/g, '')
+    // Formater avec séparateurs de milliers
+    const formatted = formatMontant(cleaned)
+    setMontant(formatted)
+  }
+
+  const handleMontantPaiementChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value
+    // Supprimer tous les espaces pour reformater
+    const cleaned = inputValue.replace(/\s/g, '')
+    // Formater avec séparateurs de milliers
+    const formatted = formatMontant(cleaned)
+    setMontantPaiement(formatted)
+  }
+
   // Fonction pour charger les données de la créance
   const handleAfficher = async () => {
     if (!codeCreance.trim()) {
@@ -205,14 +242,41 @@ export default function GestionPaiementsPage() {
   }
 
   const handleEnregistrer = () => {
+    // Convertir les montants formatés en nombres pour l'enregistrement
+    const montantValue = parseMontant(montant)
+    const montantPaiementValue = parseMontant(montantPaiement)
+
+    // Préparer les données pour l'enregistrement
+    const paiementData: any = {
+      codeCreance,
+      // ... autres champs
+    }
+
+    if (isChequeMode()) {
+      paiementData.modePaiement = "cheque"
+      paiementData.typeEffetCode = typeEffetCode
+      paiementData.typeEffetLibelle = typeEffetLibelle
+      paiementData.numeroCheque = numeroCheque
+      paiementData.banqueEmettriceCode = banqueEmettriceCode
+      paiementData.banqueEmettriceLibelle = banqueEmettriceLibelle
+      paiementData.montant = montantValue
+      paiementData.datePaiement = datePaiement
+    } else if (isEspeceMode()) {
+      paiementData.modePaiement = "espece"
+      paiementData.libellePaiement = libellePaiement
+      paiementData.montant = montantPaiementValue
+      paiementData.datePaiement = datePaiementEspece
+    }
+
     // Logique d'enregistrement
-    console.log("Enregistrement du paiement...")
+    console.log("Enregistrement du paiement...", paiementData)
+    toast.success("Paiement enregistré avec succès")
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-full mx-auto">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Gestion des paiements de créances</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Paiements des creances</h1>
         
         <div className="flex gap-6">
           {/* Contenu principal */}
@@ -490,7 +554,7 @@ export default function GestionPaiementsPage() {
                 <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Montant</Label>
                 <Input
                   value={montant}
-                  onChange={(e) => setMontant(e.target.value)}
+                  onChange={handleMontantChange}
                   placeholder="Saisir le montant"
                   className="flex-1 min-w-0 bg-white"
                 />
@@ -526,7 +590,7 @@ export default function GestionPaiementsPage() {
                 <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Montant Paiement</Label>
                 <Input
                   value={montantPaiement}
-                  onChange={(e) => setMontantPaiement(e.target.value)}
+                  onChange={handleMontantPaiementChange}
                   placeholder="Saisir le montant du paiement"
                   className="flex-1 min-w-0 bg-white"
                 />

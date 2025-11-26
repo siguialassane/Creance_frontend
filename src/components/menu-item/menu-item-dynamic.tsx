@@ -173,7 +173,7 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose, isCollapsed =
                     {menu.subMenus.map((subMenu, index) => (
                         <SubMenuItemComponent 
                             key={index}
-                            parrentPath={menu.path} 
+                            parrentPath={menu.path || ""} 
                             onPressed={handleMenuClick} 
                             isSelected={subMenuItem === subMenu.id} 
                             subMenu={subMenu} 

@@ -62,9 +62,21 @@ const AnimatedSubIcon = styled.div<{ $isSelected: boolean; $isHovered?: boolean 
 const SubMenuItemComponent = ({ subMenu, isSelected, onPressed, hasLeftIndicator, parrentPath }: SubMenuItemProps) => {
     const [isHovered, setIsHovered] = useState(false)
 
+    // Si le path est vide ou null/undefined, utiliser seulement le path parent
+    // Si le path commence par /, c'est un path absolu, l'utiliser tel quel
+    const subMenuPath = subMenu.path?.toString().trim() || ""
+    let href: string
+    if (subMenuPath === "") {
+      href = parrentPath
+    } else if (subMenuPath.startsWith("/")) {
+      href = subMenuPath // Path absolu
+    } else {
+      href = parrentPath + '/' + subMenuPath
+    }
+
     return (
         (
-            <Link href={parrentPath+'/'+subMenu.path.toString()} onClick={() => parrentPath !== '/settings' && onPressed(subMenu)}>
+            <Link href={href} onClick={() => parrentPath !== '/settings' && onPressed(subMenu)}>
                 <BorderedStyle 
                     $isSelected={isSelected} 
                     $isHovered={isHovered}

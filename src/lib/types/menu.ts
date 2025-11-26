@@ -24,7 +24,7 @@ export interface SubMenuType {
 export interface MenuItem {
   name: string
   id: number
-  path: string
+  path?: string
   icon: string | { src: string }
   subMenus?: SubMenuItem[]
   render?: () => React.JSX.Element,

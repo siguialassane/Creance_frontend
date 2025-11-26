@@ -92,8 +92,16 @@ const SideBarMenu = () => {
             // Vérifier si l'URL correspond à un sous-menu
             if (menu.subMenus) {
                 return menu.subMenus.some(subMenu => {
-                    // Construire le chemin du sous-menu
-                    const subMenuPath = `${menu.path}/${subMenu.path}`;
+                    // Si le path est vide, le sous-menu pointe vers le path parent
+                    // Si le path commence par /, c'est un path absolu
+                    let subMenuPath: string
+                    if (subMenu.path === "") {
+                        subMenuPath = menu.path || ""
+                    } else if (subMenu.path.startsWith("/")) {
+                        subMenuPath = subMenu.path // Path absolu
+                    } else {
+                        subMenuPath = `${menu.path || ""}/${subMenu.path}`
+                    }
                     return pathname === subMenuPath;
                 });
             }

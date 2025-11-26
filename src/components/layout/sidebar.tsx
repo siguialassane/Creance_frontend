@@ -167,8 +167,16 @@ export default function Sidebar({ isOpen = true, onClose, className, isCollapsed
             // Vérifier si l'URL correspond à un sous-menu
             if (menu.subMenus) {
                 return menu.subMenus.some(subMenu => {
-                    // Construire le chemin du sous-menu
-                    const subMenuPath = `${menu.path}/${subMenu.path}`;
+                    // Si le path est vide, le sous-menu pointe vers le path parent
+                    // Si le path commence par /, c'est un path absolu
+                    let subMenuPath: string
+                    if (subMenu.path === "") {
+                        subMenuPath = menu.path || ""
+                    } else if (subMenu.path.startsWith("/")) {
+                        subMenuPath = subMenu.path // Path absolu
+                    } else {
+                        subMenuPath = `${menu.path || ""}/${subMenu.path}`
+                    }
                     return pathname === subMenuPath;
                 });
             }
@@ -194,6 +202,15 @@ export default function Sidebar({ isOpen = true, onClose, className, isCollapsed
 
         // Si le menu a un chemin et pas de sous-menus, naviguer
         if (menu.path && (!menu.subMenus || menu.subMenus.length === 0)) {
+            router.push(menu.path)
+            if (onClose) {
+                onClose();
+            }
+            return;
+        }
+
+        // Si le menu a des sous-menus et qu'on clique dessus alors qu'il est déjà ouvert, naviguer vers le path parent
+        if (menu.path && menu.subMenus && currentSideBarMenuId === menu.id && !isClose) {
             router.push(menu.path)
             if (onClose) {
                 onClose();
