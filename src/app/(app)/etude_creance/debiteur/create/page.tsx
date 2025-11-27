@@ -109,6 +109,7 @@ export default function NouveauDebiteurPage() {
         adressePostale: formData.adressePostale,
         telephone: formData.telephone,
         numeroCell: formData.numeroCell,
+        localisation: formData.localisation,
       };
 
       // Ajouter les champs spécifiques selon le type

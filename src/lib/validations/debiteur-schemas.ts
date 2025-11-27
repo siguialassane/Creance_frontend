@@ -18,8 +18,9 @@ export const step1Schema = z.object({
     .email("Email invalide (format attendu: exemple@domaine.com)"),
   telephone: z.string().optional(),
   numeroCell: z.string().optional(),
+  localisation: z.string().optional(),
   typeDebiteur: z.enum(["P", "M", "physique", "moral"], {
-    errorMap: () => ({ message: "Le type débiteur doit être 'P' (physique) ou 'M' (moral)" })
+    message: "Le type débiteur doit être 'P' (physique) ou 'M' (moral)"
   }),
 });
 

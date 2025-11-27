@@ -130,8 +130,8 @@ const CreancePageInner = () => {
       console.log("Données créances reçues:", response);
 
       if (response.status === "SUCCESS" && response.data) {
-        // Extraire le contenu paginé (peut être content ou items selon l'API)
-        const creancesList = response.data.content || response.data.items || [];
+        // Extraire le contenu paginé
+        const creancesList = response.data.content || [];
         const transformedCreances = Array.isArray(creancesList)
           ? creancesList.map(transformApiDataToCreance)
           : [];
@@ -431,7 +431,7 @@ const CreancePageInner = () => {
         onApply={handleApplyFilters}
       />
       <DataTable
-        title="CRÉANCES"
+        title="GESTION DES CRÉANCES"
         description=""
         columns={columns}
         data={creances}

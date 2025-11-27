@@ -362,12 +362,14 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
       // Step 1 - Dates et conditions (déplacées depuis step2)
       dateDeblocage: '',
       dateEcheance: '',
+      nbEch: undefined,
       periodicite: '',
       duree: undefined,
       tauxInteretConventionnel: undefined,
       tauxInteretRetard: undefined,
       ordonnateur: '',
       statut: 'A', // Par défaut "A" pour Actif (initiale)
+      statutRecouvr: undefined, // undefined = non défini, true = RECOUVRABLE, false = NON RECOUVRABLE
       // Step 2 - Montants (Détails financiers)
       montantInteretConventionnel: undefined,
       commissionBanque: undefined,
@@ -600,12 +602,14 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         // Step 2
         dateDeblocage: currentValues.dateDeblocage ?? memoizedFormData?.dateDeblocage ?? '',
         dateEcheance: currentValues.dateEcheance ?? memoizedFormData?.dateEcheance ?? '',
+        nbEch: currentValues.nbEch ?? memoizedFormData?.nbEch ?? undefined,
         periodicite: currentValues.periodicite ?? memoizedFormData?.periodicite ?? '',
         duree: currentValues.duree ?? memoizedFormData?.duree ?? undefined,
         tauxInteretConventionnel: currentValues.tauxInteretConventionnel ?? memoizedFormData?.tauxInteretConventionnel ?? undefined,
         tauxInteretRetard: currentValues.tauxInteretRetard ?? memoizedFormData?.tauxInteretRetard ?? undefined,
         ordonnateur: currentValues.ordonnateur ?? memoizedFormData?.ordonnateur ?? '',
         statut: currentValues.statut ?? memoizedFormData?.statut ?? 'A', // Par défaut "A" pour Actif (initiale)
+        statutRecouvr: currentValues.statutRecouvr ?? memoizedFormData?.statutRecouvr ?? undefined,
         // Step 2 - Montants (Détails financiers)
         montantInteretConventionnel: currentValues.montantInteretConventionnel ?? memoizedFormData?.montantInteretConventionnel ?? undefined,
         commissionBanque: currentValues.commissionBanque ?? memoizedFormData?.commissionBanque ?? undefined,
@@ -1016,12 +1020,12 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-                    Date de déblocage <span style={{ color: '#f97316' }}>*</span>
+                    Date d'octroi <span style={{ color: '#f97316' }}>*</span>
                   </Label>
           <Controller
                     name="dateDeblocage"
             control={control}
-                    rules={{ required: "La date de déblocage est obligatoire" }}
+                    rules={{ required: "La date d'octroi est obligatoire" }}
             render={({ field }) => (
               <Input
                 {...field}
@@ -1042,12 +1046,12 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-                    Date d'échéance <span style={{ color: '#f97316' }}>*</span>
+                    Date de 1ère échéance <span style={{ color: '#f97316' }}>*</span>
                   </Label>
           <Controller
                     name="dateEcheance"
             control={control}
-                    rules={{ required: "La date d'échéance est obligatoire" }}
+                    rules={{ required: "La date de 1ère échéance est obligatoire" }}
             render={({ field }) => (
               <Input
                 {...field}
@@ -1065,6 +1069,32 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
           )}
         </div>
 
+        <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Nombre d'échéances</Label>
+          <Controller
+                    name="nbEch"
+            control={control}
+            render={({ field }) => (
+                      <NumberInputField
+                        value={field.value}
+                        onChange={field.onChange}
+                placeholder="0"
+                        min={1}
+                        className={`${!!errors.nbEch ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                        style={{ borderColor: !!errors.nbEch ? errorRed : primaryGreen }}
+                disabled={readOnly}
+              />
+            )}
+          />
+        </div>
+                {errors.nbEch && (
+                  <p className="text-sm" style={{ color: errorRed }}>{String(errors.nbEch.message)}</p>
+          )}
+        </div>
+      </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Périodicité</Label>
@@ -1101,31 +1131,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         </div>
         </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-        <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Durée (en mois)</Label>
-          <Controller
-                    name="duree"
-            control={control}
-            render={({ field }) => (
-                      <NumberInputField
-                        value={field.value}
-                        onChange={field.onChange}
-                placeholder="0"
-                        min={1}
-                        className={`${!!errors.duree ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
-                        style={{ borderColor: !!errors.duree ? errorRed : primaryGreen }}
-                disabled={readOnly}
-              />
-            )}
-          />
-                </div>
-                {errors.duree && (
-                  <p className="text-sm" style={{ color: errorRed }}>{String(errors.duree.message)}</p>
-          )}
-        </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Taux intérêt conventionnel (%)</Label>
@@ -1222,7 +1228,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-                    Statut <span style={{ color: '#f97316' }}>*</span>
+                    Statut recouvr <span style={{ color: '#f97316' }}>*</span>
                   </Label>
           <Controller
                     name="statut"
@@ -1278,6 +1284,59 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   <p className="text-sm" style={{ color: errorRed }}>{String(errors.statut.message)}</p>
           )}
         </div>
+
+        <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Recouvrable</Label>
+          <Controller
+                    name="statutRecouvr"
+            control={control}
+            render={({ field }) => (
+              readOnly ? (
+                <Input
+                  value={(() => {
+                    if (field.value === true) return 'Oui';
+                    if (field.value === false) return 'Non';
+                    return '';
+                  })()}
+                  className="bg-gray-100 text-gray-700 flex-1"
+                  style={{ borderColor: !!errors.statutRecouvr ? errorRed : primaryGreen }}
+                  disabled
+                />
+              ) : (
+                <select
+                  {...field}
+                  value={(() => {
+                    if (field.value === true) return 'Oui';
+                    if (field.value === false) return 'Non';
+                    return '';
+                  })()}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'Oui') {
+                      field.onChange(true);
+                    } else if (value === 'Non') {
+                      field.onChange(false);
+                    } else {
+                      field.onChange(undefined);
+                    }
+                  }}
+                  className="flex h-10 w-full rounded-md border bg-gray-100 px-3 py-2 text-sm text-gray-700 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 flex-1"
+                  style={{ borderColor: primaryGreen }}
+                  disabled={readOnly}
+                >
+                  <option value="">Sélectionner</option>
+                  <option value="Oui">Oui</option>
+                  <option value="Non">Non</option>
+                </select>
+              )
+                    )}
+                  />
+        </div>
+                {errors.statutRecouvr && (
+                  <p className="text-sm" style={{ color: errorRed }}>{String(errors.statutRecouvr.message)}</p>
+          )}
+        </div>
       </div>
           </>
         );
@@ -1294,352 +1353,351 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
     <div className="space-y-6">
       <h2 className="text-lg font-bold mb-4" style={{ color: titleColor }}>Détails financiers</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Commission</Label>
-          <Controller
-            name="commissionBanque"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="0"
-                className={`${!!errors.commissionBanque ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
-                style={{ borderColor: !!errors.commissionBanque ? errorRed : primaryGreen }}
-                disabled={readOnly}
-              />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Colonne gauche */}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Commission</Label>
+            <Controller
+              name="commissionBanque"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
+                  className={`${!!errors.commissionBanque ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                  style={{ borderColor: !!errors.commissionBanque ? errorRed : primaryGreen }}
+                  disabled={readOnly}
+                />
+              )}
+            />
+            </div>
+            {errors.commissionBanque && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.commissionBanque.message)}</p>
             )}
-          />
           </div>
-          {errors.commissionBanque && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.commissionBanque.message)}</p>
-          )}
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant Ass</Label>
+            <Controller
+              name="montantAss"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
+                  className={`${!!errors.montantAss ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                  style={{ borderColor: !!errors.montantAss ? errorRed : primaryGreen }}
+                  disabled={readOnly}
+                />
+              )}
+            />
+            </div>
+            {errors.montantAss && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantAss.message)}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Int. Conv (pourcentage)</Label>
+            <Controller
+              name="intConvPourcentage"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  type="number"
+                  placeholder="0"
+                  step="0.01"
+                  value={field.value ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '') { field.onChange(undefined); return; }
+                    field.onChange(parseFloat(v));
+                  }}
+                  className={`${!!errors.intConvPourcentage ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                  style={{ borderColor: !!errors.intConvPourcentage ? errorRed : primaryGreen }}
+                  disabled={readOnly}
+                />
+              )}
+            />
+            </div>
+            {errors.intConvPourcentage && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.intConvPourcentage.message)}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant Int Conv</Label>
+            <Controller
+              name="montantInteretConventionnel"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
+                  className={`${!!errors.montantInteretConventionnel ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                  style={{ borderColor: !!errors.montantInteretConventionnel ? errorRed : primaryGreen }}
+                  disabled={readOnly}
+                />
+              )}
+            />
+            </div>
+            {errors.montantInteretConventionnel && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantInteretConventionnel.message)}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Int.Ret (pourcentage)</Label>
+            <Controller
+              name="tauxInteretRetard"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0.00"
+                  step={0.1}
+                  className={`${!!errors.tauxInteretRetard ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                  style={{ borderColor: !!errors.tauxInteretRetard ? errorRed : primaryGreen }}
+                  disabled={readOnly}
+                />
+              )}
+            />
+            </div>
+            {errors.tauxInteretRetard && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.tauxInteretRetard.message)}</p>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant à rembourser</Label>
-          <Controller
-            name="montantARembourser"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
-                onChange={(val) => {
-                  // Ne pas permettre la modification manuelle (champ calculé)
-                }}
-                placeholder="0"
-                className="bg-gray-100 text-gray-700 cursor-not-allowed"
-                style={{ borderColor: !!errors.montantARembourser ? errorRed : primaryGreen }}
-                disabled={true}
-                readOnly={true}
-              />
+        {/* Colonne droite */}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant à rembourser</Label>
+            <Controller
+              name="montantARembourser"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
+                  onChange={(val) => {
+                    // Ne pas permettre la modification manuelle (champ calculé)
+                  }}
+                  placeholder="0"
+                  className="bg-gray-100 text-gray-700 cursor-not-allowed"
+                  style={{ borderColor: !!errors.montantARembourser ? errorRed : primaryGreen }}
+                  disabled={true}
+                  readOnly={true}
+                />
+              )}
+            />
+            </div>
+            {errors.montantARembourser && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantARembourser.message)}</p>
             )}
-          />
           </div>
-          {errors.montantARembourser && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantARembourser.message)}</p>
-          )}
-        </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Int. Conv (pourcentage)</Label>
-          <Controller
-            name="intConvPourcentage"
-            control={control}
-            render={({ field }) => (
-              <Input
-                {...field}
-                type="number"
-                placeholder="0"
-                step="0.01"
-                value={field.value ?? ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === '') { field.onChange(undefined); return; }
-                  field.onChange(parseFloat(v));
-                }}
-                className={`${!!errors.intConvPourcentage ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
-                style={{ borderColor: !!errors.intConvPourcentage ? errorRed : primaryGreen }}
-                disabled={readOnly}
-              />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant dû</Label>
+            <Controller
+              name="montantDu"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
+                  className={`${!!errors.montantDu ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                  style={{ borderColor: !!errors.montantDu ? errorRed : primaryGreen }}
+                  disabled={readOnly}
+                />
+              )}
+            />
+            </div>
+            {errors.montantDu && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantDu.message)}</p>
             )}
-          />
           </div>
-          {errors.intConvPourcentage && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.intConvPourcentage.message)}</p>
-          )}
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant Int Conv</Label>
-          <Controller
-            name="montantInteretConventionnel"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="0"
-                className={`${!!errors.montantInteretConventionnel ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
-                style={{ borderColor: !!errors.montantInteretConventionnel ? errorRed : primaryGreen }}
-                disabled={readOnly}
-              />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant déjà remboursé</Label>
+            <Controller
+              name="montantRembourse"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={typeof field.value === 'number' ? field.value : (typeof field.value === 'string' && field.value !== '' ? parseFloat(field.value) : undefined)}
+                  onChange={(val) => {
+                    // S'assurer que la valeur est toujours un number ou undefined
+                    field.onChange(val !== undefined && !isNaN(val) ? val : undefined);
+                  }}
+                  placeholder="0"
+                  className={`${!!errors.montantRembourse ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                  style={{ borderColor: !!errors.montantRembourse ? errorRed : primaryGreen }}
+                  disabled={readOnly}
+                />
+              )}
+            />
+            </div>
+            {errors.montantRembourse && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantRembourse.message)}</p>
             )}
-          />
           </div>
-          {errors.montantInteretConventionnel && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantInteretConventionnel.message)}</p>
-          )}
-        </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant dû</Label>
-          <Controller
-            name="montantDu"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="0"
-                className={`${!!errors.montantDu ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
-                style={{ borderColor: !!errors.montantDu ? errorRed : primaryGreen }}
-                disabled={readOnly}
-              />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant impayé</Label>
+            <Controller
+              name="montantImpaye"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
+                  onChange={() => {}} // Lecture seule - Calculé automatiquement
+                  placeholder="0"
+                  className="bg-gray-100 text-gray-700 cursor-not-allowed"
+                  style={{ borderColor: !!errors.montantImpaye ? errorRed : primaryGreen }}
+                  disabled={true}
+                  readOnly={true}
+                />
+              )}
+            />
+            </div>
+            {errors.montantImpaye && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantImpaye.message)}</p>
             )}
-          />
           </div>
-          {errors.montantDu && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantDu.message)}</p>
-          )}
-        </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Int. Ret (pourcentage)</Label>
-          <Controller
-            name="montantInteretRetard"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="0"
-                className={`${!!errors.montantInteretRetard ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
-                style={{ borderColor: !!errors.montantInteretRetard ? errorRed : primaryGreen }}
-                disabled={readOnly}
-              />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Divers frais</Label>
+            <Controller
+              name="frais"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
+                  className={`${!!errors.frais ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                  style={{ borderColor: !!errors.frais ? errorRed : primaryGreen }}
+                  disabled={readOnly}
+                />
+              )}
+            />
+            </div>
+            {errors.frais && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.frais.message)}</p>
             )}
-          />
           </div>
-          {errors.montantInteretRetard && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantInteretRetard.message)}</p>
-          )}
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant déjà remboursé</Label>
-          <Controller
-            name="montantRembourse"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={typeof field.value === 'number' ? field.value : (typeof field.value === 'string' && field.value !== '' ? parseFloat(field.value) : undefined)}
-                onChange={(val) => {
-                  // S'assurer que la valeur est toujours un number ou undefined
-                  field.onChange(val !== undefined && !isNaN(val) ? val : undefined);
-                }}
-                placeholder="0"
-                className={`${!!errors.montantRembourse ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
-                style={{ borderColor: !!errors.montantRembourse ? errorRed : primaryGreen }}
-                disabled={readOnly}
-              />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant en cours de recouvrement</Label>
+            <Controller
+              name="encours"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="0"
+                  className={`${!!errors.encours ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
+                  style={{ borderColor: !!errors.encours ? errorRed : primaryGreen }}
+                  disabled={readOnly}
+                />
+              )}
+            />
+            </div>
+            {errors.encours && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.encours.message)}</p>
             )}
-          />
           </div>
-          {errors.montantRembourse && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantRembourse.message)}</p>
-          )}
-        </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant impayé</Label>
-          <Controller
-            name="montantImpaye"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
-                onChange={() => {}} // Lecture seule - Calculé automatiquement
-                placeholder="0"
-                className="bg-gray-100 text-gray-700 cursor-not-allowed"
-                style={{ borderColor: !!errors.montantImpaye ? errorRed : primaryGreen }}
-                disabled={true}
-                readOnly={true}
-              />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Total dû</Label>
+            <Controller
+              name="totalDu"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
+                  onChange={() => {}} // Lecture seule - Calculé automatiquement
+                  placeholder="0"
+                  className="bg-gray-100 text-gray-700 cursor-not-allowed"
+                  style={{ borderColor: !!errors.totalDu ? errorRed : primaryGreen }}
+                  disabled={true}
+                  readOnly={true}
+                />
+              )}
+            />
+            </div>
+            {errors.totalDu && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.totalDu.message)}</p>
             )}
-          />
           </div>
-          {errors.montantImpaye && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantImpaye.message)}</p>
-          )}
-        </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Divers frais</Label>
-          <Controller
-            name="frais"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="0"
-                className={`${!!errors.frais ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
-                style={{ borderColor: !!errors.frais ? errorRed : primaryGreen }}
-                disabled={readOnly}
-              />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Pénalité (1%)</Label>
+            <Controller
+              name="penalite"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
+                  onChange={() => {}} // Lecture seule
+                  placeholder="0"
+                  className="bg-gray-100 text-gray-700 cursor-not-allowed"
+                  style={{ borderColor: !!errors.penalite ? errorRed : primaryGreen }}
+                  disabled={true}
+                  readOnly={true}
+                />
+              )}
+            />
+            </div>
+            {errors.penalite && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.penalite.message)}</p>
             )}
-          />
           </div>
-          {errors.frais && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.frais.message)}</p>
-          )}
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant Ass</Label>
-          <Controller
-            name="montantAss"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="0"
-                className={`${!!errors.montantAss ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
-                style={{ borderColor: !!errors.montantAss ? errorRed : primaryGreen }}
-                disabled={readOnly}
-              />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Total à recouvrer</Label>
+            <Controller
+              name="totalSolde"
+              control={control}
+              render={({ field }) => (
+                <NumberInputField
+                  value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
+                  onChange={() => {}} // Lecture seule - Calculé automatiquement
+                  placeholder="0"
+                  className="bg-gray-100 text-gray-700 cursor-not-allowed"
+                  style={{ borderColor: !!errors.totalSolde ? errorRed : primaryGreen }}
+                  disabled={true}
+                  readOnly={true}
+                />
+              )}
+            />
+            </div>
+            {errors.totalSolde && (
+              <p className="text-sm" style={{ color: errorRed }}>{String(errors.totalSolde.message)}</p>
             )}
-          />
           </div>
-          {errors.montantAss && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.montantAss.message)}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Montant en cours de recouvrement</Label>
-          <Controller
-            name="encours"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="0"
-                className={`${!!errors.encours ? 'bg-red-50' : readOnly ? 'bg-gray-50' : ''} flex-1`}
-                style={{ borderColor: !!errors.encours ? errorRed : primaryGreen }}
-                disabled={readOnly}
-              />
-            )}
-          />
-          </div>
-          {errors.encours && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.encours.message)}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Total dû</Label>
-          <Controller
-            name="totalDu"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
-                onChange={() => {}} // Lecture seule - Calculé automatiquement
-                placeholder="0"
-                className="bg-gray-100 text-gray-700 cursor-not-allowed"
-                style={{ borderColor: !!errors.totalDu ? errorRed : primaryGreen }}
-                disabled={true}
-                readOnly={true}
-              />
-            )}
-          />
-          </div>
-          {errors.totalDu && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.totalDu.message)}</p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Pénalité (1%)</Label>
-          <Controller
-            name="penalite"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
-                onChange={() => {}} // Lecture seule
-                placeholder="0"
-                className="bg-gray-100 text-gray-700 cursor-not-allowed"
-                style={{ borderColor: !!errors.penalite ? errorRed : primaryGreen }}
-                disabled={true}
-                readOnly={true}
-              />
-            )}
-          />
-          </div>
-          {errors.penalite && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.penalite.message)}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Total à recouvrer</Label>
-          <Controller
-            name="totalSolde"
-            control={control}
-            render={({ field }) => (
-              <NumberInputField
-                value={typeof field.value === 'number' ? field.value : (parseFloat(String(field.value || "0")) || 0)}
-                onChange={() => {}} // Lecture seule - Calculé automatiquement
-                placeholder="0"
-                className="bg-gray-100 text-gray-700 cursor-not-allowed"
-                style={{ borderColor: !!errors.totalSolde ? errorRed : primaryGreen }}
-                disabled={true}
-                readOnly={true}
-              />
-            )}
-          />
-          </div>
-          {errors.totalSolde && (
-            <p className="text-sm" style={{ color: errorRed }}>{String(errors.totalSolde.message)}</p>
-          )}
         </div>
       </div>
     </div>

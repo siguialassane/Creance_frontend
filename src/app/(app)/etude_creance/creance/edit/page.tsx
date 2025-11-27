@@ -44,12 +44,14 @@ const EditerCreancePageInner = () => {
       numeroAncien: apiData.CREAN_CODE_ANC || apiData.CREAN_NUM_ANC || '',
       dateDeblocage: apiData.CREAN_DATEFT || apiData.CREAN_DATE_DEBLOCAGE || '',
       dateEcheance: apiData.CREAN_DATECH || apiData.CREAN_DATE_ECHEANCE || '',
+      nbEch: apiData.CREAN_NBECH || apiData.nbEch || undefined,
       periodicite: apiData.CREAN_PERIODICITE || '',
-      duree: apiData.CREAN_NBECH || apiData.CREAN_DUREE || 0,
+      duree: apiData.CREAN_DUREE || undefined,
       tauxInteretConventionnel: apiData.CREAN_TAUXIC || apiData.CREAN_TAUX_IC || 0,
       tauxInteretRetard: apiData.CREAN_TAUXIR || apiData.CREAN_TAUX_IR || 0,
       ordonnateur: apiData.ORDO_CODE || '',
-      statut: apiData.CREAN_STATRECOUV || apiData.CREAN_STATUT || '',
+      statut: apiData.CREAN_STATUT || 'A',
+      statutRecouvr: apiData.statutRecouvr !== undefined ? apiData.statutRecouvr : (apiData.CREAN_STATRECOUV ? true : undefined),
       objetDetail: apiData.CREAN_OBJET || '',
 
       // Étape 2: Détails financiers
@@ -185,8 +187,14 @@ const EditerCreancePageInner = () => {
       if (allFormValues.periodicite !== undefined && allFormValues.periodicite) {
         creanceData.periodicite = allFormValues.periodicite;
       }
+      if (allFormValues.nbEch !== undefined && allFormValues.nbEch !== null) {
+        creanceData.nbEch = allFormValues.nbEch;
+      }
       if (allFormValues.duree !== undefined && allFormValues.duree !== null) {
         creanceData.duree = allFormValues.duree;
+      }
+      if (allFormValues.statutRecouvr !== undefined && allFormValues.statutRecouvr !== null) {
+        creanceData.statutRecouvr = allFormValues.statutRecouvr;
       }
       if (allFormValues.tauxInteretConventionnel !== undefined && allFormValues.tauxInteretConventionnel !== null) {
         creanceData.tauxInteretConventionnel = allFormValues.tauxInteretConventionnel;

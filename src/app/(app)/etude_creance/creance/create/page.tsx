@@ -199,8 +199,14 @@ const NouvelleCreancePageInner = () => {
       if (allFormValues.periodicite !== undefined && allFormValues.periodicite) {
         creanceData.periodicite = allFormValues.periodicite;
       }
+      if (allFormValues.nbEch !== undefined && allFormValues.nbEch !== null) {
+        creanceData.nbEch = allFormValues.nbEch;
+      }
       if (allFormValues.duree !== undefined && allFormValues.duree !== null) {
         creanceData.duree = allFormValues.duree;
+      }
+      if (allFormValues.statutRecouvr !== undefined && allFormValues.statutRecouvr !== null) {
+        creanceData.statutRecouvr = allFormValues.statutRecouvr;
       }
       if (allFormValues.tauxInteretConventionnel !== undefined && allFormValues.tauxInteretConventionnel !== null) {
         creanceData.tauxInteretConventionnel = allFormValues.tauxInteretConventionnel;

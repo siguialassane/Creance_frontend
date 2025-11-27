@@ -12,6 +12,7 @@ type Step1FormData = {
   email: string;
   telephone?: string;
   numeroCell?: string;
+  localisation?: string;
   typeDebiteur: string;
 };
 
@@ -362,6 +363,53 @@ export function DebiteurFormStep1({ control, errors, isEditMode = false, readOnl
               }}
             />
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {/* Localisation */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '140px' }}>
+              Localisation
+            </label>
+            <Controller
+              name="localisation"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  value={field.value || ""}
+                  placeholder="Ex: Abidjan, Cocody"
+                  type="text"
+                  className={`${getFieldClassName(!!errors.localisation)} focus:border-[#28A325] focus:bg-[#f3f4f6] flex-1`}
+                  disabled={readOnly}
+                  style={{
+                    borderColor: errors.localisation ? errorRed : primaryGreen,
+                    backgroundColor: errors.localisation ? errorBg : '#f3f4f6'
+                  }}
+                  onFocus={(e) => {
+                    if (!errors.localisation) {
+                      e.target.style.borderColor = primaryGreen;
+                      e.target.style.backgroundColor = '#f3f4f6';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (errors.localisation) {
+                      e.target.style.borderColor = errorRed;
+                      e.target.style.backgroundColor = errorBg;
+                    } else {
+                      e.target.style.borderColor = primaryGreen;
+                      e.target.style.backgroundColor = '#f3f4f6';
+                    }
+                  }}
+                />
+              )}
+            />
+          </div>
+          {errors.localisation && (
+            <p className="text-sm" style={{ color: errorRed }}>{String(errors.localisation.message)}</p>
+          )}
         </div>
       </div>
 

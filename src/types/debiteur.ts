@@ -6,6 +6,7 @@ export interface DebiteurPersonnePhysique {
   categorieDebiteur: string;
   adressePostale: string;
   email: string;
+  localisation?: string;
 
   // Personne physique (Étape 2A)
   civilite: string;
@@ -63,6 +64,7 @@ export interface DebiteurPersonneMorale {
   categorieDebiteur: string;
   adressePostale: string;
   email: string;
+  localisation?: string;
   telephone?: string;
   numeroCell?: string;
 
