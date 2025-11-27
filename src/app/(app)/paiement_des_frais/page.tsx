@@ -865,24 +865,6 @@ export default function PaiementDesFraisPage() {
           </div>
         )}
 
-        {/* Section GARANTIE PERSONNELLE */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
-          <h2 className="text-lg font-semibold text-orange-500 mb-4">GARANTIE PERSONNELLE</h2>
-          <div className="border-b border-gray-200 mb-4">
-            <div className="flex gap-2">
-              <button className="px-4 py-2 text-sm font-medium text-orange-600 border-b-2 border-orange-600">
-                Personnelle
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
-                ASSUREUR
-              </button>
-            </div>
-          </div>
-          <div className="min-h-[200px] bg-gray-50 rounded border border-gray-200 p-4">
-            {/* Zone de contenu pour la garantie personnelle */}
-          </div>
-        </div>
-
         {/* Boutons en bas */}
         <div className="flex justify-between items-center mt-6">
           <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 border-gray-300">
