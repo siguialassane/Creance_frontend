@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { Search, Plus, Eye, Pencil, Trash2 } from "lucide-react";
+import { Search, Plus, Eye, Pencil, Trash2, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -308,14 +308,25 @@ const EtudeCreancePage = () => {
                               size="sm"
                               onClick={() => handleEditCreance(creance)}
                               className="h-8 w-8 p-0"
+                              title="Modifier"
                             >
                               <Pencil className="h-4 w-4 text-green-600" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => router.push(`/paiements_des_creances?code=${creance.numeroCreance}`)}
+                              className="h-8 w-8 p-0"
+                              title="Voir les paiements"
+                            >
+                              <CreditCard className="h-4 w-4 text-orange-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleDeleteCreance(creance)}
                               className="h-8 w-8 p-0"
+                              title="Supprimer"
                             >
                               <Trash2 className="h-4 w-4 text-red-600" />
                             </Button>

@@ -5,12 +5,12 @@ export class TypeOperationService {
   private static readonly BASE_URL = "/types/AC_TYPE_OPERATION";
 
   static async getAll(apiClient: ApiClient): Promise<TypeOperationApiResponse> {
-    const response = await apiClient.get<TypeOperationApiResponse>(this.BASE_URL);
+    const response = await apiClient.get<TypeOperationApiResponse>(TypeOperationService.BASE_URL);
     return response.data;
   }
 
   static async getByCode(apiClient: ApiClient, code: string): Promise<TypeOperation> {
-    const response = await apiClient.get<TypeOperationApiResponse>(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.get<TypeOperationApiResponse>(`${TypeOperationService.BASE_URL}/${code}`);
     if (!response.data.data || response.data.data.length === 0) {
       throw new Error("Type d'opération non trouvé");
     }
@@ -18,22 +18,22 @@ export class TypeOperationService {
   }
 
   static async create(apiClient: ApiClient, type: TypeOperationCreateRequest): Promise<TypeOperationApiResponse> {
-    const response = await apiClient.post<TypeOperationApiResponse>(this.BASE_URL, type);
+    const response = await apiClient.post<TypeOperationApiResponse>(TypeOperationService.BASE_URL, type);
     return response.data;
   }
 
   static async update(apiClient: ApiClient, code: string, type: TypeOperationUpdateRequest): Promise<TypeOperationApiResponse> {
-    const response = await apiClient.put<TypeOperationApiResponse>(`${this.BASE_URL}/${code}`, type);
+    const response = await apiClient.put<TypeOperationApiResponse>(`${TypeOperationService.BASE_URL}/${code}`, type);
     return response.data;
   }
 
   static async delete(apiClient: ApiClient, code: string): Promise<TypeOperationApiResponse> {
-    const response = await apiClient.delete<TypeOperationApiResponse>(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.delete<TypeOperationApiResponse>(`${TypeOperationService.BASE_URL}/${code}`);
     return response.data;
   }
 
   static async search(apiClient: ApiClient, searchTerm: string): Promise<TypeOperationApiResponse> {
-    const response = await apiClient.get<TypeOperationApiResponse>(`${this.BASE_URL}/search`, {
+    const response = await apiClient.get<TypeOperationApiResponse>(`${TypeOperationService.BASE_URL}/search`, {
       params: { libelle: searchTerm }
     });
     return response.data;

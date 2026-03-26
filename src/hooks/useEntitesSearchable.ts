@@ -41,8 +41,8 @@ export function useEntitesSearchable() {
           
           // Transformer les données - utiliser les vrais noms de champs de l'API
           const items: SearchableSelectItem[] = (response.data?.content || []).map((entite: any) => ({
-            value: entite.ENTITE_CODE || entite.ENT_CODE || entite.code || "",
-            label: `${entite.ENTITE_CODE || entite.ENT_CODE || entite.code} - ${entite.ENTITE_LIB || entite.ENT_LIB || entite.libelle || ""}`,
+            value: entite.ENT_CODE || entite.ENTITE_CODE || entite.code || "",
+            label: `${entite.ENT_CODE || entite.ENTITE_CODE || entite.code} - ${entite.ENT_LIB || entite.ENTITE_LIB || entite.libelle || ""}`,
             ...entite,
           }))
 
@@ -57,8 +57,8 @@ export function useEntitesSearchable() {
           const allData = response.data?.content || response.data?.data || response.data || []
           const allItems: SearchableSelectItem[] = Array.isArray(allData)
             ? allData.map((entite: any) => ({
-                value: entite.ENTITE_CODE || entite.ENT_CODE || entite.code || "",
-                label: `${entite.ENTITE_CODE || entite.ENT_CODE || entite.code} - ${entite.ENTITE_LIB || entite.ENT_LIB || entite.libelle || ""}`,
+                value: entite.ENT_CODE || entite.ENTITE_CODE || entite.code || "",
+                label: `${entite.ENT_CODE || entite.ENTITE_CODE || entite.code} - ${entite.ENT_LIB || entite.ENTITE_LIB || entite.libelle || ""}`,
                 ...entite,
               }))
             : []

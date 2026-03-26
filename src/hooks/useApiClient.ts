@@ -2,7 +2,7 @@ import { useSession, signOut } from "next-auth/react"
 import { useMemo, useRef } from "react"
 import axios from "axios"
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api"
+const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
 export function useApiClient() {
   const { data: session, status, update } = useSession({

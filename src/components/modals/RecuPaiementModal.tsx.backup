@@ -1,0 +1,357 @@
+"use client"
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Printer, Download, X } from "lucide-react"
+import { useRef } from "react"
+import Image from "next/image"
+
+interface RecuPaiementModalProps {
+  open: boolean
+  onClose: () => void
+  title: string
+  data: {
+    numeroPaiement: string
+    date: string
+    montant: string
+    libelle: string
+    modePaiement: string
+    // Champs optionnels
+    numeroEffet?: string
+    typeEffet?: string
+    banque?: string
+    numeroCreance?: string
+    numeroFrais?: string
+    numeroContrat?: string
+    nomDebiteur?: string
+    nomLocataire?: string
+    entite?: string
+    sousEntite?: string
+    numeroCompte?: string
+    adresse?: string
+    objetCreance?: string
+    caisse?: string
+    resteAPayer?: string
+  }
+}
+
+export function RecuPaiementModal({ open, onClose, title, data }: RecuPaiementModalProps) {
+  const printRef = useRef<HTMLDivElement>(null)
+
+  const handlePrint = () => {
+    if (printRef.current) {
+      const printContent = printRef.current.innerHTML
+
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Reçu de Paiement N° ${data.numeroPaiement}</title>
+              <style>
+                @page {
+                  size: A4;
+                  margin: 0;
+                }
+                * {
+                  margin: 0;
+                  padding: 0;
+                  box-sizing: border-box;
+                }
+                body {
+                  font-family: 'Courier New', Courier, monospace;
+                  font-size: 11px;
+                  line-height: 1.3;
+                }
+                .page-container {
+                  width: 210mm;
+                  min-height: 297mm;
+                  padding: 15mm;
+                  position: relative;
+                  background: white;
+                }
+                .watermark {
+                  position: absolute;
+                  top: 50%;
+                  left: 50%;
+                  transform: translate(-50%, -50%);
+                  opacity: 0.05;
+                  width: 400px;
+                  height: 400px;
+                  pointer-events: none;
+                  z-index: 0;
+                }
+                .content {
+                  position: relative;
+                  z-index: 1;
+                }
+                .page-break {
+                  page-break-after: always;
+                  break-after: page;
+                }
+                .exemplaire-label {
+                  text-align: right;
+                  font-size: 10px;
+                  font-weight: bold;
+                  margin-bottom: 5px;
+                  padding: 3px 8px;
+                  border: 1.5px dashed #666;
+                  display: inline-block;
+                  float: right;
+                  font-family: Arial, sans-serif;
+                }
+                @media print {
+                  body { margin: 0; padding: 0; }
+                  .no-print { display: none !important; }
+                }
+              </style>
+            </head>
+            <body>
+              <div class="page-container">
+                <div class="watermark">
+                  <img src="/assets/logo.png" alt="" style="width: 100%; height: 100%; object-fit: contain;" />
+                </div>
+                <div class="content">
+                  <div class="exemplaire-label" style="color: #059669; border-color: #059669;">EXEMPLAIRE CLIENT</div>
+                  <div style="clear: both;"></div>
+                  ${printContent}
+                </div>
+              </div>
+              <div class="page-break"></div>
+
+              <div class="page-container">
+                <div class="watermark">
+                  <img src="/assets/logo.png" alt="" style="width: 100%; height: 100%; object-fit: contain;" />
+                </div>
+                <div class="content">
+                  <div class="exemplaire-label" style="color: #2563eb; border-color: #2563eb;">EXEMPLAIRE BANQUE/TRÉSORERIE</div>
+                  <div style="clear: both;"></div>
+                  ${printContent}
+                </div>
+              </div>
+              <div class="page-break"></div>
+
+              <div class="page-container">
+                <div class="watermark">
+                  <img src="/assets/logo.png" alt="" style="width: 100%; height: 100%; object-fit: contain;" />
+                </div>
+                <div class="content">
+                  <div class="exemplaire-label" style="color: #dc2626; border-color: #dc2626;">EXEMPLAIRE ARCHIVES</div>
+                  <div style="clear: both;"></div>
+                  ${printContent}
+                </div>
+              </div>
+            </body>
+          </html>
+        `)
+        printWindow.document.close()
+        printWindow.focus()
+        setTimeout(() => {
+          printWindow.print()
+          printWindow.close()
+        }, 500)
+      }
+    }
+  }
+
+  const handleDownload = () => {
+    handlePrint()
+  }
+
+  // Formater la date au format jour/mois/année
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+    const months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+    return `Le ${days[date.getDay()]}  ${date.getDate()} ${months[date.getMonth()]}  ${date.getFullYear()}`
+  }
+
+  const getCurrentDateTime = () => {
+    const now = new Date()
+    const hours = now.getHours().toString().padStart(2, '0')
+    const minutes = now.getMinutes().toString().padStart(2, '0')
+    const seconds = now.getSeconds().toString().padStart(2, '0')
+    return `à  ${hours}:${minutes}:${seconds}`
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="flex-shrink-0 px-6 pt-4 pb-2">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-lg font-bold text-gray-800">
+              Reçu de Paiement N° {data.numeroPaiement}
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+
+        {/* Contenu imprimable avec scroll */}
+        <div className="flex-1 overflow-y-auto px-6">
+          <div ref={printRef} className="relative" style={{ fontFamily: '"Courier New", Courier, monospace', fontSize: '11px' }}>
+            {/* En-tête officiel */}
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              {/* Colonne gauche - Logo et info ministère */}
+              <div>
+                <div className="text-[10px] font-bold mb-1">MINISTERE DES FINANCES ET DU BUDGET</div>
+                <div className="relative w-24 h-24 mb-2">
+                  <Image
+                    src="/assets/logo.png"
+                    alt="Logo"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+                <div className="text-[9px]">
+                  <div className="italic">Agence Comptable des</div>
+                  <div className="italic">Créances Contentieuses</div>
+                </div>
+              </div>
+
+              {/* Colonne centre - Titre */}
+              <div className="text-center pt-8">
+                <div className="text-[10px] font-bold mb-2">Reçu de paiement  N° {data.numeroPaiement}</div>
+              </div>
+
+              {/* Colonne droite - Date et pays */}
+              <div className="text-right text-[9px]">
+                <div className="font-bold">REPUBLIQUE DE COTE D&apos;IVOIRE</div>
+                <div className="font-bold">UNION - DISCIPLINE - TRAVAIL</div>
+                <div className="mt-4">
+                  <div>{formatDate(data.date)}</div>
+                  <div>{getCurrentDateTime()}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Ligne de séparation */}
+            <div className="border-t-2 border-dashed border-gray-400 my-3"></div>
+
+            {/* Corps du reçu en 2 colonnes */}
+            <div className="grid grid-cols-2 gap-x-8">
+              {/* Colonne gauche */}
+              <div className="space-y-1">
+                <div className="flex">
+                  <span className="font-bold w-24">Entité</span>
+                  <span className="flex-1">{data.entite || 'LES FONDS SOCIAUX'}</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-24">N° Créance</span>
+                  <span className="flex-1">{data.numeroCreance || data.numeroContrat || data.numeroFrais || '-'}</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-24">Debiteur</span>
+                  <span className="flex-1 uppercase">{data.nomDebiteur || data.nomLocataire || '-'}</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-24">Caution</span>
+                  <span className="flex-1"></span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-24">Libelle</span>
+                  <span className="flex-1">{data.libelle}</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-24">Somme payée</span>
+                  <span className="flex-1 font-bold">{data.montant}</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-24">Somme en lettres</span>
+                  <span className="flex-1 text-[10px]">-</span>
+                </div>
+                <div className="flex mt-2">
+                  <span className="font-bold w-24">Objet créance</span>
+                  <span className="flex-1">{data.objetCreance || '-'}</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-24">Caisse</span>
+                  <span className="flex-1">{data.caisse || data.typeEffet || '-'}</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-24">Date de paiement</span>
+                  <span className="flex-1">{data.date}</span>
+                </div>
+              </div>
+
+              {/* Colonne droite */}
+              <div className="space-y-1">
+                <div className="flex">
+                  <span className="font-bold w-28">Sous entité</span>
+                  <span className="flex-1">{data.sousEntite || data.entite || '-'}</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-28">N° Compte</span>
+                  <span className="flex-1">{data.numeroCompte || '-'}</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-28">Adresse</span>
+                  <span className="flex-1 text-[10px]">{data.adresse || '-'}</span>
+                </div>
+                <div className="flex mt-3">
+                  <span className="font-bold w-28">Mode Paiement</span>
+                  <span className="flex-1">{data.modePaiement}</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-28">Banque agence</span>
+                  <span className="flex-1 text-[10px]">{data.banque || '-'}</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-28">N° chèque</span>
+                  <span className="flex-1">{data.numeroEffet || '-'}</span>
+                </div>
+                <div className="flex mt-2">
+                  <span className="font-bold w-28">Reste à Payer</span>
+                  <span className="flex-1 font-bold">{data.resteAPayer || '0'}</span>
+                </div>
+                <div className="flex mt-4">
+                  <span className="font-bold w-28">Heure</span>
+                  <span className="flex-1">00:00:00</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-28">Exemplaire destiné au débiteur</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Ligne de séparation finale */}
+            <div className="border-t-2 border-dashed border-gray-400 mt-4"></div>
+          </div>
+        </div>
+
+        {/* Boutons d'action - fixés en bas */}
+        <div className="flex-shrink-0 flex gap-3 justify-end px-6 py-4 border-t bg-gray-50">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="border-gray-300"
+          >
+            Fermer
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleDownload}
+            className="border-blue-500 text-blue-600 hover:bg-blue-50"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Télécharger PDF
+          </Button>
+          <Button
+            onClick={handlePrint}
+            className="bg-orange-500 hover:bg-orange-600 text-white"
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimer
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}

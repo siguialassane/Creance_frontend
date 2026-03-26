@@ -404,10 +404,14 @@ export const PARAMETER_CONFIG = {
       hook: useAgencesBanquePaginated,
       dataKey: "content", // Les données sont déjà extraites dans le hook
       mapper: (item: AgenceBanque) => ({
-        id: item.BQAG_NUM,
-        code: item.BQAG_NUM,
+        id: `${item.BQ_CODE}__${item.BQAG_CODE}`,
+        // Pour l'affichage "Code" du listing : on veut BQAG_CODE.
+        code: item.BQAG_CODE,
+        // Pour les opérations qui ont besoin de BQAG_NUM :
+        bqagNum: item.BQAG_NUM,
         banqueCode: item.BQ_CODE,
         libelle: item.BQAG_LIB,
+        bqagCode: item.BQAG_CODE,
       })
     },
     classe: {
@@ -599,7 +603,8 @@ export const PARAMETER_CONFIG = {
     entite: {
       hook: useEntites,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.ENTITE_CODE, code: item.ENTITE_CODE, libelle: item.ENTITE_LIB })
+      // Aligné sur le backend: AC_ENTITE attend ENT_CODE / ENT_LIB
+      mapper: (item: any) => ({ id: item.ENT_CODE, code: item.ENT_CODE, libelle: item.ENT_LIB })
     },
     etape: {
       hook: useEtapes,
@@ -687,11 +692,16 @@ export const PARAMETER_CONFIG = {
       case 'banque':
         return import('@/services/banque.service').then(m => (apiClient: any, code: string, data: any) => m.BanqueService.update(apiClient, code, data))
       case 'agence_de_banque':
-        return import('@/services/agence-banque.service').then(m => (apiClient: any, code: string, data: any) => m.AgenceBanqueService.update(apiClient, code, data))
+        return import('@/services/agence-banque.service').then(m => (apiClient: any, _code: string, data: any) => {
+          // Route backend: PUT /banque-agences/{bqCode}/{bqagLib}
+          return m.AgenceBanqueService.updateByComposite(apiClient, data?.BQ_CODE, data?.BQAG_LIB, data)
+        })
       case 'classe':
         return import('@/services/classe.service').then(m => m.ClasseService.update)
       case 'categorie_debiteur':
-        return import('@/services/categorie-debiteur.service').then(m => m.CategorieDebiteurService.update)
+        return import('@/services/categorie-debiteur.service').then(m => (apiClient: any, code: string, data: any) =>
+          m.CategorieDebiteurService.update(apiClient, code, data)
+        )
       case 'civilite':
         return import('@/services/civilite.service').then(m => m.CiviliteService.update)
       case 'nationalite':
@@ -768,7 +778,9 @@ export const PARAMETER_CONFIG = {
       case 'classe':
         return import('@/services/classe.service').then(m => m.ClasseService.create)
       case 'categorie_debiteur':
-        return import('@/services/categorie-debiteur.service').then(m => m.CategorieDebiteurService.create)
+        return import('@/services/categorie-debiteur.service').then(m => (apiClient: any, data: any) =>
+          m.CategorieDebiteurService.create(apiClient, data)
+        )
       case 'civilite':
         return import('@/services/civilite.service').then(m => m.CiviliteService.create)
       case 'nationalite':
@@ -845,7 +857,9 @@ export const PARAMETER_CONFIG = {
       case 'classe':
         return import('@/services/classe.service').then(m => m.ClasseService.delete)
       case 'categorie_debiteur':
-        return import('@/services/categorie-debiteur.service').then(m => m.CategorieDebiteurService.delete)
+        return import('@/services/categorie-debiteur.service').then(m => (apiClient: any, code: string) =>
+          m.CategorieDebiteurService.delete(apiClient, code)
+        )
       case 'civilite':
         return import('@/services/civilite.service').then(m => m.CiviliteService.delete)
       case 'nationalite':

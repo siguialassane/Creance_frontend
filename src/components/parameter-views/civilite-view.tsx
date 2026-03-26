@@ -42,7 +42,7 @@ export default function CiviliteView() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [sortField, setSortField] = useState<keyof Civilite>('code')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [itemsPerPage] = useState(10)
   const [showForm, setShowForm] = useState(false)
   const [editingCivilite, setEditingCivilite] = useState<Civilite | null>(null)
@@ -103,7 +103,7 @@ export default function CiviliteView() {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
       setSortField(field)
-      setSortDirection('asc')
+      setSortDirection('desc')
     }
   }
 

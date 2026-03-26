@@ -19,8 +19,8 @@ export function useTypeGarantiePersonnellesSearchable() {
     queryKey: ["type-garantie-personnelles-searchable", search],
     queryFn: async ({ pageParam = 0 }) => {
       const response = await TypeGarantiePersonnelleService.getAll(apiClient);
-      const allData = response.data?.data || [];
-      
+      const allData = response.data || [];
+
       // Filtrer par recherche si nécessaire
       let filtered = allData;
       if (search) {
@@ -30,13 +30,13 @@ export function useTypeGarantiePersonnellesSearchable() {
           item.TYPGAR_PHYS_CODE?.toLowerCase().includes(searchLower)
         );
       }
-      
+
       // Pagination simple (20 items par page)
       const pageSize = 20;
       const start = pageParam * pageSize;
       const end = start + pageSize;
       const pageData = filtered.slice(start, end);
-      
+
       return {
         items: pageData,
         nextPage: end < filtered.length ? pageParam + 1 : undefined,

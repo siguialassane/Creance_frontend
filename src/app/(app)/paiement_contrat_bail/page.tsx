@@ -1,39 +1,36 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SearchableSelect } from "@/components/ui/searchable-select"
+import { RecuPaiementModal } from "@/components/modals/RecuPaiementModal"
 import { useApiClient } from "@/hooks/useApiClient"
-import { useAgencesBanqueSearchable } from "@/hooks/useAgencesBanqueSearchable"
-import { useModesPaiementSearchable } from "@/hooks/useModesPaiementSearchable"
+import { useTypeEffetsSearchable } from "@/hooks/useTypeEffetsSearchable"
+import { useBanquesSearchable } from "@/hooks/useBanquesSearchable"
+import { PaiementFactureService } from "@/services/paiement-facture.service"
 import { Eye, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 export default function PaiementContratBailPage() {
   const apiClient = useApiClient()
   const [loading, setLoading] = useState(false)
+  const [savingPaiement, setSavingPaiement] = useState(false)
   const [contratCharge, setContratCharge] = useState(false)
 
-  // Hooks pour les sélections avec recherche
-  const {
-    items: agencesItems,
-    isLoading: isLoadingAgences,
-    hasMore: hasMoreAgences,
-    loadMore: loadMoreAgences,
-    isFetchingMore: isFetchingMoreAgences,
-    search: agencesSearch,
-    setSearch: setAgencesSearch,
-  } = useAgencesBanqueSearchable()
+  // État pour le modal de reçu
+  const [showRecuModal, setShowRecuModal] = useState(false)
+  const [recuData, setRecuData] = useState<any>(null)
 
-  const {
-    items: modesPaiementItems,
-    isLoading: isLoadingModesPaiement,
-    search: modesPaiementSearch,
-    setSearch: setModesPaiementSearch,
-  } = useModesPaiementSearchable()
+  // Hooks pour les sélections
+  const typeEffetsSearchable = useTypeEffetsSearchable()
+  const banquesSearchable = useBanquesSearchable()
+
+  // États pour les contrats actifs
+  const [contratsActifs, setContratsActifs] = useState<any[]>([])
+  const [loadingContrats, setLoadingContrats] = useState(false)
 
   // États pour la section CONTRAT BAIL
   const [numeroContrat, setNumeroContrat] = useState("")
@@ -52,57 +49,43 @@ export default function PaiementContratBailPage() {
   const [typeLibelle, setTypeLibelle] = useState("")
   const [caution, setCaution] = useState("")
   const [operation, setOperation] = useState("")
+  const [soldeContrat, setSoldeContrat] = useState("")
 
   // États pour le mode de paiement
-  const [modePaiement, setModePaiement] = useState("")
-  
-  // États pour le paiement par chèque
-  const [libellePaiementCheque, setLibellePaiementCheque] = useState("")
-  const [banqueAgenceCode, setBanqueAgenceCode] = useState("")
-  const [banqueAgenceLibelle, setBanqueAgenceLibelle] = useState("")
-  const [modePaiementCode, setModePaiementCode] = useState("")
-  const [modePaiementLibelle, setModePaiementLibelle] = useState("")
-  const [numeroEffet, setNumeroEffet] = useState("")
-  const [montant, setMontant] = useState("")
+  const [modePaiement, setModePaiement] = useState<"EFFET" | "ESPECE" | "">("")
+
+  // États pour le paiement par effet
+  const [libellePaiement, setLibellePaiement] = useState("")
+  const [montantPaiement, setMontantPaiement] = useState("")
   const [datePaiement, setDatePaiement] = useState(() => {
     const today = new Date()
     return today.toISOString().split('T')[0]
   })
+  const [typeEffetCode, setTypeEffetCode] = useState("")
+  const [numeroEffet, setNumeroEffet] = useState("")
+  const [banqueAgence, setBanqueAgence] = useState("")
+  const [montantEffet, setMontantEffet] = useState("")
 
-  // États pour le paiement par espèce
-  const [libellePaiement, setLibellePaiement] = useState("")
-  const [montantPaiement, setMontantPaiement] = useState("")
-  const [datePaiementEspece, setDatePaiementEspece] = useState(() => {
-    const today = new Date()
-    return today.toISOString().split('T')[0]
-  })
-
-  // Modes de paiement statiques
-  const modesPaiementList = [
-    { code: "cheque", libelle: "Paiement par chèque" },
-    { code: "espece", libelle: "Paiement par espèce" }
-  ]
+  // Date max pour les sélecteurs (aujourd'hui)
+  const today = new Date().toISOString().split('T')[0]
 
   // Fonction pour détecter le type de paiement sélectionné
-  const isChequeMode = () => {
-    return modePaiement === "cheque"
+  const isEffetMode = () => {
+    return modePaiement === "EFFET"
   }
 
   const isEspeceMode = () => {
-    return modePaiement === "espece"
+    return modePaiement === "ESPECE"
   }
 
   // Fonction pour formater un montant avec séparateurs de milliers
   const formatMontant = (value: string): string => {
-    // Supprimer tous les caractères non numériques sauf les espaces (qui seront supprimés)
     const cleaned = value.replace(/[^\d]/g, '')
     if (!cleaned) return ''
-    
-    // Ajouter les séparateurs de milliers (espaces)
     return cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
   }
 
-  // Fonction pour convertir un montant formaté en nombre (sans espaces)
+  // Fonction pour convertir un montant formaté en nombre
   const parseMontant = (value: string): number | null => {
     const cleaned = value.replace(/\s/g, '').replace(/,/g, '.')
     if (!cleaned) return null
@@ -110,33 +93,43 @@ export default function PaiementContratBailPage() {
     return isNaN(parsed) ? null : parsed
   }
 
+  // Fonction pour formater un nombre avec séparateurs de milliers
+  const formatNumber = (value: number | null | undefined): string => {
+    if (value === null || value === undefined) return "0"
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  }
+
   // Handlers pour les champs de montant avec formatage en temps réel
-  const handleCautionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value
-    // Supprimer tous les espaces pour reformater
-    const cleaned = inputValue.replace(/\s/g, '')
-    // Formater avec séparateurs de milliers
-    const formatted = formatMontant(cleaned)
-    setCaution(formatted)
-  }
-
-  const handleMontantChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value
-    // Supprimer tous les espaces pour reformater
-    const cleaned = inputValue.replace(/\s/g, '')
-    // Formater avec séparateurs de milliers
-    const formatted = formatMontant(cleaned)
-    setMontant(formatted)
-  }
-
   const handleMontantPaiementChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value
-    // Supprimer tous les espaces pour reformater
     const cleaned = inputValue.replace(/\s/g, '')
-    // Formater avec séparateurs de milliers
     const formatted = formatMontant(cleaned)
     setMontantPaiement(formatted)
   }
+
+  const handleMontantEffetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value
+    const cleaned = inputValue.replace(/\s/g, '')
+    const formatted = formatMontant(cleaned)
+    setMontantEffet(formatted)
+  }
+
+  // Charger les contrats actifs au montage du composant
+  useEffect(() => {
+    const loadContratsActifs = async () => {
+      setLoadingContrats(true)
+      try {
+        const contrats = await PaiementFactureService.getContratsActifs(apiClient)
+        setContratsActifs(contrats || [])
+      } catch (error) {
+        console.error("Erreur lors du chargement des contrats:", error)
+        toast.error("Impossible de charger les contrats actifs")
+      } finally {
+        setLoadingContrats(false)
+      }
+    }
+    loadContratsActifs()
+  }, [apiClient])
 
   // Fonction pour charger les données du contrat
   const handleAfficher = async () => {
@@ -147,91 +140,154 @@ export default function PaiementContratBailPage() {
 
     setLoading(true)
     try {
-      // TODO: Appeler l'API pour charger les données du contrat
-      // const contratData = await ContratService.getByNumero(apiClient, numeroContrat.trim())
-      
-      // TODO: Appeler l'API pour charger les données du contrat
-      // const contratData = await ContratService.getByNumero(apiClient, numeroContrat.trim())
-      
-      // Simulation pour l'instant
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Remplir tous les champs du contrat
-      setLibelle("Contrat de bail résidentiel")
-      setNumeroLocataire("LOC001")
-      setNomLocataire("KOUAME Jean")
-      setGroupeCreanceCode("GC001")
-      setGroupeCreanceLibelle("Baux immobiliers")
-      setNumeroLogement("LOG123")
-      setNumeroBloc("B01")
-      setNumeroLot("L05")
-      setNumeroILot("IL02")
-      setDateDebut("2024-01-01")
-      setDateFin("2024-12-31")
-      setTypeCode("T001")
-      setTypeLibelle("Résidentiel")
-      setCaution("500 000")
-      setOperation("Location")
-      setContratCharge(true)
-      toast.success("Contrat chargé avec succès")
+      const contratCode = parseInt(numeroContrat.trim())
+      if (isNaN(contratCode)) {
+        toast.error("Le numéro de contrat doit être un nombre")
+        return
+      }
+
+      // Charger les données du contrat depuis l'API
+      const contratData = await PaiementFactureService.getContratInfo(apiClient, contratCode)
+
+      if (contratData) {
+        const contrat = contratData.data || contratData
+        setLibelle(contrat.CONT_LIB || "")
+        setNumeroLocataire(contrat.LOCAT_CODE?.toString() || "")
+        setNomLocataire((contrat.LOCAT_NOM || "") + " " + (contrat.LOCAT_PREN || ""))
+        setGroupeCreanceCode(contrat.GRP_CREAN_CODE || "")
+        setGroupeCreanceLibelle(contrat.GRP_CREAN_LIB || "")
+        // Les informations de logement ne sont pas disponibles dans la requête actuelle
+        setNumeroLogement("")
+        setNumeroBloc("")
+        setNumeroLot("")
+        setNumeroILot("")
+        setDateDebut(contrat.CONT_DATDEB ? new Date(contrat.CONT_DATDEB).toISOString().split('T')[0] : "")
+        setDateFin(contrat.CONT_DATFIN ? new Date(contrat.CONT_DATFIN).toISOString().split('T')[0] : "")
+        setTypeCode(contrat.TYPCONT_CODE || "")
+        setTypeLibelle(contrat.TYPCONT_LIB || "")
+        setCaution("") // Non disponible dans la requête actuelle
+        setOperation("") // Non disponible dans la requête actuelle
+        setSoldeContrat(formatNumber(contrat.CONT_SOLDE))
+        setContratCharge(true)
+        toast.success("Contrat chargé avec succès")
+      } else {
+        toast.error("Contrat introuvable")
+        setContratCharge(false)
+      }
     } catch (error: any) {
       console.error("Erreur lors du chargement du contrat:", error)
-      toast.error(error.message || "Impossible de charger le contrat")
-      // Réinitialiser les champs en cas d'erreur
-      setLibelle("")
-      setNumeroLocataire("")
-      setNomLocataire("")
-      setGroupeCreanceCode("")
-      setGroupeCreanceLibelle("")
-      setNumeroLogement("")
-      setNumeroBloc("")
-      setNumeroLot("")
-      setNumeroILot("")
-      setDateDebut("")
-      setDateFin("")
-      setTypeCode("")
-      setTypeLibelle("")
-      setCaution("")
-      setOperation("")
+      toast.error(error.response?.data?.message || error.message || "Impossible de charger le contrat")
       setContratCharge(false)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleEnregistrer = () => {
-    // Convertir les montants formatés en nombres pour l'enregistrement
-    const cautionValue = parseMontant(caution)
-    const montantValue = parseMontant(montant)
+  const handleEnregistrer = async () => {
+    // Validation
+    if (!numeroContrat.trim()) {
+      toast.error("Veuillez d'abord rechercher un contrat")
+      return
+    }
+
+    if (!modePaiement) {
+      toast.error("Veuillez sélectionner un mode de paiement")
+      return
+    }
+
+    const contratCode = parseInt(numeroContrat.trim())
+    if (isNaN(contratCode)) {
+      toast.error("Le numéro de contrat doit être un nombre")
+      return
+    }
+
     const montantPaiementValue = parseMontant(montantPaiement)
+    if (!montantPaiementValue || montantPaiementValue <= 0) {
+      toast.error("Veuillez saisir un montant valide")
+      return
+    }
 
-    // Préparer les données pour l'enregistrement
+    if (!libellePaiement.trim()) {
+      toast.error("Veuillez saisir un libellé pour le paiement")
+      return
+    }
+
+    if (!datePaiement) {
+      toast.error("Veuillez saisir une date de paiement")
+      return
+    }
+
+    // Préparer les données
     const paiementData: any = {
-      numeroContrat,
-      // ... autres champs du contrat
-      caution: cautionValue,
+      contratCode: contratCode,
+      libellePaiement: libellePaiement,
+      montantPaiement: montantPaiementValue,
+      datePaiement: datePaiement,
+      modePaiement: modePaiement
     }
 
-    if (isChequeMode()) {
-      paiementData.modePaiement = "cheque"
-      paiementData.libellePaiement = libellePaiementCheque
-      paiementData.banqueAgenceCode = banqueAgenceCode
-      paiementData.banqueAgenceLibelle = banqueAgenceLibelle
-      paiementData.modePaiementCode = modePaiementCode
-      paiementData.modePaiementLibelle = modePaiementLibelle
+    if (isEffetMode()) {
+      // Validations pour le paiement par effet
+      if (!typeEffetCode) {
+        toast.error("Veuillez sélectionner un type d'effet")
+        return
+      }
+      if (!numeroEffet) {
+        toast.error("Veuillez saisir le numéro d'effet")
+        return
+      }
+      if (!banqueAgence) {
+        toast.error("Veuillez sélectionner une banque émettrice")
+        return
+      }
+
+      const montantEffetValue = parseMontant(montantEffet)
+      if (!montantEffetValue || montantEffetValue <= 0) {
+        toast.error("Veuillez saisir un montant d'effet valide")
+        return
+      }
+
+      paiementData.typeEffet = typeEffetCode
       paiementData.numeroEffet = numeroEffet
-      paiementData.montant = montantValue
-      paiementData.datePaiement = datePaiement
-    } else if (isEspeceMode()) {
-      paiementData.modePaiement = "espece"
-      paiementData.libellePaiement = libellePaiement
-      paiementData.montant = montantPaiementValue
-      paiementData.datePaiement = datePaiementEspece
+      paiementData.banqueAgence = banqueAgence
+      paiementData.montantEffet = montantEffetValue
     }
 
-    // Logique d'enregistrement
-    console.log("Enregistrement du paiement...", paiementData)
-    toast.success("Paiement enregistré avec succès")
+    // Enregistrement via l'API
+    setSavingPaiement(true)
+    try {
+      const response = await PaiementFactureService.create(apiClient, paiementData)
+      console.log("Paiement de facture enregistré:", response)
+
+      // Le backend retourne {paieCode, effetNum, message}
+      const recuInfo = {
+        paieCode: response.data?.paieCode,      // Code paiement (toujours disponible)
+        effetNum: response.data?.effetNum,      // Numéro d'effet (disponible seulement pour paiements par effet)
+        numeroPaiement: response.data?.paieCode || response.data?.effetNum || "N/A"
+      }
+
+      setRecuData(recuInfo)
+      setShowRecuModal(true)
+      toast.success("Paiement de facture/loyer enregistré avec succès")
+
+      // Réinitialiser le formulaire de paiement
+      setLibellePaiement("")
+      setMontantPaiement("")
+      setModePaiement("")
+      setTypeEffetCode("")
+      setNumeroEffet("")
+      setBanqueAgence("")
+      setMontantEffet("")
+    } catch (error: any) {
+      console.error("Erreur lors de l'enregistrement du paiement:", error)
+      toast.error(error.response?.data?.message || error.message || "Impossible d'enregistrer le paiement")
+    } finally {
+      setSavingPaiement(false)
+    }
+  }
+
+  const handleCloseRecuModal = () => {
+    setShowRecuModal(false)
   }
 
   return (
@@ -257,7 +313,7 @@ export default function PaiementContratBailPage() {
                     disabled={loading}
                   />
                   <Button 
-                    className="bg-blue-600 hover:bg-blue-700 text-white ml-1"
+                    className="bg-orange-500 hover:bg-orange-600 text-white ml-1"
                     onClick={handleAfficher}
                     disabled={loading || !numeroContrat.trim()}
                   >
@@ -394,10 +450,9 @@ export default function PaiementContratBailPage() {
                   <Label className="text-sm font-bold text-gray-700 w-20 flex-shrink-0 ml-4 pr-1">Caution</Label>
                   <Input
                     value={caution}
-                    onChange={handleCautionChange}
                     className="w-32 bg-gray-100"
-                    readOnly={contratCharge}
-                    disabled={contratCharge}
+                    readOnly
+                    disabled
                     placeholder="Montant caution"
                   />
                   <Label className="text-sm font-bold text-gray-700 w-24 flex-shrink-0 ml-4 pr-1">Opération</Label>
@@ -408,139 +463,95 @@ export default function PaiementContratBailPage() {
                     disabled={contratCharge}
                   />
                 </div>
+
+                {/* Solde Contrat - affiché uniquement si contrat chargé */}
+                {contratCharge && (
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t">
+                    <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Solde Contrat</Label>
+                    <Input
+                      value={soldeContrat}
+                      className="w-48 bg-blue-50 font-bold text-blue-700 border-blue-300"
+                      readOnly
+                      disabled
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Section Mode de Paiement */}
-            <div className="bg-white rounded-lg shadow-sm p-1.5 max-w-[280px]">
-              <Select value={modePaiement} onValueChange={setModePaiement}>
-                <SelectTrigger 
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white border-orange-500 h-10 text-base [&>span]:text-white"
-                  style={{ backgroundColor: '#f97316', borderColor: '#f97316' }}
-                >
-                  <SelectValue placeholder="Mode de Paiement" className="text-white" />
-                </SelectTrigger>
-                <SelectContent>
-                  {modesPaiementList.map((mode) => (
-                    <SelectItem key={mode.code} value={mode.code}>
-                      {mode.libelle}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {contratCharge && (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Mode de Paiement</h3>
+                <div className="flex gap-5">
+                  <label className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    modePaiement === "EFFET"
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="modePaiement"
+                      value="EFFET"
+                      checked={modePaiement === "EFFET"}
+                      onChange={(e) => setModePaiement(e.target.value as any)}
+                      className="w-5 h-5 text-orange-500 focus:ring-orange-500 focus:ring-2"
+                    />
+                    <span className={`ml-3 text-base font-medium ${
+                      modePaiement === "EFFET" ? 'text-orange-700' : 'text-gray-700'
+                    }`}>
+                      Paiement par Effet
+                    </span>
+                  </label>
+
+                  <label className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    modePaiement === "ESPECE"
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="modePaiement"
+                      value="ESPECE"
+                      checked={modePaiement === "ESPECE"}
+                      onChange={(e) => setModePaiement(e.target.value as any)}
+                      className="w-5 h-5 text-orange-500 focus:ring-orange-500 focus:ring-2"
+                    />
+                    <span className={`ml-3 text-base font-medium ${
+                      modePaiement === "ESPECE" ? 'text-orange-700' : 'text-gray-700'
+                    }`}>
+                      Paiement par Espèce
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Section Paiement - Pleine largeur (conditionnelle selon le mode) */}
-        {isChequeMode() && (
+        {isEffetMode() && (
           <div className="bg-white rounded-lg shadow-sm p-6 space-y-4 mt-6">
-            <h2 className="text-lg font-semibold text-orange-500 mb-4">Paiement par chèque (Effet)</h2>
-            
+            <h2 className="text-lg font-semibold text-orange-500 mb-4">Paiement par Effet</h2>
+
             <div className="space-y-3 w-full">
               {/* Libellé Paiement */}
               <div className="flex items-center gap-2 w-full">
                 <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Libellé Paiement</Label>
                 <Input
-                  value={libellePaiementCheque}
-                  onChange={(e) => setLibellePaiementCheque(e.target.value)}
+                  value={libellePaiement}
+                  onChange={(e) => setLibellePaiement(e.target.value)}
                   placeholder="Saisir le libellé du paiement"
                   className="flex-1 min-w-0 bg-white"
                 />
               </div>
 
-              {/* Banque Agence */}
-              <div className="flex items-center gap-2 w-full">
-                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Banque agence</Label>
-                <div className="flex gap-2 flex-1 min-w-0">
-                  <div className="w-80 flex-shrink-0">
-                    <SearchableSelect
-                      value={banqueAgenceCode}
-                      onValueChange={(value) => {
-                        setBanqueAgenceCode(value)
-                        const selectedAgence = agencesItems.find((item) => item.value === value)
-                        if (selectedAgence) {
-                          setBanqueAgenceLibelle(selectedAgence.BQAG_LIB || selectedAgence.libelle || "")
-                        } else {
-                          setBanqueAgenceLibelle("")
-                        }
-                      }}
-                      items={agencesItems}
-                      placeholder="Code"
-                      searchPlaceholder="Rechercher une agence..."
-                      emptyMessage="Aucune agence trouvée"
-                      isLoading={isLoadingAgences}
-                      hasMore={hasMoreAgences}
-                      onLoadMore={loadMoreAgences}
-                      isFetchingMore={isFetchingMoreAgences}
-                      onSearchChange={setAgencesSearch}
-                      search={agencesSearch}
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                  <Input
-                    value={banqueAgenceLibelle}
-                    className="flex-1 min-w-0 bg-gray-100"
-                    readOnly
-                    disabled
-                    placeholder="Libellé"
-                  />
-                </div>
-              </div>
-
-              {/* Mode de paiement */}
-              <div className="flex items-center gap-2 w-full">
-                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Mode de paiement</Label>
-                <div className="flex gap-2 flex-1 min-w-0">
-                  <div className="w-80 flex-shrink-0">
-                    <SearchableSelect
-                      value={modePaiementCode}
-                      onValueChange={(value) => {
-                        setModePaiementCode(value)
-                        const selectedMode = modesPaiementItems.find((item) => item.value === value)
-                        if (selectedMode) {
-                          setModePaiementLibelle(selectedMode.TYP_PAIE_LIB || selectedMode.libelle || "")
-                        } else {
-                          setModePaiementLibelle("")
-                        }
-                      }}
-                      items={modesPaiementItems}
-                      placeholder="Code"
-                      searchPlaceholder="Rechercher un mode de paiement..."
-                      emptyMessage="Aucun mode de paiement trouvé"
-                      isLoading={isLoadingModesPaiement}
-                      onSearchChange={setModesPaiementSearch}
-                      search={modesPaiementSearch}
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                  <Input
-                    value={modePaiementLibelle}
-                    className="flex-1 min-w-0 bg-gray-100"
-                    readOnly
-                    disabled
-                    placeholder="Libellé"
-                  />
-                </div>
-              </div>
-
-              {/* Nº EFFET */}
-              <div className="flex items-center gap-2 w-full">
-                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">N effet</Label>
-                <Input
-                  value={numeroEffet}
-                  onChange={(e) => setNumeroEffet(e.target.value)}
-                  placeholder="Saisir le numéro d'effet"
-                  className="flex-1 min-w-0 bg-white"
-                />
-              </div>
-
-              {/* Montant et Date */}
+              {/* Montant Paiement et Date */}
               <div className="flex items-center gap-2 w-full">
                 <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Montant</Label>
                 <Input
-                  value={montant}
-                  onChange={handleMontantChange}
+                  value={montantPaiement}
+                  onChange={handleMontantPaiementChange}
                   placeholder="Saisir le montant"
                   className="flex-1 min-w-0 bg-white"
                 />
@@ -549,6 +560,67 @@ export default function PaiementContratBailPage() {
                   type="date"
                   value={datePaiement}
                   onChange={(e) => setDatePaiement(e.target.value)}
+                  max={today}
+                  className="flex-1 min-w-0 bg-white"
+                />
+              </div>
+
+              {/* Type Effet */}
+              <div className="flex items-center gap-2 w-full">
+                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Type Effet</Label>
+                <SearchableSelect
+                  value={typeEffetCode}
+                  onValueChange={(value) => setTypeEffetCode(value)}
+                  items={typeEffetsSearchable.items}
+                  placeholder="Sélectionner un type d'effet"
+                  emptyMessage="Aucun type trouvé"
+                  searchPlaceholder="Rechercher un type..."
+                  isLoading={typeEffetsSearchable.isLoading}
+                  hasMore={typeEffetsSearchable.hasMore}
+                  onLoadMore={typeEffetsSearchable.loadMore}
+                  isFetchingMore={typeEffetsSearchable.isFetchingMore}
+                  onSearchChange={typeEffetsSearchable.setSearch}
+                  className="flex-1"
+                />
+              </div>
+
+              {/* Numéro d'effet (numéro du chèque) */}
+              <div className="flex items-center gap-2 w-full">
+                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">N° Effet</Label>
+                <Input
+                  value={numeroEffet}
+                  onChange={(e) => setNumeroEffet(e.target.value)}
+                  placeholder="Saisir le numéro du chèque"
+                  className="flex-1 min-w-0 bg-white"
+                />
+              </div>
+
+              {/* Banque Emettrice */}
+              <div className="flex items-center gap-2 w-full">
+                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Banque Emettrice</Label>
+                <SearchableSelect
+                  value={banqueAgence}
+                  onValueChange={(value) => setBanqueAgence(value)}
+                  items={banquesSearchable.items}
+                  placeholder="Sélectionner une banque"
+                  emptyMessage="Aucune banque trouvée"
+                  searchPlaceholder="Rechercher une banque..."
+                  isLoading={banquesSearchable.isLoading}
+                  hasMore={banquesSearchable.hasMore}
+                  onLoadMore={banquesSearchable.loadMore}
+                  isFetchingMore={banquesSearchable.isFetchingMore}
+                  onSearchChange={banquesSearchable.setSearch}
+                  className="flex-1"
+                />
+              </div>
+
+              {/* Montant Effet */}
+              <div className="flex items-center gap-2 w-full">
+                <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Montant Effet</Label>
+                <Input
+                  value={montantEffet}
+                  onChange={handleMontantEffetChange}
+                  placeholder="Saisir le montant de l'effet"
                   className="flex-1 min-w-0 bg-white"
                 />
               </div>
@@ -558,8 +630,8 @@ export default function PaiementContratBailPage() {
 
         {isEspeceMode() && (
           <div className="bg-white rounded-lg shadow-sm p-6 space-y-4 mt-6">
-            <h2 className="text-lg font-semibold text-orange-500 mb-4">Paiement par espèce</h2>
-            
+            <h2 className="text-lg font-semibold text-orange-500 mb-4">Paiement par Espèce</h2>
+
             <div className="space-y-3 w-full">
               {/* Libellé Paiement */}
               <div className="flex items-center gap-2 w-full">
@@ -584,8 +656,9 @@ export default function PaiementContratBailPage() {
                 <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 ml-4 pr-1">Date</Label>
                 <Input
                   type="date"
-                  value={datePaiementEspece}
-                  onChange={(e) => setDatePaiementEspece(e.target.value)}
+                  value={datePaiement}
+                  onChange={(e) => setDatePaiement(e.target.value)}
+                  max={today}
                   className="flex-1 min-w-0 bg-white"
                 />
               </div>
@@ -593,18 +666,35 @@ export default function PaiementContratBailPage() {
           </div>
         )}
 
-        {/* Boutons en bas */}
-        <div className="flex justify-between items-center mt-6">
-          <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 border-gray-300">
-            Retour
-          </Button>
-          <Button
-            onClick={handleEnregistrer}
-            className="bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            Enregistrer
-          </Button>
-        </div>
+        {/* Boutons en bas - affichés seulement si un formulaire est visible */}
+        {modePaiement && (
+          <div className="flex justify-end items-center mt-6">
+            <Button
+              onClick={handleEnregistrer}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+              disabled={savingPaiement}
+            >
+              {savingPaiement ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                "Enregistrer"
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Modal de reçu */}
+        {showRecuModal && recuData && (
+          <RecuPaiementModal
+            open={showRecuModal}
+            onClose={handleCloseRecuModal}
+            title="Reçu de Paiement de Facture/Loyer"
+            data={recuData}
+          />
+        )}
       </div>
     </div>
   )

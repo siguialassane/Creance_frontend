@@ -34,7 +34,8 @@ export const FORM_FIELD_CONFIGS: Record<string, FormFieldConfig[]> = {
     { key: 'libelle', label: 'Libellé', type: 'text', required: true, apiKey: 'CLAS_LIB', maxLength: 100 }
   ],
   categorie_debiteur: [
-    { key: 'code', label: 'Code', type: 'text', required: true, apiKey: 'CATEG_DEB_CODE', maxLength: 10 },
+    // AC_CATEGORIE_DEBITEUR.CATEG_DEB_CODE est en VARCHAR2(3 BYTE)
+    { key: 'code', label: 'Code', type: 'text', required: true, apiKey: 'CATEG_DEB_CODE', maxLength: 3 },
     { key: 'libelle', label: 'Libellé', type: 'text', required: true, apiKey: 'CATEG_DEB_LIB', maxLength: 100 }
   ],
   fonction: [
@@ -66,8 +67,9 @@ export const FORM_FIELD_CONFIGS: Record<string, FormFieldConfig[]> = {
     { key: 'libelle', label: 'Libellé', type: 'text', required: true, apiKey: 'TYPOPER_LIB', maxLength: 100 }
   ],
   entite: [
-    { key: 'code', label: 'Code', type: 'text', required: true, apiKey: 'ENTITE_CODE', maxLength: 10 },
-    { key: 'libelle', label: 'Libellé', type: 'text', required: true, apiKey: 'ENTITE_LIB', maxLength: 100 }
+    // Aligné sur le backend: AC_ENTITE attend ENT_CODE / ENT_LIB
+    { key: 'code', label: 'Code', type: 'text', required: true, apiKey: 'ENT_CODE', maxLength: 10 },
+    { key: 'libelle', label: 'Libellé', type: 'text', required: true, apiKey: 'ENT_LIB', maxLength: 100 }
   ],
   etape: [
     { key: 'code', label: 'Code', type: 'text', required: true, apiKey: 'ETAP_CODE', maxLength: 10 },
@@ -188,6 +190,15 @@ export const FORM_FIELD_CONFIGS: Record<string, FormFieldConfig[]> = {
 
   // Paramètres avec champs supplémentaires
   agence_de_banque: [
+    {
+      key: 'bqagCode',
+      label: 'Code Agence',
+      type: 'text',
+      required: true,
+      apiKey: 'BQAG_CODE',
+      maxLength: 20,
+      placeholder: 'Ex: A0082'
+    },
     { 
       key: 'banqueCode', 
       label: 'Code Banque', 
@@ -198,10 +209,6 @@ export const FORM_FIELD_CONFIGS: Record<string, FormFieldConfig[]> = {
       searchableHook: 'useBanquesSearchable'
     },
     { key: 'libelle', label: 'Libellé', type: 'text', required: true, apiKey: 'BQAG_LIB', maxLength: 100, placeholder: 'Ex: AGENCE PLATEAU' },
-    { key: 'libelleLong', label: 'Libellé Long', type: 'text', required: false, apiKey: 'BQAG_LIBLONG', maxLength: 200, placeholder: 'Ex: AGENCE SOCIETE GENERALE PLATEAU' },
-    { key: 'adresse', label: 'Adresse', type: 'text', required: false, apiKey: 'BQAG_ADR', maxLength: 255, placeholder: 'Ex: BOULEVARD CARDE, PLATEAU' },
-    { key: 'telephone', label: 'Téléphone', type: 'text', required: false, apiKey: 'BQAG_TEL', maxLength: 20, placeholder: 'Ex: 2722204001' },
-    { key: 'ville', label: 'Ville', type: 'text', required: false, apiKey: 'BQAG_VILLE', maxLength: 100, placeholder: 'Ex: ABIDJAN' }
   ],
   
   compte_operation: [
@@ -211,7 +218,12 @@ export const FORM_FIELD_CONFIGS: Record<string, FormFieldConfig[]> = {
       type: 'number', 
       required: true, 
       apiKey: 'CPT_OPER_NUM',
-      min: 1
+      min: 1,
+      validation: {
+        // Eviter les entrées type "1e3", "+1", "-2" : on accepte uniquement des chiffres.
+        pattern: /^\d+$/,
+        message: 'Le numéro doit contenir uniquement des chiffres'
+      }
     },
     { 
       key: 'journal', 

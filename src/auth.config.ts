@@ -6,6 +6,7 @@ type LoginResponse = {
     token: string;
     refreshToken: string;
     type: string;
+    sessionId?: string;
     username: string;
     fullName: string;
     email: string;
@@ -22,7 +23,9 @@ type LoginResponse = {
 };
 
 async function loginWithCredentials(username: string, password: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+  console.log("🔐 [NextAuth] Login attempt using API URL:", baseUrl);
+  console.log("   -> Env var NEXT_PUBLIC_API_URL:", process.env.NEXT_PUBLIC_API_URL);
   const res = await fetch(`${baseUrl}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -55,7 +58,7 @@ async function loginWithCredentials(username: string, password: string) {
     name: payload.fullName,
     email: payload.email,
     username: payload.username,
-    sessionId: payload.username, // Use sessionId if available, fallback to username
+    sessionId: payload.sessionId ?? payload.username,
     accessToken: payload.token,
     refreshToken: payload.refreshToken,
     tokenType: payload.type || 'Bearer',

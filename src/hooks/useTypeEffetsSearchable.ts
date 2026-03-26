@@ -43,9 +43,11 @@ export function useTypeEffetsSearchable() {
       })
       
       // Transformer les données
-      const items: SearchableSelectItem[] = ((response.data?.data?.content || response.data?.content || []) as any[]).map((typeEffet: any) => ({
-        value: typeEffet.TE_CODE || typeEffet.code || "",
-        label: `${typeEffet.TE_CODE || typeEffet.code} - ${typeEffet.TE_LIB || typeEffet.libelle || ""}`,
+      // L'API retourne {data: {data: [...], message, status}} donc response.data.data est le tableau
+      const rawData = response.data?.data || response.data?.content || response.data || []
+      const items: SearchableSelectItem[] = (Array.isArray(rawData) ? rawData : []).map((typeEffet: any) => ({
+        value: typeEffet.TYPEFT_CODE || typeEffet.TE_CODE || typeEffet.code || "",
+        label: `${typeEffet.TYPEFT_CODE || typeEffet.TE_CODE || typeEffet.code || ""} - ${typeEffet.TYPEFT_LIB || typeEffet.TE_LIB || typeEffet.libelle || ""}`,
         ...typeEffet,
       }))
 

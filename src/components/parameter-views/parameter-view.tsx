@@ -78,7 +78,7 @@ export default function ParameterView({
     page: 0,
     size: 50,
     search: '',
-    sortDirection: 'ASC',
+    sortDirection: 'DESC',
     // sortBy: 'code'
   })
 
@@ -143,11 +143,21 @@ export default function ParameterView({
   // Si on utilise la pagination serveur ET qu'on a un hook paginé, l'utiliser
   // Sinon, utiliser le hook normal
   // Le ternaire garantit qu'on appelle toujours exactement un hook
-  const hookData = (useServerPagination && hookPaginatedFunction)
-    ? hookPaginatedFunction(paginationParams)
-    : (hookFunction 
+  const hookData = useServerPagination
+    ? (
+      hookPaginatedFunction
+        ? hookPaginatedFunction(paginationParams)
+        : (hookFunction
+            // Cas important: certains hooks "paginated" (ex: useAgencesBanquePaginated)
+            // exposent uniquement `hook` mais attendent quand même les params.
+            ? hookFunction(paginationParams)
+            : { data: null, error: null, isLoading: false, refetch: () => {} })
+    )
+    : (
+      hookFunction
         ? hookFunction()
-        : { data: null, error: null, isLoading: false, refetch: () => {} })
+        : { data: null, error: null, isLoading: false, refetch: () => {} }
+    )
 
   const { data: apiData, error, isLoading, refetch } = hookData
 
@@ -248,35 +258,44 @@ export default function ParameterView({
   }, [formFields, type])
 
   const handleDelete = useCallback(async (item: SimpleItem) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ${item.libelle} ?`)) {
-      return
-    }
-
     if (!type) {
       console.error('Type de paramètre non défini')
       return
     }
 
     try {
-      // Supprimer optimistiquement de l'interface
-      const originalData = data
-      setData(data.filter(d => d.id !== item.id))
-
       // Dynamiquement importer et utiliser le service de suppression
       const deleteService = await PARAMETER_CONFIG.getServiceDelete(type)
       if (!deleteService) {
         console.log('Service de suppression non trouvé pour le type:', type)
-        setData(originalData)
-        toast.error('Service de suppression non disponible')
-        return
+        throw new Error('Service de suppression non disponible')
       }
 
-      // Appeler le service directement
-      await deleteService(apiClient, String(item.code))
+      if (type === 'agence_de_banque') {
+        const bqCode = (item as any).banqueCode ?? (item as any).BQ_CODE ?? ''
+        const bqagLib = (item as any).libelle ?? (item as any).BQAG_LIB ?? ''
+        // On ne récupère PAS bqagNum via `code`, car `code` sert à l'affichage (BQAG_CODE).
+        const bqagNum = (item as any).bqagNum ?? (item as any).BQAG_NUM ?? ''
+        const bqagCode = (item as any).bqagCode ?? (item as any).BQAG_CODE ?? ''
 
-      // Invalider le cache et afficher un message de succès
-      queryClient.invalidateQueries({ queryKey: [type] })
-      toast.success('Élément supprimé avec succès')
+        if (!bqCode || (!bqagLib && !bqagNum && !bqagCode)) {
+          throw new Error(
+            `Suppression agence bancaire impossible: bqCode='${bqCode}', bqagLib='${bqagLib}', bqagNum='${bqagNum}', bqagCode='${bqagCode}'`
+          )
+        }
+
+        // Le backend accepte (BQ_CODE, BQAG_LIB), (BQ_CODE, BQAG_NUM) et (BQ_CODE, BQAG_CODE) en fallback
+        await (deleteService as any)(
+          apiClient,
+          String(bqCode),
+          String(bqagLib || ''),
+          String(bqagNum || ''),
+          String(bqagCode || '')
+        )
+      } else {
+        const code = (item as any).code ?? (item as any).id
+        await deleteService(apiClient, String(code))
+      }
 
       // Rafraîchir les données depuis le serveur
       refetch()
@@ -284,13 +303,9 @@ export default function ParameterView({
       console.error('Erreur lors de la suppression:', error)
       // En cas d'erreur, refetch pour avoir les données correctes
       refetch()
-
-      const errorMessage = (error as Error & { response?: { data?: { message?: string } } })?.response?.data?.message ||
-                          (error as Error)?.message ||
-                          "Erreur lors de la suppression de l'élément"
-      toast.error(errorMessage)
+      throw error
     }
-  }, [data, type, refetch, apiClient, queryClient])
+  }, [type, refetch, apiClient, queryClient])
 
   const handleSearchChange = useCallback((newQuery: string) => {
     // Ne pas déclencher automatiquement la recherche
@@ -448,10 +463,10 @@ export default function ParameterView({
       // Créer l'objet brut selon les champs du formulaire
       const rawItem = createRawItemFromForm(type, formData, formFields)
 
-      // Utiliser le mapper approprié pour créer l'objet à insérer
-      const mappedItem = currentConfig?.mapper(rawItem)
-
-      console.log(`Ajout d'un nouvel élément de type: ${type}`, { rawItem, mappedItem })
+      // NOTE: currentConfig.mapper() sert au mapping pour l'affichage.
+      // Pour l'appel API "create", on doit envoyer les clés API (via createRawItemFromForm),
+      // sinon on perd les champs attendus par le backend (ex: BQ_CODE, BQAG_LIB).
+      console.log(`Ajout d'un nouvel élément de type: ${type}`, { rawItem })
 
       // Ajouter temporairement l'élément côté client pour une meilleure UX
       const timestamp = typeof window !== 'undefined' ? Date.now() : 0
@@ -463,7 +478,7 @@ export default function ParameterView({
       setData(prev => [...prev, newItem])
 
       // Déclencher l'ajout côté serveur selon le type
-      await handleServerCreate(mappedItem, type)
+      await handleServerCreate(rawItem, type)
 
       // Fermer le formulaire et réinitialiser les données
       setShowForm(false)
@@ -503,17 +518,29 @@ export default function ParameterView({
 
       console.log(`Mise à jour de l'élément de type: ${type}`, rawItem)
 
-      // Dynamiquement importer et utiliser le service de mise à jour
-      const updateService = await PARAMETER_CONFIG.getServiceUpdate(type)
-      if (!updateService) {
-        throw new Error('Service de mise à jour non trouvé pour le type: ' + type)
+      if (type === 'agence_de_banque') {
+        // Pour agence_de_banque, la clé est composite (BQ_CODE, BQAG_LIB).
+        // IMPORTANT: l'URL doit utiliser l'ancienne valeur BQAG_LIB (avant modification),
+        // sinon rowsAffected = 0.
+        const bqCodeKey =
+          String((editingItem as any).banqueCode ?? (editingItem as any).BQ_CODE ?? rawItem?.BQ_CODE ?? '')
+        const bqagLibKey =
+          String((editingItem as any).libelle ?? (editingItem as any).BQAG_LIB ?? rawItem?.BQAG_LIB ?? '')
+
+        const agenceModule = await import('@/services/agence-banque.service')
+        await agenceModule.AgenceBanqueService.updateByComposite(apiClient, bqCodeKey, bqagLibKey, rawItem)
+      } else {
+        // Dynamiquement importer et utiliser le service de mise à jour
+        const updateService = await PARAMETER_CONFIG.getServiceUpdate(type)
+        if (!updateService) {
+          throw new Error('Service de mise à jour non trouvé pour le type: ' + type)
+        }
+
+        // Obtenir le code de l'élément à mettre à jour
+        const itemCode = String(editingItem.code || editingItem.id || '')
+        // Appeler le service directement avec l'objet brut
+        await updateService(apiClient, itemCode, rawItem)
       }
-
-      // Obtenir le code de l'élément à mettre à jour
-      const itemCode = String(editingItem.code || editingItem.id || '')
-
-      // Appeler le service directement avec l'objet brut
-      await updateService(apiClient, itemCode, rawItem)
 
       // Invalider le cache et afficher un message de succès
       queryClient.invalidateQueries({ queryKey: [type] })

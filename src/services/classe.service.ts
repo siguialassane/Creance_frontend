@@ -5,12 +5,12 @@ export class ClasseService {
   private static readonly BASE_URL = "/classes";
 
   static async getAll(apiClient: ApiClient): Promise<ClasseApiResponse> {
-    const response = await apiClient.get<ClasseApiResponse>(`${this.BASE_URL}`);
+    const response = await apiClient.get<ClasseApiResponse>(`${ClasseService.BASE_URL}`);
     return response.data;
   }
 
   static async getByCode(apiClient: ApiClient, code: string): Promise<Classe> {
-    const response = await apiClient.get<ClasseApiResponse>(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.get<ClasseApiResponse>(`${ClasseService.BASE_URL}/${code}`);
     if (!response.data.data || response.data.data.length === 0) {
       throw new Error("Classe non trouvée");
     }
@@ -18,22 +18,22 @@ export class ClasseService {
   }
 
   static async create(apiClient: ApiClient, classe: ClasseCreateRequest): Promise<ClasseApiResponse> {
-    const response = await apiClient.post<ClasseApiResponse>(this.BASE_URL, classe);
+    const response = await apiClient.post<ClasseApiResponse>(ClasseService.BASE_URL, classe);
     return response.data;
   }
 
   static async update(apiClient: ApiClient, code: string, classe: ClasseUpdateRequest): Promise<ClasseApiResponse> {
-    const response = await apiClient.put<ClasseApiResponse>(`${this.BASE_URL}/${code}`, classe);
+    const response = await apiClient.put<ClasseApiResponse>(`${ClasseService.BASE_URL}/${code}`, classe);
     return response.data;
   }
 
   static async delete(apiClient: ApiClient, code: string): Promise<ClasseApiResponse> {
-    const response = await apiClient.delete<ClasseApiResponse>(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.delete<ClasseApiResponse>(`${ClasseService.BASE_URL}/${code}`);
     return response.data;
   }
 
   static async search(apiClient: ApiClient, searchTerm: string): Promise<ClasseApiResponse> {
-    const response = await apiClient.get<ClasseApiResponse>(`${this.BASE_URL}/search`, {
+    const response = await apiClient.get<ClasseApiResponse>(`${ClasseService.BASE_URL}/search`, {
       params: { q: searchTerm }
     });
     return response.data;

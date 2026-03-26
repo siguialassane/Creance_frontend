@@ -1,20 +1,35 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SearchableSelect } from "@/components/ui/searchable-select"
+import { RecuPaiementModal } from "@/components/modals/RecuPaiementModal"
 import { usePeriodicites } from "@/hooks/usePeriodicites"
 import { useApiClient } from "@/hooks/useApiClient"
+import { useTypeEffetsSearchable } from "@/hooks/useTypeEffetsSearchable"
+import { useBanquesSearchable } from "@/hooks/useBanquesSearchable"
+import { useSessionWrapper } from "@/hooks/useSessionWrapper"
 import { CreanceService } from "@/services/creance.service"
+import { PaiementCreanceService } from "@/services/paiement-creance.service"
 import { CreanceResponse } from "@/types/creance"
 import { Eye, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { useSearchParams, useRouter } from "next/navigation"
 
-export default function PaiementsCreancesPage() {
+function PaiementsCreancesPageContent() {
   const apiClient = useApiClient()
+  const { data: session } = useSessionWrapper()
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [savingPaiement, setSavingPaiement] = useState(false)
+
+  // État pour le modal de reçu
+  const [showRecuModal, setShowRecuModal] = useState(false)
+  const [recuData, setRecuData] = useState<any>(null)
 
   // États pour les champs du formulaire
   const [codeCreance, setCodeCreance] = useState("")
@@ -39,21 +54,16 @@ export default function PaiementsCreancesPage() {
   const [soldeMontant, setSoldeMontant] = useState("")
   
   // États pour le mode de paiement
-  const [modePaiement, setModePaiement] = useState("")
-  
-  // États pour le paiement par chèque
+  const [modePaiement, setModePaiement] = useState<"EFFET" | "ESPECE" | "">("")
+
+  // États pour le paiement par effet (chèque/virement)
   const [typeEffetCode, setTypeEffetCode] = useState("")
-  const [typeEffetLibelle, setTypeEffetLibelle] = useState("")
   const [numeroCheque, setNumeroCheque] = useState("")
   const [banqueEmettriceCode, setBanqueEmettriceCode] = useState("")
-  const [banqueEmettriceLibelle, setBanqueEmettriceLibelle] = useState("")
   const [montant, setMontant] = useState("")
   const [datePaiement, setDatePaiement] = useState(() => {
     const today = new Date()
-    const day = String(today.getDate()).padStart(2, '0')
-    const month = today.toLocaleDateString('fr-FR', { month: 'short' })
-    const year = today.getFullYear()
-    return `${day} ${month} ${year}`
+    return today.toISOString().split('T')[0]
   })
 
   // États pour le paiement par espèce
@@ -61,29 +71,56 @@ export default function PaiementsCreancesPage() {
   const [montantPaiement, setMontantPaiement] = useState("")
   const [datePaiementEspece, setDatePaiementEspece] = useState(() => {
     const today = new Date()
-    const day = String(today.getDate()).padStart(2, '0')
-    const month = today.toLocaleDateString('fr-FR', { month: 'short' })
-    const year = today.getFullYear()
-    return `${day} ${month} ${year}`
+    return today.toISOString().split('T')[0]
   })
+
+
+  // États pour le paiement par aval
+  const [typePayeur, setTypePayeur] = useState<"DEBITEUR_PRINCIPAL" | "AVAL">("DEBITEUR_PRINCIPAL")
+  const [garantiePhysCode, setGarantiePhysCode] = useState("")
+  const [garantiesPhysiques, setGarantiesPhysiques] = useState<any[]>([])
+  const [loadingGaranties, setLoadingGaranties] = useState(false)
 
   // Hooks pour les données
   const { data: periodicites } = usePeriodicites()
+  const typeEffetsSearchable = useTypeEffetsSearchable()
+  const banquesSearchable = useBanquesSearchable()
 
-  // Modes de paiement statiques
-  const modesPaiementList = [
-    { code: "cheque", libelle: "Paiement par chèque" },
-    { code: "espece", libelle: "Paiement par espèce" }
-  ]
+  // Date max pour les sélecteurs (aujourd'hui)
+  const today = new Date().toISOString().split('T')[0]
+
+  // Charger les garanties physiques (avals) pour la créance
+  useEffect(() => {
+    const loadGarantiesPhysiques = async () => {
+      if (!codeCreance.trim()) return
+
+      setLoadingGaranties(true)
+      try {
+        const response = await PaiementCreanceService.getGarantiesPhysiques(apiClient, codeCreance)
+        const garanties = Array.isArray(response) ? response : (response?.data || [])
+        setGarantiesPhysiques(garanties)
+      } catch (error) {
+        console.error("Erreur lors du chargement des garanties:", error)
+        setGarantiesPhysiques([])
+      } finally {
+        setLoadingGaranties(false)
+      }
+    }
+
+    if (codeCreance.trim()) {
+      loadGarantiesPhysiques()
+    }
+  }, [apiClient, codeCreance])
 
   // Fonction pour détecter le type de paiement sélectionné
-  const isChequeMode = () => {
-    return modePaiement === "cheque"
+  const isEffetMode = () => {
+    return modePaiement === "EFFET"
   }
 
   const isEspeceMode = () => {
-    return modePaiement === "espece"
+    return modePaiement === "ESPECE"
   }
+
 
   // Fonction pour formater une date au format "DD MMM YYYY"
   const formatDate = (dateString: string | undefined): string => {
@@ -149,12 +186,32 @@ export default function PaiementsCreancesPage() {
 
   const handleMontantPaiementChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value
-    // Supprimer tous les espaces pour reformater
     const cleaned = inputValue.replace(/\s/g, '')
-    // Formater avec séparateurs de milliers
     const formatted = formatMontant(cleaned)
     setMontantPaiement(formatted)
   }
+
+  // Charger automatiquement la créance si le code est dans l'URL
+  const hasAutoLoadedRef = useRef(false)
+
+  useEffect(() => {
+    const codeFromUrl = searchParams.get('code')
+    if (codeFromUrl && !hasAutoLoadedRef.current) {
+      hasAutoLoadedRef.current = true
+      setCodeCreance(codeFromUrl)
+    }
+  }, [searchParams])
+
+  // Déclencher handleAfficher quand le code est défini automatiquement
+  useEffect(() => {
+    if (hasAutoLoadedRef.current && codeCreance && !loading) {
+      const timer = setTimeout(() => {
+        handleAfficher()
+      }, 200)
+      return () => clearTimeout(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codeCreance])
 
   // Fonction pour charger les données de la créance
   const handleAfficher = async () => {
@@ -200,13 +257,13 @@ export default function PaiementsCreancesPage() {
 
       // Remplir la sidebar
       setCapitalInitial(formatNumber(creanceData.CREAN_CAPIT_INIT))
-      
-      // Date de première échéance (date de déblocage)
-      setDatePremiereEch(formatDate(creanceData.CREAN_DATE_DEBLOCAGE))
-      
-      // Date d'octroi (date de création)
-      setDateOctroi(formatDate(creanceData.CREAN_DATE_CREAT))
-      
+
+      // Date de première échéance - essayer CREAN_DATECH puis CREAN_DATE_DEBLOCAGE
+      setDatePremiereEch(formatDate(creanceData.CREAN_DATECH || creanceData.CREAN_DATE_DEBLOCAGE))
+
+      // Date d'octroi - essayer CREAN_DATOCTROI puis CREAN_DATECREA
+      setDateOctroi(formatDate(creanceData.CREAN_DATOCTROI || creanceData.CREAN_DATECREA))
+
       setDuree(creanceData.CREAN_DUREE?.toString() || "")
       
       // Solde débiteur
@@ -217,7 +274,18 @@ export default function PaiementsCreancesPage() {
       toast.success("Créance chargée avec succès")
     } catch (error: any) {
       console.error("Erreur lors du chargement de la créance:", error)
-      toast.error(error.message || "Impossible de charger la créance")
+
+      // Message d'erreur plus spécifique
+      let errorMessage = "Impossible de charger la créance"
+      if (error.response?.status === 404 || error.message?.includes("non trouvée")) {
+        errorMessage = `Aucune créance trouvée avec le code "${codeCreance}"`
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
+      toast.error(errorMessage)
       // Réinitialiser les champs en cas d'erreur
       setDebiteurCode("")
       setDebiteurLibelle("")
@@ -241,36 +309,105 @@ export default function PaiementsCreancesPage() {
     }
   }
 
-  const handleEnregistrer = () => {
-    // Convertir les montants formatés en nombres pour l'enregistrement
+  const handleEnregistrer = async () => {
+    // Validation de base
+    if (!codeCreance.trim()) {
+      toast.error("Veuillez d'abord rechercher une créance")
+      return
+    }
+
+    if (!modePaiement) {
+      toast.error("Veuillez sélectionner un mode de paiement")
+      return
+    }
+
+    // Convertir les montants formatés en nombres
     const montantValue = parseMontant(montant)
     const montantPaiementValue = parseMontant(montantPaiement)
 
     // Préparer les données pour l'enregistrement
     const paiementData: any = {
-      codeCreance,
-      // ... autres champs
+      creanceCode: codeCreance,
+      modePaiement: modePaiement,
+      typePayeur: typePayeur
     }
 
-    if (isChequeMode()) {
-      paiementData.modePaiement = "cheque"
-      paiementData.typeEffetCode = typeEffetCode
-      paiementData.typeEffetLibelle = typeEffetLibelle
-      paiementData.numeroCheque = numeroCheque
-      paiementData.banqueEmettriceCode = banqueEmettriceCode
-      paiementData.banqueEmettriceLibelle = banqueEmettriceLibelle
-      paiementData.montant = montantValue
+    if (isEffetMode()) {
+      // Validations pour le paiement par effet
+      if (!typeEffetCode) {
+        toast.error("Veuillez sélectionner un type d'effet")
+        return
+      }
+      if (!numeroCheque) {
+        toast.error("Veuillez saisir le numéro d'effet")
+        return
+      }
+      if (!banqueEmettriceCode) {
+        toast.error("Veuillez sélectionner une banque émettrice")
+        return
+      }
+      if (!montantValue || montantValue <= 0) {
+        toast.error("Veuillez saisir un montant valide")
+        return
+      }
+
+      paiementData.libellePaiement = `Paiement par effet N° ${numeroCheque}`
+      paiementData.montantPaiement = montantValue
       paiementData.datePaiement = datePaiement
+      paiementData.typeEffet = typeEffetCode
+      paiementData.numeroEffet = numeroCheque
+      paiementData.banqueAgence = banqueEmettriceCode
+      paiementData.montantEffet = montantValue
+
     } else if (isEspeceMode()) {
-      paiementData.modePaiement = "espece"
-      paiementData.libellePaiement = libellePaiement
-      paiementData.montant = montantPaiementValue
+      // Validations pour le paiement par espèce
+      if (!montantPaiementValue || montantPaiementValue <= 0) {
+        toast.error("Veuillez saisir un montant valide")
+        return
+      }
+
+      paiementData.libellePaiement = libellePaiement || "Paiement en espèces"
+      paiementData.montantPaiement = montantPaiementValue
       paiementData.datePaiement = datePaiementEspece
     }
 
-    // Logique d'enregistrement
-    console.log("Enregistrement du paiement...", paiementData)
-    toast.success("Paiement enregistré avec succès")
+    // Validation paiement par aval
+    if (typePayeur === "AVAL") {
+      if (!garantiePhysCode) {
+        toast.error("Veuillez sélectionner un aval (garantie physique)")
+        return
+      }
+      paiementData.garantiePhysCode = parseInt(garantiePhysCode)
+    }
+
+    // Enregistrement via l'API
+    setSavingPaiement(true)
+    try {
+      const response = await PaiementCreanceService.create(apiClient, paiementData)
+      console.log("Paiement enregistré:", response)
+
+      // Le backend retourne {paieCode, effetNum, message}
+      const recuInfo = {
+        paieCode: response.data?.paieCode,      // Code paiement (toujours disponible)
+        effetNum: response.data?.effetNum,      // Numéro d'effet (disponible seulement pour paiements par effet)
+        numeroPaiement: response.data?.paieCode || response.data?.effetNum || "N/A"
+      }
+
+      setRecuData(recuInfo)
+      setShowRecuModal(true)
+      toast.success("Paiement enregistré avec succès")
+    } catch (error: any) {
+      console.error("Erreur lors de l'enregistrement du paiement:", error)
+      toast.error(error.response?.data?.message || error.message || "Impossible d'enregistrer le paiement")
+    } finally {
+      setSavingPaiement(false)
+    }
+  }
+
+  const handleCloseRecuModal = () => {
+    setShowRecuModal(false)
+    // Rediriger vers le listing après fermeture du modal
+    router.push(`/paiements_des_creances/liste?code=${codeCreance}`)
   }
 
   return (
@@ -294,8 +431,8 @@ export default function PaiementsCreancesPage() {
                     placeholder="Saisir le code créance"
                     disabled={loading}
                   />
-                  <Button 
-                    className="bg-blue-600 hover:bg-blue-700 text-white ml-1"
+                  <Button
+                    className="bg-orange-500 hover:bg-orange-600 text-white ml-1"
                     onClick={handleAfficher}
                     disabled={loading || !codeCreance.trim()}
                   >
@@ -433,23 +570,118 @@ export default function PaiementsCreancesPage() {
             </div>
 
             {/* Section Mode de Paiement */}
-            <div className="bg-white rounded-lg shadow-sm p-1.5 max-w-[280px]">
-              <Select value={modePaiement} onValueChange={setModePaiement}>
-                <SelectTrigger 
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white border-orange-500 h-10 text-base [&>span]:text-white"
-                  style={{ backgroundColor: '#f97316', borderColor: '#f97316' }}
-                >
-                  <SelectValue placeholder="Mode de Paiement" className="text-white" />
-                </SelectTrigger>
-                <SelectContent>
-                  {modesPaiementList.map((mode) => (
-                    <SelectItem key={mode.code} value={mode.code}>
-                      {mode.libelle}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Mode de Paiement</h3>
+              <div className="flex gap-5">
+                <label className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  modePaiement === "EFFET"
+                    ? 'border-orange-500 bg-orange-50'
+                    : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
+                }`}>
+                  <input
+                    type="radio"
+                    name="modePaiement"
+                    value="EFFET"
+                    checked={modePaiement === "EFFET"}
+                    onChange={(e) => setModePaiement(e.target.value as any)}
+                    className="w-5 h-5 text-orange-500 focus:ring-orange-500 focus:ring-2"
+                  />
+                  <span className={`ml-3 text-base font-medium ${
+                    modePaiement === "EFFET" ? 'text-orange-700' : 'text-gray-700'
+                  }`}>
+                    Paiement par Chèque
+                  </span>
+                </label>
+
+                <label className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  modePaiement === "ESPECE"
+                    ? 'border-orange-500 bg-orange-50'
+                    : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
+                }`}>
+                  <input
+                    type="radio"
+                    name="modePaiement"
+                    value="ESPECE"
+                    checked={modePaiement === "ESPECE"}
+                    onChange={(e) => setModePaiement(e.target.value as any)}
+                    className="w-5 h-5 text-orange-500 focus:ring-orange-500 focus:ring-2"
+                  />
+                  <span className={`ml-3 text-base font-medium ${
+                    modePaiement === "ESPECE" ? 'text-orange-700' : 'text-gray-700'
+                  }`}>
+                    Paiement en Espèces
+                  </span>
+                </label>
+              </div>
             </div>
+
+            {/* Section Type de Payeur (Aval) - affichée si une créance est chargée */}
+            {codeCreance && garantiesPhysiques.length > 0 && (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Type de Payeur</h3>
+                <div className="space-y-4">
+                  <div className="flex gap-5">
+                    <label className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      typePayeur === "DEBITEUR_PRINCIPAL"
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="typePayeur"
+                        value="DEBITEUR_PRINCIPAL"
+                        checked={typePayeur === "DEBITEUR_PRINCIPAL"}
+                        onChange={(e) => setTypePayeur(e.target.value as any)}
+                        className="w-5 h-5 text-orange-500 focus:ring-orange-500 focus:ring-2"
+                      />
+                      <span className={`ml-3 text-base font-medium ${
+                        typePayeur === "DEBITEUR_PRINCIPAL" ? 'text-orange-700' : 'text-gray-700'
+                      }`}>
+                        Débiteur Principal
+                      </span>
+                    </label>
+
+                    <label className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      typePayeur === "AVAL"
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="typePayeur"
+                        value="AVAL"
+                        checked={typePayeur === "AVAL"}
+                        onChange={(e) => setTypePayeur(e.target.value as any)}
+                        className="w-5 h-5 text-orange-500 focus:ring-orange-500 focus:ring-2"
+                      />
+                      <span className={`ml-3 text-base font-medium ${
+                        typePayeur === "AVAL" ? 'text-orange-700' : 'text-gray-700'
+                      }`}>
+                        Aval (Garantie Personnelle)
+                      </span>
+                    </label>
+                  </div>
+
+                  {typePayeur === "AVAL" && (
+                    <div className="flex items-center gap-2 w-full">
+                      <Label className="text-sm font-bold text-gray-700 w-48 flex-shrink-0 pr-1">Sélectionner un Aval</Label>
+                      <Select value={garantiePhysCode} onValueChange={setGarantiePhysCode}>
+                        <SelectTrigger className="flex-1 bg-white">
+                          <SelectValue placeholder="Sélectionner un aval" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {garantiesPhysiques.map((garantie) => (
+                            <SelectItem key={garantie.GARPHYS_CODE} value={garantie.GARPHYS_CODE?.toString()}>
+                              {garantie.GARPHYS_NOM} {garantie.GARPHYS_PREN} - {garantie.TYPGAR_PHYS_LIB}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
           </div>
 
@@ -479,7 +711,7 @@ export default function PaiementsCreancesPage() {
                 </div>
               </div>
 
-              <div className="space-y-2 pt-3">
+              {/* <div className="space-y-2 pt-3">
                 <Button variant="outline" className="w-full bg-white hover:bg-gray-50">
                   Auxiliaire de justice
                 </Button>
@@ -489,34 +721,34 @@ export default function PaiementsCreancesPage() {
                 <Button variant="outline" className="w-full bg-white hover:bg-gray-50">
                   Rechercher un débiteur
                 </Button>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
 
         {/* Section Paiement - Pleine largeur (conditionnelle selon le mode) */}
-        {isChequeMode() && (
+        {isEffetMode() && (
           <div className="bg-white rounded-lg shadow-sm p-6 space-y-4 mt-6">
-            <h2 className="text-lg font-semibold text-orange-500 mb-4">Paiement par chèque (Effet)</h2>
+            <h2 className="text-lg font-semibold text-orange-500 mb-4">Paiement par Effet</h2>
             
             <div className="space-y-3 w-full">
               {/* Type Effet */}
               <div className="flex items-center gap-2 w-full">
                 <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Type Effet</Label>
-                <div className="flex gap-2 flex-1 min-w-0">
-                  <Input
-                    value={typeEffetCode}
-                    onChange={(e) => setTypeEffetCode(e.target.value)}
-                    placeholder="Code"
-                    className="w-80 flex-shrink-0 bg-white"
-                  />
-                  <Input
-                    value={typeEffetLibelle}
-                    onChange={(e) => setTypeEffetLibelle(e.target.value)}
-                    placeholder="Libellé"
-                    className="flex-1 min-w-0 bg-white"
-                  />
-                </div>
+                <SearchableSelect
+                  value={typeEffetCode}
+                  onValueChange={(value) => setTypeEffetCode(value)}
+                  items={typeEffetsSearchable.items}
+                  placeholder="Sélectionner un type d'effet"
+                  emptyMessage="Aucun type trouvé"
+                  searchPlaceholder="Rechercher un type..."
+                  isLoading={typeEffetsSearchable.isLoading}
+                  hasMore={typeEffetsSearchable.hasMore}
+                  onLoadMore={typeEffetsSearchable.loadMore}
+                  isFetchingMore={typeEffetsSearchable.isFetchingMore}
+                  onSearchChange={typeEffetsSearchable.setSearch}
+                  className="flex-1"
+                />
               </div>
 
               {/* Numéro */}
@@ -533,20 +765,20 @@ export default function PaiementsCreancesPage() {
               {/* Banque Emettrice */}
               <div className="flex items-center gap-2 w-full">
                 <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Banque Emettrice</Label>
-                <div className="flex gap-2 flex-1 min-w-0">
-                  <Input
-                    value={banqueEmettriceCode}
-                    onChange={(e) => setBanqueEmettriceCode(e.target.value)}
-                    placeholder="Code"
-                    className="w-80 flex-shrink-0 bg-white"
-                  />
-                  <Input
-                    value={banqueEmettriceLibelle}
-                    onChange={(e) => setBanqueEmettriceLibelle(e.target.value)}
-                    placeholder="Libellé"
-                    className="flex-1 min-w-0 bg-white"
-                  />
-                </div>
+                <SearchableSelect
+                  value={banqueEmettriceCode}
+                  onValueChange={(value) => setBanqueEmettriceCode(value)}
+                  items={banquesSearchable.items}
+                  placeholder="Sélectionner une banque"
+                  emptyMessage="Aucune banque trouvée"
+                  searchPlaceholder="Rechercher une banque..."
+                  isLoading={banquesSearchable.isLoading}
+                  hasMore={banquesSearchable.hasMore}
+                  onLoadMore={banquesSearchable.loadMore}
+                  isFetchingMore={banquesSearchable.isFetchingMore}
+                  onSearchChange={banquesSearchable.setSearch}
+                  className="flex-1"
+                />
               </div>
 
               {/* Montant et Date de paiement */}
@@ -560,8 +792,10 @@ export default function PaiementsCreancesPage() {
                 />
                 <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 ml-4 pr-1">Date de paiement</Label>
                 <Input
+                  type="date"
                   value={datePaiement}
                   onChange={(e) => setDatePaiement(e.target.value)}
+                  max={today}
                   className="flex-1 min-w-0 bg-white"
                 />
               </div>
@@ -572,7 +806,7 @@ export default function PaiementsCreancesPage() {
         {isEspeceMode() && (
           <div className="bg-white rounded-lg shadow-sm p-6 space-y-4 mt-6">
             <h2 className="text-lg font-semibold text-orange-500 mb-4">Paiement par espèce</h2>
-            
+
             <div className="space-y-3 w-full">
               {/* Libellé Paiement */}
               <div className="flex items-center gap-2 w-full">
@@ -596,8 +830,10 @@ export default function PaiementsCreancesPage() {
                 />
                 <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 ml-4 pr-1">Date paiement</Label>
                 <Input
+                  type="date"
                   value={datePaiementEspece}
                   onChange={(e) => setDatePaiementEspece(e.target.value)}
+                  max={today}
                   className="flex-1 min-w-0 bg-white"
                 />
               </div>
@@ -605,20 +841,45 @@ export default function PaiementsCreancesPage() {
           </div>
         )}
 
-        {/* Boutons en bas */}
-        <div className="flex justify-between items-center mt-6">
-          <Button variant="outline" className="bg-gray-200 hover:bg-gray-300 text-gray-700 border-gray-300">
-            Retour
-          </Button>
-              <Button
-                onClick={handleEnregistrer}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                Enregistrer
-              </Button>
-        </div>
+        {/* Boutons en bas - affichés seulement si un formulaire est visible */}
+        {modePaiement && (
+          <div className="flex justify-end items-center mt-6">
+            <Button
+              onClick={handleEnregistrer}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+              disabled={savingPaiement}
+            >
+              {savingPaiement ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                "Enregistrer"
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Modal de reçu */}
+        {showRecuModal && recuData && (
+          <RecuPaiementModal
+            open={showRecuModal}
+            onClose={handleCloseRecuModal}
+            title="Reçu de Paiement de Créance"
+            data={recuData}
+          />
+        )}
       </div>
     </div>
+  )
+}
+
+export default function PaiementsCreancesPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Chargement...</div>}>
+      <PaiementsCreancesPageContent />
+    </Suspense>
   )
 }
 

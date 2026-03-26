@@ -4,12 +4,12 @@ export class PeriodiciteService {
   private static readonly BASE_URL = "/periodicites";
 
   static async getAll(apiClient: any): Promise<PeriodiciteApiResponse> {
-    const response = await apiClient.get<PeriodiciteApiResponse>(this.BASE_URL);
+    const response = await apiClient.get<PeriodiciteApiResponse>(PeriodiciteService.BASE_URL);
     return response.data;
   }
 
   static async getByCode(apiClient: any, code: string): Promise<Periodicite> {
-    const response = await apiClient.get<PeriodiciteApiResponse>(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.get<PeriodiciteApiResponse>(`${PeriodiciteService.BASE_URL}/${code}`);
     if (!response.data.data || response.data.data.length === 0) {
       throw new Error("Périodicité non trouvée");
     }
@@ -17,22 +17,22 @@ export class PeriodiciteService {
   }
 
   static async create(apiClient: any, periodicite: PeriodiciteCreateRequest): Promise<PeriodiciteApiResponse> {
-    const response = await apiClient.post<PeriodiciteApiResponse>(this.BASE_URL, periodicite);
+    const response = await apiClient.post<PeriodiciteApiResponse>(PeriodiciteService.BASE_URL, periodicite);
     return response.data;
   }
 
   static async update(apiClient: any, code: string, periodicite: PeriodiciteUpdateRequest): Promise<PeriodiciteApiResponse> {
-    const response = await apiClient.put<PeriodiciteApiResponse>(`${this.BASE_URL}/${code}`, periodicite);
+    const response = await apiClient.put<PeriodiciteApiResponse>(`${PeriodiciteService.BASE_URL}/${code}`, periodicite);
     return response.data;
   }
 
   static async delete(apiClient: any, code: string): Promise<PeriodiciteApiResponse> {
-    const response = await apiClient.delete<PeriodiciteApiResponse>(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.delete<PeriodiciteApiResponse>(`${PeriodiciteService.BASE_URL}/${code}`);
     return response.data;
   }
 
   static async search(apiClient: any, searchTerm: string): Promise<PeriodiciteApiResponse> {
-    const response = await apiClient.get<PeriodiciteApiResponse>(`${this.BASE_URL}/search`, {
+    const response = await apiClient.get<PeriodiciteApiResponse>(`${PeriodiciteService.BASE_URL}/search`, {
       params: { q: searchTerm }
     });
     return response.data;

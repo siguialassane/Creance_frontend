@@ -42,7 +42,7 @@ export default function CategorieDebiteurView() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [sortField, setSortField] = useState<keyof CategorieDebiteur>('libelle')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [showForm, setShowForm] = useState(false)
   const [editingCategorie, setEditingCategorie] = useState<CategorieDebiteur | null>(null)
@@ -103,7 +103,7 @@ export default function CategorieDebiteurView() {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
       setSortField(field)
-      setSortDirection('asc')
+      setSortDirection('desc')
     }
   }
 

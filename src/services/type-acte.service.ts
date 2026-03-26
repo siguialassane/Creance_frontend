@@ -5,12 +5,12 @@ export class TypeActeService {
   private static readonly BASE_URL = "/types/AC_TYPE_ACTE";
 
   static async getAll(apiClient: ApiClient): Promise<TypeActeApiResponse> {
-    const response = await apiClient.get<TypeActeApiResponse>(this.BASE_URL);
+    const response = await apiClient.get<TypeActeApiResponse>(TypeActeService.BASE_URL);
     return response.data;
   }
 
   static async getByCode(apiClient: ApiClient, code: string): Promise<TypeActe> {
-    const response = await apiClient.get<TypeActeApiResponse>(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.get<TypeActeApiResponse>(`${TypeActeService.BASE_URL}/${code}`);
     if (!response.data.data || response.data.data.length === 0) {
       throw new Error("Type d'acte non trouvé");
     }
@@ -18,22 +18,22 @@ export class TypeActeService {
   }
 
   static async create(apiClient: ApiClient, type: TypeActeCreateRequest): Promise<TypeActeApiResponse> {
-    const response = await apiClient.post<TypeActeApiResponse>(this.BASE_URL, type);
+    const response = await apiClient.post<TypeActeApiResponse>(TypeActeService.BASE_URL, type);
     return response.data;
   }
 
   static async update(apiClient: ApiClient, code: string, type: TypeActeUpdateRequest): Promise<TypeActeApiResponse> {
-    const response = await apiClient.put<TypeActeApiResponse>(`${this.BASE_URL}/${code}`, type);
+    const response = await apiClient.put<TypeActeApiResponse>(`${TypeActeService.BASE_URL}/${code}`, type);
     return response.data;
   }
 
   static async delete(apiClient: ApiClient, code: string): Promise<TypeActeApiResponse> {
-    const response = await apiClient.delete<TypeActeApiResponse>(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.delete<TypeActeApiResponse>(`${TypeActeService.BASE_URL}/${code}`);
     return response.data;
   }
 
   static async search(apiClient: ApiClient, searchTerm: string): Promise<TypeActeApiResponse> {
-    const response = await apiClient.get<TypeActeApiResponse>(`${this.BASE_URL}/search`, {
+    const response = await apiClient.get<TypeActeApiResponse>(`${TypeActeService.BASE_URL}/search`, {
       params: { libelle: searchTerm }
     });
     return response.data;

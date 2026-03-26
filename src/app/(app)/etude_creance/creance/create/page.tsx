@@ -126,11 +126,11 @@ const NouvelleCreancePageInner = () => {
     try {
       // Récupérer toutes les valeurs depuis le formulaire CreanceForm (source la plus fiable car c'est le vrai formulaire)
       const formValues = creanceFormRef.current?.getFormValues ? creanceFormRef.current.getFormValues() : {};
-      
+
       // Utiliser allFormData qui est mis à jour en temps réel via onDataChange depuis CreanceForm
       // Combiner toutes les sources pour être sûr d'avoir toutes les données (priorité: CreanceForm > allFormData > formData)
       const allFormValues = { ...formData, ...allFormData, ...formValues };
-      
+
       console.log("📋 Valeurs depuis CreanceForm.getFormValues():", formValues);
       console.log("📋 allFormData (mis à jour via onDataChange):", allFormData);
       console.log("📋 formData du hook:", formData);
@@ -146,11 +146,11 @@ const NouvelleCreancePageInner = () => {
         dateDeblocage: allFormValues.dateDeblocage,
         dateEcheance: allFormValues.dateEcheance,
       });
-      
+
       // Construire le payload avec TOUS les champs selon la documentation API
       // INCLURE TOUS LES CHAMPS même s'ils sont vides (sauf undefined/null)
       const creanceData: any = {};
-      
+
       // Champs requis (8 champs obligatoires selon la doc) - TOUJOURS inclure avec leurs vraies valeurs
       // Inclure même les chaînes vides car ce sont des champs obligatoires
       if (allFormValues.debiteur !== undefined) {
@@ -175,12 +175,20 @@ const NouvelleCreancePageInner = () => {
       } else {
         creanceData.dateEcheance = new Date().toISOString().split("T")[0];
       }
+      // Ajout des champs manquants pour la persistance
+      // Le formulaire utilise dateDeblocage pour "Date d'octroi" et dateEcheance pour "Date de 1ère échéance"
+      if (allFormValues.dateDeblocage) {
+        creanceData.dateOctroi = allFormValues.dateDeblocage;
+      }
+      if (allFormValues.dateEcheance) {
+        creanceData.datePremiereEcheance = allFormValues.dateEcheance;
+      }
       if (allFormValues.ordonnateur !== undefined) {
         creanceData.ordonnateur = allFormValues.ordonnateur || '';
       }
       // Le statut est déjà en initiale (A, C, S) dans le formulaire, l'envoyer tel quel
       creanceData.statut = allFormValues.statut || "A";
-      
+
       // Champs optionnels - Step 1 (inclure seulement s'ils existent)
       if (allFormValues.objetDetail !== undefined && allFormValues.objetDetail) {
         creanceData.objetDetail = allFormValues.objetDetail;
@@ -194,7 +202,7 @@ const NouvelleCreancePageInner = () => {
       if (allFormValues.numeroAncien !== undefined && allFormValues.numeroAncien) {
         creanceData.numeroAncien = allFormValues.numeroAncien;
       }
-      
+
       // Champs optionnels - Step 2
       if (allFormValues.periodicite !== undefined && allFormValues.periodicite) {
         creanceData.periodicite = allFormValues.periodicite;
@@ -214,7 +222,7 @@ const NouvelleCreancePageInner = () => {
       if (allFormValues.tauxInteretRetard !== undefined && allFormValues.tauxInteretRetard !== null) {
         creanceData.tauxInteretRetard = allFormValues.tauxInteretRetard;
       }
-      
+
       // Champs optionnels - Step 3 (montants)
       if (allFormValues.montantInteretConventionnel !== undefined && allFormValues.montantInteretConventionnel !== null) {
         creanceData.montantInteretConventionnel = allFormValues.montantInteretConventionnel;
@@ -237,7 +245,7 @@ const NouvelleCreancePageInner = () => {
       if (allFormValues.encours !== undefined && allFormValues.encours !== null) {
         creanceData.encours = allFormValues.encours;
       }
-      
+
       // Champs calculés (inclure si calculés)
       if (allFormValues.montantARembourser !== undefined && allFormValues.montantARembourser !== null) {
         creanceData.montantARembourser = allFormValues.montantARembourser;
@@ -254,21 +262,21 @@ const NouvelleCreancePageInner = () => {
       if (allFormValues.totalSolde !== undefined && allFormValues.totalSolde !== null) {
         creanceData.totalSolde = allFormValues.totalSolde;
       }
-      
+
       // Champs optionnels - Step 4
       if (allFormValues.observations !== undefined && allFormValues.observations) {
         creanceData.observations = allFormValues.observations;
       }
-      
+
       // Récupérer les garanties et pièces depuis CreanceForm
       const garanties = creanceFormRef.current?.getGaranties ? creanceFormRef.current.getGaranties() : [];
       const pieces = creanceFormRef.current?.getPieces ? creanceFormRef.current.getPieces() : [];
       const watchedTypeGarantie = allFormValues.typeGarantie || '';
-      
+
       // Séparer les garanties personnelles et réelles selon le type
       const garantiesPersonnelles: any[] = [];
       const garantiesReelles: any[] = [];
-      
+
       garanties.forEach((garantie: any) => {
         if (watchedTypeGarantie === 'personnelles' || garantie.type === 'personnelles') {
           // Mapper vers le format API pour garanties personnelles
@@ -302,7 +310,7 @@ const NouvelleCreancePageInner = () => {
           });
         }
       });
-      
+
       // Ajouter les garanties seulement si elles existent
       if (garantiesPersonnelles.length > 0) {
         creanceData.garantiesPersonnelles = garantiesPersonnelles;
@@ -310,7 +318,7 @@ const NouvelleCreancePageInner = () => {
       if (garantiesReelles.length > 0) {
         creanceData.garantiesReelles = garantiesReelles;
       }
-      
+
       // Mapper les pièces jointes vers le format API
       const piecesMapped = pieces
         .filter((p: any) => p.typePieceCode || p.numero || p.fichier) // Ne garder que les pièces avec au moins un champ rempli
@@ -321,11 +329,11 @@ const NouvelleCreancePageInner = () => {
           PIECE_DESCRIPTION: piece.description || '',
           PIECE_FICHIER: piece.fichier || (piece.file ? piece.file.name : ''),
         }));
-      
+
       if (piecesMapped.length > 0) {
         creanceData.pieces = piecesMapped;
       }
-      
+
       console.log("📤 Payload final envoyé au backend:", JSON.stringify(creanceData, null, 2));
       console.log("📎 Garanties personnelles:", garantiesPersonnelles);
       console.log("📎 Garanties réelles:", garantiesReelles);
@@ -349,15 +357,15 @@ const NouvelleCreancePageInner = () => {
       }
     } catch (error: any) {
       console.error("Erreur lors de la création:", error);
-      
+
       // Gérer les erreurs HTTP et les erreurs métier
       let errorMessage = "Impossible de créer la créance";
-      
+
       if (error.response?.data) {
         // Erreur avec réponse du backend
         const backendError = error.response.data;
         console.log("📥 Erreur backend:", backendError);
-        
+
         if (backendError.status === "ERROR" || backendError.status === "FAILED") {
           errorMessage = backendError.data?.message || backendError.message || errorMessage;
         } else if (backendError.message) {
@@ -369,7 +377,7 @@ const NouvelleCreancePageInner = () => {
         // Erreur avec message personnalisé
         errorMessage = error.message;
       }
-      
+
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -385,7 +393,7 @@ const NouvelleCreancePageInner = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto">
         {/* Barre verte avec titre (même style que les listing) */}
-        <div 
+        <div
           className="px-8 py-4"
           style={{
             backgroundColor: '#28A325',
@@ -417,17 +425,17 @@ const NouvelleCreancePageInner = () => {
             isSubmitting={isSubmitting}
             onValidationError={handleValidationError}
           >
-                  <CreanceForm
-                    ref={creanceFormRef}
-                    currentStep={currentStep}
-                    formData={allFormData || formData}
-                    onDataChange={(data) => {
-                      // Synchroniser les données en temps réel
-                      setAllFormData(data);
-                      console.log("🔄 CreanceForm onDataChange appelé avec:", Object.keys(data).length, "champs");
-                    }}
-                    onSubmit={handleSubmit}
-                  />
+            <CreanceForm
+              ref={creanceFormRef}
+              currentStep={currentStep}
+              formData={allFormData || formData}
+              onDataChange={(data) => {
+                // Synchroniser les données en temps réel
+                setAllFormData(data);
+                console.log("🔄 CreanceForm onDataChange appelé avec:", Object.keys(data).length, "champs");
+              }}
+              onSubmit={handleSubmit}
+            />
           </MultiStepForm>
         </div>
       </div>

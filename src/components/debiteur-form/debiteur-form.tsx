@@ -335,7 +335,7 @@ const DebiteurForm = forwardRef<any, DebiteurFormProps>(({ currentStep, formData
     // Sinon chercher dans la liste des agences
     if (!agencesBanque || !Array.isArray(agencesBanque)) return id;
     const agence: any = agencesBanque.find((a: any) => {
-      const code = a.BQAG_CODE || a.code || a.id;
+      const code = a.BQAG_NUM || a.code || a.id;
       return code === id;
     });
     const libelle = agence?.BQAG_LIB || agence?.libelle;

@@ -10,7 +10,7 @@ function DeleteConfirmationDialog({
 }: {
   isOpen: boolean
   onClose: () => void
-  onConfirm: () => void
+  onConfirm: () => void | Promise<void>
 }) {
   if (!isOpen) return null
 
@@ -80,7 +80,7 @@ interface ParameterPageProps<T extends BaseParameterItem> {
   searchPlaceholder?: string
   onAdd?: () => void
   onEdit?: (item: T) => void
-  onDelete?: (item: T) => void
+  onDelete?: (item: T) => void | Promise<void>
   onView?: (item: T) => void
   addButtonText?: string
   showActions?: boolean
@@ -214,11 +214,19 @@ export function ParameterPage<T extends BaseParameterItem>({
                     <DeleteConfirmationDialog
                       isOpen={pendingDelete?.id === item.id}
                       onClose={() => setPendingDelete(null)}
-                      onConfirm={() => {
-                        if (pendingDelete) {
-                          onDelete(pendingDelete)
+                      onConfirm={async () => {
+                        if (!pendingDelete) return
+                        try {
+                          await onDelete(pendingDelete)
                           toast.success("Élément supprimé avec succès")
                           setPendingDelete(null)
+                        } catch (error) {
+                          const message =
+                            (error as any)?.response?.data?.message ||
+                            (error as Error)?.message ||
+                            "Erreur lors de la suppression de l'élément"
+                          toast.error(message)
+                          // On garde l'élément affiché pour éviter de "casser" l'UI
                         }
                       }}
                     />
@@ -258,7 +266,7 @@ export function ParameterPage<T extends BaseParameterItem>({
                         {onDelete && (
                           <DropdownMenuItem 
                             aria-label="Supprimer"
-                            onClick={() => onDelete(item)}
+                            onClick={() => setPendingDelete(item)}
                             className="text-red-600 focus:text-red-600"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />

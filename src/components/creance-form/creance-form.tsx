@@ -2392,7 +2392,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                     className="focus:ring-2"
                         disabled={readOnly}
                       />
-                  <p className="text-xs text-gray-500">Note: L'API pour les circonscriptions n'est pas encore disponible</p>
+                  {/* <p className="text-xs text-gray-500">Note: L'API pour les circonscriptions n'est pas encore disponible</p> */}
                 </div>
 
                 <div className="space-y-2">

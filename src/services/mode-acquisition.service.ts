@@ -4,12 +4,12 @@ export class ModeAcquisitionService {
   private static readonly BASE_URL = "/modes-acquisition";
 
   static async getAll(apiClient: any): Promise<ModeAcquisitionApiResponse> {
-    const response = await apiClient.get<ModeAcquisitionApiResponse>(this.BASE_URL);
+    const response = await apiClient.get<ModeAcquisitionApiResponse>(ModeAcquisitionService.BASE_URL);
     return response.data;
   }
 
   static async getByCode(apiClient: any, code: string): Promise<ModeAcquisition> {
-    const response = await apiClient.get<ModeAcquisitionApiResponse>(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.get<ModeAcquisitionApiResponse>(`${ModeAcquisitionService.BASE_URL}/${code}`);
     if (!response.data.data || response.data.data.length === 0) {
       throw new Error("Mode d'acquisition non trouvé");
     }
@@ -17,22 +17,22 @@ export class ModeAcquisitionService {
   }
 
   static async create(apiClient: any, mode: ModeAcquisitionCreateRequest): Promise<ModeAcquisitionApiResponse> {
-    const response = await apiClient.post<ModeAcquisitionApiResponse>(this.BASE_URL, mode);
+    const response = await apiClient.post<ModeAcquisitionApiResponse>(ModeAcquisitionService.BASE_URL, mode);
     return response.data;
   }
 
   static async update(apiClient: any, code: string, mode: ModeAcquisitionUpdateRequest): Promise<ModeAcquisitionApiResponse> {
-    const response = await apiClient.put<ModeAcquisitionApiResponse>(`${this.BASE_URL}/${code}`, mode);
+    const response = await apiClient.put<ModeAcquisitionApiResponse>(`${ModeAcquisitionService.BASE_URL}/${code}`, mode);
     return response.data;
   }
 
   static async delete(apiClient: any, code: string): Promise<ModeAcquisitionApiResponse> {
-    const response = await apiClient.delete<ModeAcquisitionApiResponse>(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.delete<ModeAcquisitionApiResponse>(`${ModeAcquisitionService.BASE_URL}/${code}`);
     return response.data;
   }
 
   static async search(apiClient: any, searchTerm: string): Promise<ModeAcquisitionApiResponse> {
-    const response = await apiClient.get<ModeAcquisitionApiResponse>(`${this.BASE_URL}/search`, {
+    const response = await apiClient.get<ModeAcquisitionApiResponse>(`${ModeAcquisitionService.BASE_URL}/search`, {
       params: { q: searchTerm }
     });
     return response.data;

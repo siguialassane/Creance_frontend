@@ -34,7 +34,7 @@ export default function ModernAgenceBanqueView() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [sortField, setSortField] = useState<keyof AgenceBanque>('AG_LIB')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [itemsPerPage] = useState(10)
   const [showForm, setShowForm] = useState(false)
   const [editingAgence, setEditingAgence] = useState<AgenceBanque | null>(null)
@@ -95,7 +95,7 @@ export default function ModernAgenceBanqueView() {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
       setSortField(field)
-      setSortDirection('asc')
+      setSortDirection('desc')
     }
   }
 

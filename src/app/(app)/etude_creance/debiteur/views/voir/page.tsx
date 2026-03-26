@@ -119,7 +119,7 @@ const VoirDebiteurPageInner = () => {
               numeroCompte: dom.DOM_NUM_COMPTE || dom.DOM_NUMERO_COMPTE || dom.DOM_NUM || '',
               libelle: dom.DOM_LIB || dom.DOM_LIBELLE || '',
               banque: dom.BQ_CODE || dom.BANQUE_CODE || dom.BQAG_BQ_CODE || '',
-              banqueAgence: dom.BQAG_CODE || dom.AGENCE_CODE || '',
+              banqueAgence: dom.BQAG_NUM || dom.BQAG_CODE || dom.AGENCE_CODE || '',
             };
           })
         : [],

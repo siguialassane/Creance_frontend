@@ -4,12 +4,12 @@ export class EntiteService {
   private static readonly BASE_URL = "/entites";
 
   static async getAll(apiClient: any): Promise<any> {
-    const response = await apiClient.get(`${this.BASE_URL}`);
+    const response = await apiClient.get(`${EntiteService.BASE_URL}`);
     return response.data;
   }
 
   static async getByCode(apiClient: any, code: string): Promise<Entite> {
-    const response = await apiClient.get(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.get(`${EntiteService.BASE_URL}/${code}`);
     if (!response.data.data || response.data.data.length === 0) {
       throw new Error("Entité non trouvée");
     }
@@ -17,22 +17,22 @@ export class EntiteService {
   }
 
   static async create(apiClient: any, entite: EntiteCreateRequest): Promise<any> {
-    const response = await apiClient.post(this.BASE_URL, entite);
+    const response = await apiClient.post(EntiteService.BASE_URL, entite);
     return response.data;
   }
 
   static async update(apiClient: any, code: string, entite: EntiteUpdateRequest): Promise<any> {
-    const response = await apiClient.put(`${this.BASE_URL}/${code}`, entite);
+    const response = await apiClient.put(`${EntiteService.BASE_URL}/${code}`, entite);
     return response.data;
   }
 
   static async delete(apiClient: any, code: string): Promise<any> {
-    const response = await apiClient.delete(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.delete(`${EntiteService.BASE_URL}/${code}`);
     return response.data;
   }
 
   static async search(apiClient: any, searchTerm: string): Promise<any> {
-    const response = await apiClient.get(`${this.BASE_URL}/search`, {
+    const response = await apiClient.get(`${EntiteService.BASE_URL}/search`, {
       params: { q: searchTerm }
     });
     return response.data;

@@ -93,7 +93,8 @@ export function normalizePaginationParams(params: PaginationParams): PaginationP
   if (params.sortDirection && ['ASC', 'DESC'].includes(params.sortDirection)) {
     normalized.sortDirection = params.sortDirection;
   } else {
-    normalized.sortDirection = 'ASC';
+    // Par défaut: affichage "du plus récent au plus ancien"
+    normalized.sortDirection = 'DESC';
   }
 
   // Sort by validation

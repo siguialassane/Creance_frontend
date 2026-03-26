@@ -145,7 +145,7 @@ export const COLUMN_CONFIGS = {
     ],
     agence_de_banque: [
       { key: 'banqueCode', label: 'Code Banque', sortable: true },
-      { key: 'code', label: 'Code', sortable: true },
+      { key: 'code', label: 'Code Agence', sortable: false },
       { key: 'libelle', label: 'Libellé', sortable: true },
     ],
     classe: [

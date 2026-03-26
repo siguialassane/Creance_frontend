@@ -5,12 +5,12 @@ export class TypeEcheancierService {
   private static readonly BASE_URL = "/types/AC_TYPE_ECHEANCIER";
 
   static async getAll(apiClient: ApiClient): Promise<TypeEcheancierApiResponse> {
-    const response = await apiClient.get<TypeEcheancierApiResponse>(this.BASE_URL);
+    const response = await apiClient.get<TypeEcheancierApiResponse>(TypeEcheancierService.BASE_URL);
     return response.data;
   }
 
   static async getByCode(apiClient: ApiClient, code: string): Promise<TypeEcheancier> {
-    const response = await apiClient.get<TypeEcheancierApiResponse>(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.get<TypeEcheancierApiResponse>(`${TypeEcheancierService.BASE_URL}/${code}`);
     if (!response.data.data || response.data.data.length === 0) {
       throw new Error("TypeEcheancier non trouvé");
     }
@@ -18,22 +18,22 @@ export class TypeEcheancierService {
   }
 
   static async create(apiClient: ApiClient, type: TypeEcheancierCreateRequest): Promise<TypeEcheancierApiResponse> {
-    const response = await apiClient.post<TypeEcheancierApiResponse>(this.BASE_URL, type);
+    const response = await apiClient.post<TypeEcheancierApiResponse>(TypeEcheancierService.BASE_URL, type);
     return response.data;
   }
 
   static async update(apiClient: ApiClient, code: string, type: TypeEcheancierUpdateRequest): Promise<TypeEcheancierApiResponse> {
-    const response = await apiClient.put<TypeEcheancierApiResponse>(`${this.BASE_URL}/${code}`, type);
+    const response = await apiClient.put<TypeEcheancierApiResponse>(`${TypeEcheancierService.BASE_URL}/${code}`, type);
     return response.data;
   }
 
   static async delete(apiClient: ApiClient, code: string): Promise<TypeEcheancierApiResponse> {
-    const response = await apiClient.delete<TypeEcheancierApiResponse>(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.delete<TypeEcheancierApiResponse>(`${TypeEcheancierService.BASE_URL}/${code}`);
     return response.data;
   }
 
   static async search(apiClient: ApiClient, searchTerm: string): Promise<TypeEcheancierApiResponse> {
-    const response = await apiClient.get<TypeEcheancierApiResponse>(`${this.BASE_URL}/search`, {
+    const response = await apiClient.get<TypeEcheancierApiResponse>(`${TypeEcheancierService.BASE_URL}/search`, {
       params: { libelle: searchTerm }
     });
     return response.data;

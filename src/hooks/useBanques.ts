@@ -50,14 +50,18 @@ export function useBanques() {
     queryKey: banqueKeys.lists(),
     queryFn: async () => {
       try {
-        const res = await BanqueService.getAllLegacy(apiClient);
-        console.log('📦 Réponse brute banques:', res);
+        // On force explicitement le tri "récent -> ancien" côté back.
+        // La vue "Banque" passe ensuite par des mécanismes UI sans pagination serveur,
+        // donc l'ordre initial doit déjà être correct.
+        const res = await BanqueService.getAll(apiClient, {
+          page: 0,
+          size: 50,
+          sortBy: 'BQ_CODE',
+          sortDirection: 'DESC',
+        });
 
-        // Structure: { data: { content: [...], totalElements, totalPages }, message: "OK", status: "SUCCESS" }
-        const data = res.data?.content || res.data?.data || res.data || [];
-
-        console.log('✅ Données banques transformées:', data);
-        return Array.isArray(data) ? data : [];
+        const paginated = extractPaginatedData(res);
+        return paginated.content;
       } catch (error) {
         console.error('❌ Erreur chargement banques:', error);
         return [];
@@ -154,7 +158,7 @@ export function useBanquesWithPagination(initialParams: PaginationParams = {}) {
     page: 0,
     size: 50,
     search: '',
-    sortDirection: 'ASC',
+    sortDirection: 'DESC',
     ...initialParams
   });
 

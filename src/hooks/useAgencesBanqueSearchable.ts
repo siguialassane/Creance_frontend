@@ -47,7 +47,7 @@ export function useAgencesBanqueSearchable(banqueCode?: string | null) {
       // Transformer les données
       const items: SearchableSelectItem[] = (response.data?.content || []).map((agence: any) => ({
         value: (agence.BQAG_NUM || agence.code || "").toString(),
-        label: `${agence.BQAG_NUM || agence.code} - ${agence.BQAG_LIB || agence.libelle || ""}`,
+        label: `${agence.BQAG_NUM || agence.code || ""} - ${agence.BQAG_LIB || agence.libelle || ""}`,
         ...agence,
       }))
 

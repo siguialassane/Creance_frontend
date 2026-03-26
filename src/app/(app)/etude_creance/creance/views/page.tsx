@@ -12,7 +12,7 @@ import { CreanceService } from "@/services/creance.service";
 import { CreanceResponse } from "@/types/creance";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Pencil, Trash2, Plus } from "lucide-react";
+import { Eye, Pencil, Trash2, Plus, CreditCard } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -351,6 +351,21 @@ const CreancePageInner = () => {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Modifier</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push(`/paiements_des_creances/liste?code=${creance.numeroCreance}`)}
+                    className="h-8 w-8 p-0 hover:bg-orange-50"
+                  >
+                    <CreditCard className="h-4 w-4 text-orange-600" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Paiements</p>
                 </TooltipContent>
               </Tooltip>
               <Tooltip>

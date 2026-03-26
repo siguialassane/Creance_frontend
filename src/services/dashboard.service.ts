@@ -94,7 +94,7 @@ export class DashboardService {
     }
 
     const queryString = params.toString();
-    const url = queryString ? `${this.BASE_URL}?${queryString}` : this.BASE_URL;
+    const url = queryString ? `${DashboardService.BASE_URL}?${queryString}` : DashboardService.BASE_URL;
 
     const response = await apiClient.get(url);
     return response.data;

@@ -48,7 +48,7 @@ export default function ModernParameterPage({
 }: ModernParameterPageProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [sortField, setSortField] = useState(primaryField)
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
@@ -90,7 +90,7 @@ export default function ModernParameterPage({
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
       setSortField(field)
-      setSortDirection('asc')
+      setSortDirection('desc')
     }
   }
 

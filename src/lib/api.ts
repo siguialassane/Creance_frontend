@@ -6,12 +6,15 @@ export type ApiClient = AxiosInstance;
 
 // Configuration de base pour Axios
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api",
   timeout: 60000, // Augmenté à 60 secondes pour les requêtes Oracle lentes
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+console.log("🌐 [Axios] Initialized with baseURL:", apiClient.defaults.baseURL);
+console.log("   -> Env var NEXT_PUBLIC_API_URL:", process.env.NEXT_PUBLIC_API_URL);
 
 // Fonction utilitaire pour les requêtes paginées
 export async function fetchPaginatedData<T>(
@@ -37,7 +40,7 @@ apiClient.interceptors.request.use(
         let session = null;
         let attempts = 0;
         const maxAttempts = 3;
-        
+
         while (!session && attempts < maxAttempts) {
           session = await getSession();
           if (!session && attempts < maxAttempts - 1) {
@@ -46,7 +49,7 @@ apiClient.interceptors.request.use(
           }
           attempts++;
         }
-        
+
         const token = (session as any)?.accessToken as string | undefined;
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -79,12 +82,12 @@ apiClient.interceptors.response.use(
         // Tenter de rafraîchir le token automatiquement
         if (typeof window !== 'undefined') {
           const { getSession } = await import("next-auth/react");
-          
+
           // Attendre que la session soit chargée
           let session = null;
           let attempts = 0;
           const maxAttempts = 5;
-          
+
           while (!session && attempts < maxAttempts) {
             session = await getSession();
             if (!session && attempts < maxAttempts - 1) {
@@ -92,13 +95,13 @@ apiClient.interceptors.response.use(
             }
             attempts++;
           }
-          
+
           const refreshToken = (session as any)?.refreshToken;
 
           if (refreshToken) {
             console.log('🔄 Tentative de rafraîchissement du token après 401...');
 
-            const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api";
+            const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
             const refreshRes = await axios.post(`${baseURL}/auth/refresh`, null, {
               headers: { Authorization: `Bearer ${refreshToken}` },
             });
@@ -138,7 +141,7 @@ apiClient.interceptors.response.use(
         const currentPath = window.location.pathname;
         if (currentPath !== '/login' && !currentPath.startsWith('/login')) {
           console.warn('Session expirée et impossible à rafraîchir, redirection vers /login');
-          
+
           // Déconnecter d'abord en utilisant la fonction helper qui nettoie tout
           try {
             const { handleSignOut } = await import("@/lib/auth-helpers");

@@ -42,19 +42,19 @@ export class CreanceService {
    * Récupère toutes les créances avec pagination
    */
   static async getAll(apiClient: ApiClient, params: PaginationParams = {}): Promise<ApiResponse<any>> {
-    return await fetchPaginatedData<any>(this.BASE_URL, params);
+    return await fetchPaginatedData<any>(CreanceService.BASE_URL, params);
   }
 
   /**
    * Récupère toutes les créances (méthode legacy pour compatibilité)
    */
   static async getAllLegacy(apiClient: any): Promise<any> {
-    const response = await apiClient.get(`${this.BASE_URL}`);
+    const response = await apiClient.get(`${CreanceService.BASE_URL}`);
     return response.data;
   }
 
   static async getByCode(apiClient: any, code: string): Promise<CreanceResponse> {
-    const response = await apiClient.get(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/${code}`);
     if (!response.data.data) {
       throw new Error("Créance non trouvée");
     }
@@ -63,18 +63,18 @@ export class CreanceService {
 
   static async create(apiClient: any, creance: CreanceCreateRequest): Promise<CreanceApiResponse> {
     const cleanedCreance = this.cleanNumericFields(creance);
-    const response = await apiClient.post(this.BASE_URL, cleanedCreance);
+    const response = await apiClient.post(CreanceService.BASE_URL, cleanedCreance);
     return response.data;
   }
 
   static async update(apiClient: any, code: string, creance: Partial<CreanceCreateRequest>): Promise<CreanceApiResponse> {
     const cleanedCreance = this.cleanNumericFields(creance);
-    const response = await apiClient.put(`${this.BASE_URL}/${code}`, cleanedCreance);
+    const response = await apiClient.put(`${CreanceService.BASE_URL}/${code}`, cleanedCreance);
     return response.data;
   }
 
   static async delete(apiClient: any, code: string): Promise<CreanceApiResponse> {
-    const response = await apiClient.delete(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.delete(`${CreanceService.BASE_URL}/${code}`);
     return response.data;
   }
 
@@ -90,7 +90,7 @@ export class CreanceService {
     if (params.size !== undefined) queryParams.append('size', params.size.toString());
     if (params.search) queryParams.append('search', params.search);
 
-    const url = `${this.BASE_URL}/export/pdf${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `${CreanceService.BASE_URL}/export/pdf${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     
     const response = await apiClient.get(url, {
       responseType: 'blob',
@@ -111,7 +111,7 @@ export class CreanceService {
     if (params.size !== undefined) queryParams.append('size', params.size.toString());
     if (params.search) queryParams.append('search', params.search);
 
-    const url = `${this.BASE_URL}/export/excel${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `${CreanceService.BASE_URL}/export/excel${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     
     const response = await apiClient.get(url, {
       responseType: 'blob',

@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 
 const schema = z.object({
   username: z.string().min(2, { message: "Nom d'utilisateur invalide" }),
-  password: z.string().min(4, { message: "Mot de passe trop court" }),
+  password: z.string().min(1, { message: "Mot de passe requis" }),
 })
 
 export default function LoginPage() {

@@ -29,19 +29,19 @@ export class DebiteurService {
    * Récupère tous les débiteurs avec pagination
    */
   static async getAll(apiClient: ApiClient, params: PaginationParams = {}): Promise<ApiResponse<any>> {
-    return await fetchPaginatedData<any>(this.BASE_URL, params);
+    return await fetchPaginatedData<any>(DebiteurService.BASE_URL, params);
   }
 
   /**
    * Récupère tous les débiteurs (méthode legacy pour compatibilité)
    */
   static async getAllLegacy(apiClient: any): Promise<any> {
-    const response = await apiClient.get(`${this.BASE_URL}`);
+    const response = await apiClient.get(`${DebiteurService.BASE_URL}`);
     return response.data;
   }
 
   static async getByCode(apiClient: any, code: string): Promise<DebiteurResponse> {
-    const response = await apiClient.get(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.get(`${DebiteurService.BASE_URL}/${code}`);
     if (!response.data.data) {
       throw new Error("Débiteur non trouvé");
     }
@@ -50,18 +50,18 @@ export class DebiteurService {
 
   static async create(apiClient: any, debiteur: DebiteurCreateRequest): Promise<DebiteurApiResponse> {
     const cleanedDebiteur = this.cleanNumericFields(debiteur);
-    const response = await apiClient.post(this.BASE_URL, cleanedDebiteur);
+    const response = await apiClient.post(DebiteurService.BASE_URL, cleanedDebiteur);
     return response.data;
   }
 
   static async update(apiClient: any, code: string, debiteur: Partial<DebiteurCreateRequest>): Promise<DebiteurApiResponse> {
     const cleanedDebiteur = this.cleanNumericFields(debiteur);
-    const response = await apiClient.put(`${this.BASE_URL}/${code}`, cleanedDebiteur);
+    const response = await apiClient.put(`${DebiteurService.BASE_URL}/${code}`, cleanedDebiteur);
     return response.data;
   }
 
   static async delete(apiClient: any, code: string): Promise<DebiteurApiResponse> {
-    const response = await apiClient.delete(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.delete(`${DebiteurService.BASE_URL}/${code}`);
     return response.data;
   }
 
@@ -77,7 +77,7 @@ export class DebiteurService {
     if (params.size !== undefined) queryParams.append('size', params.size.toString());
     if (params.search) queryParams.append('search', params.search);
 
-    const url = `${this.BASE_URL}/export/pdf${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `${DebiteurService.BASE_URL}/export/pdf${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     
     const response = await apiClient.get(url, {
       responseType: 'blob',
@@ -98,7 +98,7 @@ export class DebiteurService {
     if (params.size !== undefined) queryParams.append('size', params.size.toString());
     if (params.search) queryParams.append('search', params.search);
 
-    const url = `${this.BASE_URL}/export/excel${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `${DebiteurService.BASE_URL}/export/excel${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     
     const response = await apiClient.get(url, {
       responseType: 'blob',

@@ -21,10 +21,10 @@ export class OrdonnateurService {
    */
   static async getAll(apiClient: ApiClient, params?: PaginationParams): Promise<OrdonnateurApiResponse> {
     if (params) {
-      const response = await fetchPaginatedData<Ordonnateur>(this.BASE_URL, params);
+      const response = await fetchPaginatedData<Ordonnateur>(OrdonnateurService.BASE_URL, params);
       return response as any;
     }
-    const response = await apiClient.get(this.BASE_URL);
+    const response = await apiClient.get(OrdonnateurService.BASE_URL);
     return response.data;
   }
 
@@ -32,7 +32,7 @@ export class OrdonnateurService {
    * Récupère un ordonnateur par son code
    */
   static async getByCode(apiClient: ApiClient, code: string): Promise<Ordonnateur> {
-    const response = await apiClient.get(`${this.BASE_URL}/${code}`);
+    const response = await apiClient.get(`${OrdonnateurService.BASE_URL}/${code}`);
     const data = response.data?.data || response.data;
     if (Array.isArray(data) && data.length > 0) {
       return data[0];
@@ -44,7 +44,7 @@ export class OrdonnateurService {
    * Recherche d'ordonnateurs
    */
   static async search(apiClient: ApiClient, searchTerm: string): Promise<OrdonnateurApiResponse> {
-    const response = await apiClient.get(`${this.BASE_URL}/search`, {
+    const response = await apiClient.get(`${OrdonnateurService.BASE_URL}/search`, {
       params: { q: searchTerm }
     });
     return response.data;
@@ -54,7 +54,7 @@ export class OrdonnateurService {
    * Fonction utilitaire : Nom de l'ordonnateur
    */
   static async getNom(apiClient: ApiClient, code: string): Promise<{ ORDO_CODE: string; ORDO_LIB: string }> {
-    const response = await apiClient.get(`${this.BASE_URL}/${code}/nom`);
+    const response = await apiClient.get(`${OrdonnateurService.BASE_URL}/${code}/nom`);
     return response.data?.data || response.data;
   }
 }

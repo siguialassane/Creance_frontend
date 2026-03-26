@@ -198,7 +198,7 @@ export function useAgencesBanqueWithPagination(initialParams: PaginationParams =
     page: 0,
     size: 50,
     search: '',
-    sortDirection: 'ASC',
+    sortDirection: 'DESC',
     ...initialParams
   });
 
