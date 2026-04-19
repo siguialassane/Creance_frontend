@@ -102,7 +102,16 @@ export const authConfig = {
           const user = await loginWithCredentials(username, password);
           return user;
         } catch (e) {
-          // Propagate backend error message to the client result.error
+          const message = e instanceof Error ? e.message : String(e)
+          if (
+            message.includes("ORA-01017")
+            || message.includes("invalid username/password")
+            || message.includes("INVALID_CREDENTIALS")
+          ) {
+            return null
+          }
+
+          // Keep configuration/network failures visible as real server-side errors.
           throw e as Error;
         }
       },

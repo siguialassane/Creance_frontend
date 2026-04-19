@@ -111,7 +111,7 @@ export default function LoginPage() {
         console.log("🚨 Erreur de connexion:", result)
         if (result.error.includes("ORA-01017") || result.error.includes("invalid username/password")) {
           errorMessage = "Nom d'utilisateur ou mot de passe incorrect"
-        } else if (result.error.includes("INVALID_CREDENTIALS") || result.error.includes("Configuration")) {
+        } else if (result.error.includes("INVALID_CREDENTIALS") || result.error.includes("CredentialsSignin") || result.error.includes("Configuration")) {
           errorMessage = "Nom d'utilisateur ou mot de passe incorrect"
         } else if (result.error.includes("INVALID_RESPONSE")) {
           errorMessage = "Erreur de configuration du serveur"

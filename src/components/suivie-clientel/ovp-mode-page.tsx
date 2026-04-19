@@ -226,7 +226,6 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
   const [creationForm, setCreationForm] = useState<CreationFormState>(emptyCreationForm)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showDomiciliationDialog, setShowDomiciliationDialog] = useState(false)
   const [showCreanceSoldeDialog, setShowCreanceSoldeDialog] = useState(false)
   const [saving, setSaving] = useState(false)
   const [creanceSoldeData, setCreanceSoldeData] = useState<SuivieClientelCreanceSoldePage | null>(null)
@@ -240,6 +239,8 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
   const [acteOptions, setActeOptions] = useState<Array<{ value: string; label: string }>>([])
   const [acteSearch, setActeSearch] = useState("")
   const [acteLoading, setActeLoading] = useState(false)
+  const [selectedOvpCode, setSelectedOvpCode] = useState("")
+  const [showOvpHistoryDialog, setShowOvpHistoryDialog] = useState(false)
   const deferredCreanceSoldeSearch = useDeferredValue(creanceSoldeSearch)
 
   const clearCreanceSoldeListState = () => {
@@ -287,9 +288,6 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
           setDefaultActeOptions(initialActes)
           setActeOptions(initialActes)
           setActeSearch("")
-        }
-        if (mode === "creation" && response.HAS_DOMICILIATION === false) {
-          setShowDomiciliationDialog(true)
         }
       } catch (err) {
         const message = (err as Error & { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -363,13 +361,45 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
     }
   }, [apiClient, mode, showCreanceSoldeDialog, creanceSoldePage, creanceSoldePageCursors, creanceSoldePagesCache, deferredCreanceSoldeSearch])
 
+  useEffect(() => {
+    const availableOvps = Array.isArray(creance?.ovps) && creance.ovps.length > 0
+      ? creance.ovps
+      : creance?.ovp
+        ? [creance.ovp]
+        : []
+
+    if (availableOvps.length === 0) {
+      if (selectedOvpCode) {
+        setSelectedOvpCode("")
+      }
+      return
+    }
+
+    const hasSelectedOvp = availableOvps.some((ovp) => String(ovp.OVP_CODE ?? "") === selectedOvpCode)
+    if (!hasSelectedOvp) {
+      setSelectedOvpCode(String(availableOvps[0].OVP_CODE ?? ""))
+    }
+  }, [creance, selectedOvpCode])
+
   const displayData = useMemo(() => {
     if (!creance) return null
 
-    const ovp = creance.ovp
-    const domiciliation = creance.domiciliation
-    const virements = Array.isArray(creance.virements) ? creance.virements : []
+    const ovps = Array.isArray(creance.ovps) && creance.ovps.length > 0
+      ? creance.ovps
+      : creance.ovp
+        ? [creance.ovp]
+        : []
+    const ovp = ovps.find((item) => String(item.OVP_CODE ?? "") === selectedOvpCode)
+      || ovps[0]
+      || creance.ovp
+    const domiciliation = ovp?.domiciliation || creance.domiciliation
+    const virements = Array.isArray(ovp?.virements)
+      ? ovp.virements
+      : Array.isArray(creance.virements)
+        ? creance.virements
+        : []
     const creationOptions = (creance.creationOptions || {}) as SuivieClientelCreationOptions
+    const virementsTotalMontant = ovp?.VIREMENTS_TOTAL_MONTANT ?? creance.VIREMENTS_TOTAL_MONTANT
 
     const debtorName = creance.DEBITEUR_NOM
       ? formatText(creance.DEBITEUR_NOM)
@@ -431,9 +461,22 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
         date: formatDate(virement.VIRM_DATE),
         montant: formatAmount(virement.VIRM_MONT),
       })),
-      virementsTotal: formatAmount(creance.VIREMENTS_TOTAL_MONTANT),
+      virementsTotal: formatAmount(virementsTotalMontant),
       hasOvp: Boolean(creance.HAS_OVP),
       ovpCount: Number(creance.OVP_COUNT || 0),
+      selectedOvpCode: String(ovp?.OVP_CODE ?? ""),
+      ovps: ovps.map((item) => ({
+        rawCode: String(item.OVP_CODE ?? ""),
+        code: formatText(item.OVP_CODE),
+        dateSignature: formatDate(item.OVP_DATSIGNE),
+        dateDebut: formatDate(item.OVP_DATDEB),
+        dateFin: formatDate(item.OVP_DATFIN),
+        periodicite: formatCodeAndLabel(item.PERIOD_CODE, item.PERIOD_LIB),
+        type: formatCodeAndLabel(item.TYPOVP_CODE, item.TYPOVP_LIB),
+        montantPeriodique: formatAmount(item.OVP_MONT),
+        montantCreance: formatAmount(item.OVP_MONT_CREAN),
+        nbVirements: formatAmount(item.OVP_NB_VIRM ?? (Array.isArray(item.virements) ? item.virements.length : null)),
+      })),
       hasDomiciliation: Boolean(creance.HAS_DOMICILIATION),
       canCreateOvp: Boolean(creance.CAN_CREATE_OVP),
       creationBlockReason: formatText(creance.CREATION_BLOCK_REASON),
@@ -447,7 +490,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
       },
       creationCompteBanque: selectedCompteOperation ? extractBankLabel(selectedCompteOperation.label) : "-",
     }
-  }, [creance, creationForm.compteOperationCode])
+  }, [creance, creationForm.compteOperationCode, selectedOvpCode])
 
   const creationPreview = useMemo(() => computeCreationPreview(creationForm), [creationForm])
   const projectedVirements = useMemo(() => computeProjectedVirements(creationForm), [creationForm])
@@ -484,9 +527,6 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
         setActeOptions(initialActes)
         setActeSearch("")
       }
-      if (mode === "creation" && response.HAS_DOMICILIATION === false) {
-        setShowDomiciliationDialog(true)
-      }
     } catch (err) {
       const message = (err as Error & { response?: { data?: { message?: string } } })?.response?.data?.message
         || (err as Error).message
@@ -520,7 +560,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
   }
 
   const handleCreateOvp = async () => {
-    if (!creance || !displayData?.canCreateOvp) {
+    if (!creance) {
       return
     }
 
@@ -672,7 +712,22 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                         <div className="rounded-xl border border-slate-300 bg-white shadow-sm">
                           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 text-[15px] font-semibold text-[#2444d7]">
                             <span>(OVP)</span>
-                            <span className="text-[12px] font-medium text-slate-500">{displayData.ovpCount} OVP trouvé{displayData.ovpCount > 1 ? "s" : ""}</span>
+                            <div className="flex items-center gap-3">
+                              {displayData.ovps.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="h-8 rounded-md border-slate-300 px-3 text-[12px] font-medium text-slate-600 hover:bg-slate-50"
+                                  onClick={() => setShowOvpHistoryDialog(true)}
+                                >
+                                  Voir l&apos;historique ({displayData.ovps.length})
+                                </Button>
+                              )}
+                              <span className="text-[12px] font-medium text-slate-500">
+                                {displayData.selectedOvpCode ? `OVP sélectionné: ${displayData.selectedOvpCode} • ` : ""}
+                                {displayData.ovpCount} OVP trouvé{displayData.ovpCount > 1 ? "s" : ""}
+                              </span>
+                            </div>
                           </div>
                           <div className="grid grid-cols-[1.15fr_0.95fr] gap-x-8 gap-y-3 p-4">
                             <FieldGroup>
@@ -771,30 +826,35 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                       <span>Création OVP</span>
                       <span className="text-[12px] font-medium text-slate-500">{displayData.hasOvp ? `${displayData.ovpCount} OVP existant${displayData.ovpCount > 1 ? "s" : ""}` : "Aucun OVP existant"}</span>
                     </div>
+                    {!displayData.hasDomiciliation && displayData.creationBlockReason !== "-" && (
+                      <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+                        {displayData.creationBlockReason}
+                      </div>
+                    )}
                     <div className="grid grid-cols-[1.15fr_0.95fr] gap-x-8 gap-y-3 p-4">
                       <FieldGroup>
-                        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Source Ovp</span><SearchableSelect value={creationForm.sourceOvpCode} onValueChange={(value) => handleCreationFieldChange("sourceOvpCode", value)} items={displayData.creationOptions.sourcesOvp} placeholder="Sélectionner" disabled={!displayData.canCreateOvp} /></div>
-                        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Périodicité</span><SearchableSelect value={creationForm.periodiciteCode} onValueChange={(value) => handleCreationFieldChange("periodiciteCode", value)} items={displayData.creationOptions.periodicites} placeholder="Sélectionner" disabled={!displayData.canCreateOvp} /></div>
-                        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Acte</span><SearchableSelect value={creationForm.acteCode} onValueChange={(value) => handleCreationFieldChange("acteCode", value)} items={acteOptions} placeholder="Sélectionner" disabled={!displayData.canCreateOvp} isLoading={acteLoading} onSearchChange={handleActeSearchChange} search={acteSearch} /></div>
+                        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Source Ovp</span><SearchableSelect value={creationForm.sourceOvpCode} onValueChange={(value) => handleCreationFieldChange("sourceOvpCode", value)} items={displayData.creationOptions.sourcesOvp} placeholder="Sélectionner" isLoading={false} /></div>
+                        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Périodicité</span><SearchableSelect value={creationForm.periodiciteCode} onValueChange={(value) => handleCreationFieldChange("periodiciteCode", value)} items={displayData.creationOptions.periodicites} placeholder="Sélectionner" /></div>
+                        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Acte</span><SearchableSelect value={creationForm.acteCode} onValueChange={(value) => handleCreationFieldChange("acteCode", value)} items={acteOptions} placeholder="Sélectionner" isLoading={acteLoading} onSearchChange={handleActeSearchChange} search={acteSearch} /></div>
                         <div className="grid grid-cols-[300px_250px] gap-4">
-                          <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Date Début</span><Input type="date" value={creationForm.dateDebut} onChange={(event) => handleCreationFieldChange("dateDebut", event.target.value)} disabled={!displayData.canCreateOvp} className="h-9 border-[#9fd89c]" /></div>
-                          <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Montant Créan.</span><Input value={creationForm.montantCreance} onChange={(event) => handleCreationFieldChange("montantCreance", event.target.value)} disabled={!displayData.canCreateOvp} className="h-9 border-[#9fd89c] text-right" /></div>
+                          <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Date Début</span><Input type="date" value={creationForm.dateDebut} onChange={(event) => handleCreationFieldChange("dateDebut", event.target.value)} className="h-9 border-[#9fd89c]" /></div>
+                          <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Montant Créan.</span><Input value={creationForm.montantCreance} onChange={(event) => handleCreationFieldChange("montantCreance", event.target.value)} className="h-9 border-[#9fd89c] text-right" /></div>
                         </div>
                         <div className="grid grid-cols-[300px_250px] gap-4">
-                          <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Date Fin</span><Input type="date" value={isManualDateFinMode ? creationForm.dateFin : creationPreview.dateFin} onChange={(event) => handleCreationFieldChange("dateFin", event.target.value)} disabled={!displayData.canCreateOvp || !isManualDateFinMode} className={isManualDateFinMode ? "h-9 border-[#9fd89c]" : "h-9 border-[#9fd89c] bg-slate-100"} /></div>
-                          <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Montant. Périod</span><Input value={creationForm.montantPeriodique} onChange={(event) => handleCreationFieldChange("montantPeriodique", event.target.value)} disabled={!displayData.canCreateOvp} className="h-9 border-[#9fd89c] text-right" /></div>
+                          <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Date Fin</span><Input type="date" value={isManualDateFinMode ? creationForm.dateFin : creationPreview.dateFin} onChange={(event) => handleCreationFieldChange("dateFin", event.target.value)} disabled={!isManualDateFinMode} className={isManualDateFinMode ? "h-9 border-[#9fd89c]" : "h-9 border-[#9fd89c] bg-slate-100"} /></div>
+                          <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Montant. Périod</span><Input value={creationForm.montantPeriodique} onChange={(event) => handleCreationFieldChange("montantPeriodique", event.target.value)} className="h-9 border-[#9fd89c] text-right" /></div>
                         </div>
                         <div className="grid grid-cols-[300px_250px] gap-4">
-                          <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Date signature</span><Input type="date" value={creationForm.dateSignature} onChange={(event) => handleCreationFieldChange("dateSignature", event.target.value)} disabled={!displayData.canCreateOvp} className="h-9 border-[#9fd89c]" /></div>
+                          <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Date signature</span><Input type="date" value={creationForm.dateSignature} onChange={(event) => handleCreationFieldChange("dateSignature", event.target.value)} className="h-9 border-[#9fd89c]" /></div>
                           <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Nb Virement</span><Input value={creationPreview.nbVirement} disabled className="h-9 border-[#9fd89c] bg-slate-100 text-right" /></div>
                         </div>
                       </FieldGroup>
 
                       <FieldGroup>
-                        <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Type Ovp</span><SearchableSelect value={creationForm.typeOvpCode} onValueChange={(value) => handleCreationFieldChange("typeOvpCode", value)} items={displayData.creationOptions.typesOvp} placeholder="Sélectionner" disabled={!displayData.canCreateOvp} /></div>
-                        <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Tiers</span><SearchableSelect value={creationForm.tiersCode} onValueChange={(value) => handleCreationFieldChange("tiersCode", value)} items={displayData.creationOptions.tiers} placeholder="Sélectionner" disabled={!displayData.canCreateOvp} /></div>
+                        <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Type Ovp</span><SearchableSelect value={creationForm.typeOvpCode} onValueChange={(value) => handleCreationFieldChange("typeOvpCode", value)} items={displayData.creationOptions.typesOvp} placeholder="Sélectionner" /></div>
+                        <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Tiers</span><SearchableSelect value={creationForm.tiersCode} onValueChange={(value) => handleCreationFieldChange("tiersCode", value)} items={displayData.creationOptions.tiers} placeholder="Sélectionner" /></div>
                         <div className="grid grid-cols-[minmax(0,1fr)_150px] gap-4">
-                          <div className="grid grid-cols-[114px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Cpte Operation</span><SearchableSelect value={creationForm.compteOperationCode} onValueChange={(value) => handleCreationFieldChange("compteOperationCode", value)} items={displayData.creationOptions.comptesOperation} placeholder="Sélectionner" disabled={!displayData.canCreateOvp} /></div>
+                          <div className="grid grid-cols-[114px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Cpte Operation</span><SearchableSelect value={creationForm.compteOperationCode} onValueChange={(value) => handleCreationFieldChange("compteOperationCode", value)} items={displayData.creationOptions.comptesOperation} placeholder="Sélectionner" /></div>
                           <LabeledField label="Banque" value={displayData.creationCompteBanque} labelClassName="w-[60px]" />
                         </div>
                         <div className="grid grid-cols-[minmax(0,1fr)_150px] gap-4">
@@ -806,7 +866,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                     </div>
                     <div className="border-t border-slate-200 px-4 py-4">
                       <div className="flex items-center justify-end gap-4">
-                        <Button type="button" disabled={!displayData.canCreateOvp || saving || loading} className="bg-[#2444d7] text-white hover:bg-[#1a36b0]" onClick={handleCreateOvp}>{saving ? "Enregistrement..." : "Enregistrer l'OVP"}</Button>
+                        <Button type="button" disabled={saving || loading} className="bg-[#2444d7] text-white hover:bg-[#1a36b0]" onClick={handleCreateOvp}>{saving ? "Enregistrement..." : "Enregistrer l'OVP"}</Button>
                       </div>
                     </div>
                   </div>
@@ -864,14 +924,84 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
         </div>
       </div>
 
-      <Dialog open={showDomiciliationDialog} onOpenChange={setShowDomiciliationDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Domiciliation requise</DialogTitle>
-            <DialogDescription>Le débiteur n&apos;a pas de domiciliation. Création OVP impossible.</DialogDescription>
+      <Dialog open={showOvpHistoryDialog} onOpenChange={setShowOvpHistoryDialog}>
+        <DialogContent className="flex max-h-[76vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden border border-slate-200 bg-white p-0 shadow-2xl sm:w-[calc(100vw-4rem)] sm:max-w-[1320px]">
+          <DialogHeader className="border-b border-slate-200 px-8 py-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="max-w-[760px]">
+                <DialogTitle className="text-[22px] font-semibold text-[#2444d7]">Historique des OVP</DialogTitle>
+                <DialogDescription className="mt-1 text-[14px] leading-6 text-slate-500">
+                  L&apos;OVP le plus récent reste affiché sur la page. Sélectionnez un autre OVP pour afficher ses détails.
+                </DialogDescription>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] font-medium text-slate-600 shadow-sm">
+                {displayData?.ovps.length || 0} OVP
+              </div>
+            </div>
           </DialogHeader>
-          <DialogFooter>
-            <Button type="button" onClick={() => setShowDomiciliationDialog(false)}>Fermer</Button>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-8 py-6">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {displayData?.ovps.map((ovpItem) => {
+                const isSelected = ovpItem.rawCode === displayData.selectedOvpCode
+
+                return (
+                  <button
+                    key={ovpItem.rawCode}
+                    type="button"
+                    onClick={() => {
+                      setSelectedOvpCode(ovpItem.rawCode)
+                      setShowOvpHistoryDialog(false)
+                    }}
+                    className={[
+                      "min-h-[168px] rounded-xl border px-4 py-4 text-left transition",
+                      isSelected
+                        ? "border-[#2444d7] bg-[#eef3ff] shadow-sm"
+                        : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white hover:shadow-sm",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="text-[16px] font-semibold text-slate-900">OVP {ovpItem.code}</div>
+                      <div className="rounded-md bg-white/80 px-2 py-1 text-[11px] font-medium text-slate-500">
+                        {ovpItem.dateSignature}
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-[12px] text-slate-600">
+                      <div>
+                        <div className="mb-1 font-medium text-slate-500">Périodicité</div>
+                        <div className="leading-4">{ovpItem.periodicite}</div>
+                      </div>
+                      <div>
+                        <div className="mb-1 font-medium text-slate-500">Type OVP</div>
+                        <div className="leading-4">{ovpItem.type}</div>
+                      </div>
+                      <div>
+                        <div className="mb-1 font-medium text-slate-500">Montant périod.</div>
+                        <div className="tabular-nums leading-4">{ovpItem.montantPeriodique}</div>
+                      </div>
+                      <div>
+                        <div className="mb-1 font-medium text-slate-500">Nb virements</div>
+                        <div className="tabular-nums leading-4">{ovpItem.nbVirements}</div>
+                      </div>
+                      <div>
+                        <div className="mb-1 font-medium text-slate-500">Début</div>
+                        <div className="leading-4">{ovpItem.dateDebut}</div>
+                      </div>
+                      <div>
+                        <div className="mb-1 font-medium text-slate-500">Fin</div>
+                        <div className="leading-4">{ovpItem.dateFin}</div>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <DialogFooter className="border-t border-slate-200 px-8 py-4">
+            <Button type="button" variant="outline" className="min-w-[112px]" onClick={() => setShowOvpHistoryDialog(false)}>
+              Fermer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

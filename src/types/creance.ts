@@ -69,6 +69,9 @@ export interface SuivieClientelOvp {
   EMP_NOM?: string;
   EMP_PREN?: string;
   EMPLOYEUR_LIB?: string;
+  domiciliation?: SuivieClientelDomiciliation;
+  virements?: SuivieClientelVirement[];
+  VIREMENTS_TOTAL_MONTANT?: number;
   [key: string]: unknown;
 }
 
@@ -283,6 +286,7 @@ export interface CreanceResponse {
   }>;
 
   ovp?: SuivieClientelOvp;
+  ovps?: SuivieClientelOvp[];
   domiciliation?: SuivieClientelDomiciliation;
   virements?: SuivieClientelVirement[];
   VIREMENTS_TOTAL_MONTANT?: number;
