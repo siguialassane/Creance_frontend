@@ -1,10 +1,22 @@
 "use client"
 
 import { MenuItem, SubMenuItem } from '../../lib/types/menu'
-import colors from '../../lib/theme/colors'
 import { useState, useEffect } from 'react'
 import SubMenuItemComponent from './sub-menu-item'
 import { Icon } from '@iconify/react'
+
+function buildMenuSubItemKey(parentPath: string, subMenu: SubMenuItem, siblingIndex: number) {
+    const subMenuPath = subMenu.path?.toString().trim() || ''
+    const href = subMenuPath.startsWith('/')
+           ? subMenuPath
+        : subMenuPath
+            ? `${parentPath}/${subMenuPath}`
+            : parentPath
+    const idPart = subMenu.id != null ? String(subMenu.id) : 'no-id'
+    const namePart = subMenu.name?.trim() || 'no-name'
+
+    return `${href}::${idPart}::${namePart}::${siblingIndex}`
+}
 
 interface MenuItemProps {
     menu: MenuItem
@@ -20,15 +32,15 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose, isCollapsed =
     useEffect(() => {
         if (menu.subMenus) {
             const pathname = window.location.pathname
-            let currentMenu: any = menu.subMenus.find((subMenu) => pathname.includes(encodeURI(subMenu.path)))
+            const currentMenu = menu.subMenus.find((subMenu) => pathname.includes(encodeURI(subMenu.path)))
             if (currentMenu) {
                 setSubMenuItem(() => currentMenu.id)
             }
         }
-    }, [])
+    }, [menu.subMenus])
 
     const handleMenuClick = (subMenu: SubMenuItem) => {
-        setSubMenuItem((_) => subMenu.id)
+        setSubMenuItem(subMenu.id)
     }
 
     // Styles professionnels et dynamiques
@@ -172,7 +184,7 @@ const MenuItemComponent = ({ menu, isSelected, onPressed, isClose, isCollapsed =
                 <div style={subMenuContainerStyle}>
                     {menu.subMenus.map((subMenu, index) => (
                         <SubMenuItemComponent 
-                            key={index}
+                            key={buildMenuSubItemKey(menu.path || '', subMenu, index)}
                             parrentPath={menu.path || ""} 
                             onPressed={handleMenuClick} 
                             isSelected={subMenuItem === subMenu.id} 

@@ -91,7 +91,7 @@ export class CreanceService {
 
   static async getSuivieClientelCreancesSolde(
     apiClient: ApiClient,
-    params: { offset?: number; size?: number; search?: string } = {}
+    params: { afterCode?: string; size?: number; search?: string } = {}
   ): Promise<SuivieClientelCreanceSoldePage> {
     const response = await apiClient.get(`${CreanceService.BASE_URL}/suivie-clientel/creances-solde`, {
       params,

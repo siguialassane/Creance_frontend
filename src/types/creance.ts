@@ -123,6 +123,8 @@ export interface SuivieClientelCreanceSoldePage {
   size: number;
   loaded: number;
   hasMore: boolean;
+  afterCode?: string;
+  nextCursor?: string | null;
   total?: number;
   search?: string;
   startedAt?: string;

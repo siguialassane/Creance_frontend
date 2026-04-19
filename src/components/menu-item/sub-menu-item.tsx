@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation"
 import colors from "../../lib/theme/colors"
 import { StyledMenuItem } from "../../lib/theme/typography"
 import { SubMenuItem } from "../../lib/types/menu"
-import styled, { keyframes } from "styled-components"
+import styled from "styled-components"
 
 type SubMenuItemProps = {
     subMenu: SubMenuItem,
@@ -18,13 +18,6 @@ const BorderedStyle = styled.div<{ $isSelected: boolean; $isHovered: boolean }>`
 overflow-x: hidden;
 max-width: 100%;
 padding-right: 1rem;
-padding-left: 1rem;
-padding-top: 0.5rem;
-padding-bottom: 0.5rem;
-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-background-color: ${props => props.$isSelected ? 'rgba(255, 255, 255, 0.12)' : 'transparent'};
-border-radius: 8px;
-display: block;
 cursor: pointer;
 border: none; /* pas de cadre rectangulaire autour de l'élément sélectionné */
 // box-shadow: ${props => props.$isSelected ? '0 2px 8px rgba(255, 255, 255, 0.2)' : 'none'};
@@ -50,14 +43,6 @@ const SubMenuNameStyled = styled.div`
   font-size: 16px;
   color: #fff;
   font-weight: 500;
-`
-
-const AnimatedSubIcon = styled.div<{ $isSelected: boolean; $isHovered?: boolean }>`
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  transform: ${props => props.$isSelected ? 'scale(1.1)' : props.$isHovered ? 'scale(1.05)' : 'scale(1)'};
-  color: ${props => props.$isSelected ? '#FFFFFF' : props.$isHovered ? '#E5E7EB' : '#fff'};
-  font-size: 12px;
-  filter: ${props => props.$isSelected ? 'brightness(1.2)' : 'brightness(1)'};
 `
 
 const NestedContainer = styled.div`
@@ -86,6 +71,15 @@ function buildSubMenuHref(parentPath: string, subMenuPath: string) {
     return `${parentPath}/${subMenuPath}`
 }
 
+function buildSubMenuKey(parentPath: string, subMenu: SubMenuItem, siblingIndex: number) {
+    const subMenuPath = subMenu.path?.toString().trim() || ""
+    const href = buildSubMenuHref(parentPath, subMenuPath)
+    const idPart = subMenu.id != null ? String(subMenu.id) : "no-id"
+    const namePart = subMenu.name?.trim() || "no-name"
+
+    return `${href}::${idPart}::${namePart}::${siblingIndex}`
+}
+
 function hasActiveChild(subMenu: SubMenuItem, parentPath: string, pathname: string): boolean {
     const currentHref = buildSubMenuHref(parentPath, subMenu.path?.toString().trim() || "")
 
@@ -100,7 +94,7 @@ function hasActiveChild(subMenu: SubMenuItem, parentPath: string, pathname: stri
     return subMenu.subMenus.some((child) => hasActiveChild(child, currentHref, pathname))
 }
 
-const SubMenuItemComponent = ({ subMenu, isSelected, onPressed, hasLeftIndicator, parrentPath }: SubMenuItemProps) => {
+const SubMenuItemComponent = ({ subMenu, isSelected, onPressed, parrentPath }: SubMenuItemProps) => {
     const [isHovered, setIsHovered] = useState(false)
     const pathname = usePathname()
 
@@ -142,9 +136,9 @@ const SubMenuItemComponent = ({ subMenu, isSelected, onPressed, hasLeftIndicator
 
                 {isExpanded && (
                     <NestedContainer>
-                        {subMenu.subMenus.map((child) => (
+                        {subMenu.subMenus.map((child, index) => (
                             <SubMenuItemComponent
-                                key={child.id}
+                                key={buildSubMenuKey(href, child, index)}
                                 parrentPath={href}
                                 onPressed={onPressed}
                                 isSelected={pathname === buildSubMenuHref(href, child.path?.toString().trim() || "")}

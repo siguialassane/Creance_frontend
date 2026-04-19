@@ -233,23 +233,35 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
   const [creanceSoldeError, setCreanceSoldeError] = useState<string | null>(null)
   const [creanceSoldeLoading, setCreanceSoldeLoading] = useState(false)
   const [creanceSoldePage, setCreanceSoldePage] = useState(0)
+  const [creanceSoldePagesCache, setCreanceSoldePagesCache] = useState<Record<number, SuivieClientelCreanceSoldePage>>({})
+  const [creanceSoldePageCursors, setCreanceSoldePageCursors] = useState<Array<string | null>>([null])
   const [creanceSoldeSearch, setCreanceSoldeSearch] = useState("")
-  const [creanceSoldeTotal, setCreanceSoldeTotal] = useState<number | null>(null)
-  const [creanceSoldeCountLoading, setCreanceSoldeCountLoading] = useState(false)
-  const [creanceSoldeCountFailed, setCreanceSoldeCountFailed] = useState(false)
   const [defaultActeOptions, setDefaultActeOptions] = useState<Array<{ value: string; label: string }>>([])
   const [acteOptions, setActeOptions] = useState<Array<{ value: string; label: string }>>([])
   const [acteSearch, setActeSearch] = useState("")
   const [acteLoading, setActeLoading] = useState(false)
   const deferredCreanceSoldeSearch = useDeferredValue(creanceSoldeSearch)
 
-  const resetCreanceSoldeListState = () => {
+  const clearCreanceSoldeListState = () => {
     setCreanceSoldeData(null)
     setCreanceSoldeError(null)
+    setCreanceSoldeLoading(false)
     setCreanceSoldePage(0)
-    setCreanceSoldeTotal(null)
-    setCreanceSoldeCountLoading(false)
-    setCreanceSoldeCountFailed(false)
+    setCreanceSoldePagesCache({})
+    setCreanceSoldePageCursors([null])
+  }
+
+  const resetCreanceSoldeListState = () => {
+    setCreanceSoldeSearch("")
+    clearCreanceSoldeListState()
+  }
+
+  const handleCreanceSoldeDialogChange = (open: boolean) => {
+    setShowCreanceSoldeDialog(open)
+
+    if (!open) {
+      resetCreanceSoldeListState()
+    }
   }
 
   useEffect(() => {
@@ -296,6 +308,14 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
   useEffect(() => {
     if (mode !== "creation" || !showCreanceSoldeDialog) return
 
+    const cachedPage = creanceSoldePagesCache[creanceSoldePage]
+    if (cachedPage) {
+      setCreanceSoldeData(cachedPage)
+      setCreanceSoldeError(null)
+      setCreanceSoldeLoading(false)
+      return
+    }
+
     let cancelled = false
     const fetchCreancesSolde = async () => {
       setCreanceSoldeLoading(true)
@@ -303,17 +323,24 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
 
       try {
         const response = await CreanceService.getSuivieClientelCreancesSolde(apiClient, {
-          offset: creanceSoldePage * CREANCE_SOLDE_CHUNK_SIZE,
+          afterCode: creanceSoldePageCursors[creanceSoldePage] || undefined,
           size: CREANCE_SOLDE_CHUNK_SIZE,
           search: deferredCreanceSoldeSearch,
         })
         if (!cancelled) {
           setCreanceSoldeData(response)
-
-          if (creanceSoldePage === 0 && response.items.length === 0) {
-            setCreanceSoldeTotal(0)
-            setCreanceSoldeCountFailed(false)
-          }
+          setCreanceSoldePagesCache((current) => ({
+            ...current,
+            [creanceSoldePage]: response,
+          }))
+          setCreanceSoldePageCursors((current) => {
+            const next = current.slice(0, creanceSoldePage + 1)
+            next[creanceSoldePage] = current[creanceSoldePage] ?? null
+            if (response.hasMore && response.nextCursor) {
+              next[creanceSoldePage + 1] = response.nextCursor
+            }
+            return next
+          })
         }
       } catch (err) {
         if (!cancelled) {
@@ -334,41 +361,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
     return () => {
       cancelled = true
     }
-  }, [apiClient, mode, showCreanceSoldeDialog, creanceSoldePage, deferredCreanceSoldeSearch])
-
-  useEffect(() => {
-    if (mode !== "creation" || !showCreanceSoldeDialog || !creanceSoldeData) return
-    if (creanceSoldeCountLoading || creanceSoldeTotal !== null || creanceSoldeCountFailed) return
-
-    let cancelled = false
-
-    const fetchCreancesSoldeCount = async () => {
-      setCreanceSoldeCountLoading(true)
-      try {
-        const response = await CreanceService.countSuivieClientelCreancesSolde(apiClient, {
-          search: deferredCreanceSoldeSearch,
-        })
-        if (!cancelled) {
-          setCreanceSoldeTotal(response.total)
-          setCreanceSoldeCountFailed(false)
-        }
-      } catch {
-        if (!cancelled) {
-          setCreanceSoldeCountFailed(true)
-        }
-      } finally {
-        if (!cancelled) {
-          setCreanceSoldeCountLoading(false)
-        }
-      }
-    }
-
-    void fetchCreancesSoldeCount()
-
-    return () => {
-      cancelled = true
-    }
-  }, [apiClient, mode, showCreanceSoldeDialog, creanceSoldeData, creanceSoldeTotal, creanceSoldeCountLoading, creanceSoldeCountFailed, deferredCreanceSoldeSearch])
+  }, [apiClient, mode, showCreanceSoldeDialog, creanceSoldePage, creanceSoldePageCursors, creanceSoldePagesCache, deferredCreanceSoldeSearch])
 
   const displayData = useMemo(() => {
     if (!creance) return null
@@ -460,7 +453,11 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
   const projectedVirements = useMemo(() => computeProjectedVirements(creationForm), [creationForm])
   const isManualDateFinMode = isManualDateFinPeriodicity(creationForm.periodiciteCode)
   const creanceSoldeCurrentPage = creanceSoldePage + 1
-  const creanceSoldeTotalPages = creanceSoldeTotal === null ? null : Math.max(1, Math.ceil(creanceSoldeTotal / CREANCE_SOLDE_CHUNK_SIZE))
+  const todayLabel = useMemo(() => new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date()), [])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -589,7 +586,6 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                   className="h-10 rounded-[9px] bg-[#b9ed9b] px-5 text-[14px] font-medium text-slate-900 hover:bg-[#a7e487]"
                   onClick={() => {
                     resetCreanceSoldeListState()
-                    setCreanceSoldeSearch("")
                     setShowCreanceSoldeDialog(true)
                   }}
                 >
@@ -880,97 +876,118 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showCreanceSoldeDialog} onOpenChange={setShowCreanceSoldeDialog}>
-        <DialogContent className="h-[85vh] w-[96vw] max-w-[96vw] overflow-hidden p-0 sm:max-w-[1280px]">
-          <DialogHeader className="border-b border-slate-200 px-6 py-4">
-            <DialogTitle>Consultation Créances Soldées OVP</DialogTitle>
-            <DialogDescription>
-              Liste paginée des créances portant des OVP soldées, chargée directement depuis Oracle.
-            </DialogDescription>
+      <Dialog open={showCreanceSoldeDialog} onOpenChange={handleCreanceSoldeDialogChange}>
+        <DialogContent className="flex h-[88vh] w-[96vw] max-w-[96vw] flex-col overflow-hidden border border-[#d5e4d7] bg-[#f7fbf7] p-0 shadow-xl sm:max-w-[1280px]">
+          <DialogHeader className="border-b border-[#d5e4d7] bg-[#f3f8f3] px-6 py-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-2">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5f7a63]">
+                  Agence Comptable des Créances Contentieuses
+                </div>
+                <DialogTitle className="text-left text-[21px] font-semibold uppercase text-[#2f6b45] sm:text-[24px]">
+                  Etat des Créances Portant des OVP Soldées
+                </DialogTitle>
+              </div>
+
+              <div className="self-start rounded-md border border-[#d5e4d7] bg-white px-4 py-3 text-right">
+                <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#6f876f]">
+                  Date du jour
+                </div>
+                <div className="mt-1 text-[16px] font-semibold capitalize text-[#2f6b45]">
+                  {todayLabel}
+                </div>
+              </div>
+            </div>
           </DialogHeader>
 
-          <div className="space-y-4 px-6 py-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <Input
-                value={creanceSoldeSearch}
-                onChange={(event) => {
-                  const nextValue = event.target.value
-                  setCreanceSoldeSearch(nextValue)
-                  setCreanceSoldeData(null)
-                  setCreanceSoldeError(null)
-                  setCreanceSoldePage(0)
-                  setCreanceSoldeTotal(null)
-                  setCreanceSoldeCountLoading(false)
-                  setCreanceSoldeCountFailed(false)
-                }}
-                placeholder="Recherche rapide par code créance"
-                className="max-w-sm"
-              />
-              <div className="text-[13px] text-slate-600">
-                {creanceSoldeLoading && !creanceSoldeData && "Chargement initial en cours..."}
-                {!creanceSoldeLoading && creanceSoldeData && creanceSoldeTotal !== null && `Page ${creanceSoldeCurrentPage}${creanceSoldeTotalPages ? ` / ${creanceSoldeTotalPages}` : ""} • Résultats: ${creanceSoldeTotal}`}
-                {!creanceSoldeLoading && creanceSoldeData && creanceSoldeTotal === null && creanceSoldeCountLoading && `Page ${creanceSoldeCurrentPage} • Total en cours...`}
-                {!creanceSoldeLoading && creanceSoldeData && creanceSoldeTotal === null && !creanceSoldeCountLoading && !creanceSoldeCountFailed && `Page ${creanceSoldeCurrentPage}`}
-                {!creanceSoldeLoading && creanceSoldeData && creanceSoldeCountFailed && `Page ${creanceSoldeCurrentPage} • Total indisponible`}
+          <div className="flex min-h-0 flex-1 flex-col space-y-4 bg-[#f7fbf7] px-6 py-5">
+            <div className="flex flex-col gap-4 rounded-lg border border-[#dbe8dc] bg-white px-4 py-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="flex flex-1 flex-col gap-2">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6f876f]">
+                  Recherche rapide
+                </div>
+                <Input
+                  value={creanceSoldeSearch}
+                  onChange={(event) => {
+                    const nextValue = event.target.value
+                    setCreanceSoldeSearch(nextValue)
+                    clearCreanceSoldeListState()
+                  }}
+                  placeholder="Recherche rapide par code créance"
+                  className="h-11 max-w-[340px] rounded-md border-[#cfe0d1] bg-[#fbfefb] text-[14px] focus-visible:ring-[#8ab495]"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium text-[#4f6653]">
+                <div className="rounded-md border border-[#dbe8dc] bg-[#f7fbf7] px-3 py-2">
+                  {creanceSoldeLoading && !creanceSoldeData ? "Chargement..." : `Page ${creanceSoldeCurrentPage}`}
+                </div>
+                <div className="rounded-md border border-[#dbe8dc] bg-[#f7fbf7] px-3 py-2">
+                  {creanceSoldeData ? `${creanceSoldeData.items.length} ligne(s)` : "Aucune ligne"}
+                </div>
               </div>
             </div>
 
             {creanceSoldeError && (
-              <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-red-700">
+              <div className="rounded-md border border-[#efc2bb] bg-[#fff5f3] px-4 py-3 text-[14px] font-medium text-[#b24837]">
                 {creanceSoldeError}
               </div>
             )}
 
-            <div className="overflow-hidden rounded-xl border border-slate-300 bg-white">
-              <div className="overflow-x-auto">
-                <div className="min-w-[980px]">
-                  <div className="grid grid-cols-[150px_1.6fr_160px_160px_160px] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-[13px] font-semibold uppercase tracking-wide text-slate-700">
-                    <span>Créance</span>
-                    <span>Débiteur</span>
-                    <span className="text-right">Capital Initial</span>
-                    <span className="text-right">Solde Initial</span>
-                    <span className="text-right">Solde Exigible</span>
-                  </div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-[#d5e4d7] bg-white">
+              <div className="overflow-x-auto border-b border-[#d5e4d7] bg-[#eaf4eb]">
+                <div className="grid min-w-[980px] grid-cols-[150px_1.7fr_160px_150px_150px] gap-3 px-4 py-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-[#2f6b45]">
+                  <span>Créance</span>
+                  <span>Débiteur</span>
+                  <span className="text-right">Capital Initial</span>
+                  <span className="text-right">Solde Initial</span>
+                  <span className="text-right">Solde Exigible</span>
                 </div>
               </div>
-              <div className="max-h-[55vh] overflow-auto">
+
+              <div className="min-h-0 flex-1 overflow-auto bg-white">
                 {creanceSoldeLoading && !creanceSoldeData && (
-                  <div className="px-4 py-8 text-center text-slate-600">Chargement...</div>
+                  <div className="px-4 py-10 text-center text-[14px] text-[#6b806e]">Chargement de l&apos;état...</div>
                 )}
 
                 {creanceSoldeData && creanceSoldeData.items.length === 0 && (
-                  <div className="px-4 py-8 text-center text-slate-600">
+                  <div className="px-4 py-10 text-center text-[14px] text-[#6b806e]">
                     Aucune créance soldée trouvée pour ce filtre.
                   </div>
                 )}
 
                 {creanceSoldeData?.items.map((row, index) => (
-                  <div key={`${row.CREANCE}-${index}`} className="overflow-x-auto">
-                    <div className="grid min-w-[980px] grid-cols-[150px_1.6fr_160px_160px_160px] gap-3 border-b border-slate-100 px-4 py-3 text-[14px] text-slate-800 last:border-b-0">
-                      <span className="font-medium tabular-nums">{row.CREANCE}</span>
-                      <span className="truncate">{formatText(row.DEBITEUR)}</span>
-                      <span className="text-right tabular-nums">{formatAmount(row.CAPIT_INIT)}</span>
-                      <span className="text-right tabular-nums">{formatAmount(row.SOLDE_INIT)}</span>
-                      <span className="text-right tabular-nums">{formatAmount(row.SOLDE_EXIG)}</span>
+                  <div key={row.CREANCE} className="overflow-x-auto">
+                    <div className={[
+                      "grid min-w-[980px] grid-cols-[150px_1.7fr_160px_150px_150px] gap-3 border-b border-[#edf3ee] px-4 py-3 text-[14px] text-slate-800 last:border-b-0",
+                      index % 2 === 0 ? "bg-white" : "bg-[#f9fcf9]",
+                    ].join(" ")}>
+                      <span className="font-semibold tabular-nums text-[#355e42]">{row.CREANCE}</span>
+                      <span className="truncate text-[#4f5d52]">{formatText(row.DEBITEUR)}</span>
+                      <span className="text-right tabular-nums text-[#4f5d52]">{formatAmount(row.CAPIT_INIT)}</span>
+                      <span className="text-right tabular-nums text-[#4f5d52]">{formatAmount(row.SOLDE_INIT)}</span>
+                      <span className="text-right font-semibold tabular-nums text-[#355e42]">{formatAmount(row.SOLDE_EXIG)}</span>
                     </div>
                   </div>
                 ))}
 
                 {creanceSoldeLoading && creanceSoldeData && (
-                  <div className="px-4 py-4 text-center text-[13px] text-slate-500">Chargement de la page...</div>
+                  <div className="px-4 py-4 text-center text-[13px] text-[#6b806e]">Chargement de la page suivante...</div>
                 )}
               </div>
             </div>
           </div>
 
-          <DialogFooter className="border-t border-slate-200 px-6 py-4 sm:justify-between">
-            <div className="text-[13px] text-slate-600">
-              {creanceSoldeData ? `Page ${creanceSoldeCurrentPage}` : "Aucune ligne chargée"}
+          <DialogFooter className="shrink-0 border-t border-[#d5e4d7] bg-[#f3f8f3] px-6 py-4 sm:justify-between">
+            <div className="rounded-md border border-[#dbe8dc] bg-white px-3 py-2 text-[13px] font-medium text-[#4f6653]">
+              {creanceSoldeData ? `Page ${creanceSoldeCurrentPage}` : "Etat non chargé"}
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-3">
               <Button
                 type="button"
                 variant="outline"
+                className="h-10 min-w-[120px] rounded-md border-[#bfd3c2] bg-white px-5 text-[14px] font-medium text-[#45624a] hover:bg-[#f5faf5] hover:text-[#2f6b45]"
                 disabled={creanceSoldeLoading || creanceSoldePage <= 0}
                 onClick={() => setCreanceSoldePage((current) => Math.max(current - 1, 0))}
               >
@@ -979,16 +996,16 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
               <Button
                 type="button"
                 variant="outline"
+                className="h-10 min-w-[120px] rounded-md border-[#2f6b45] bg-[#2f6b45] px-5 text-[14px] font-medium text-white hover:bg-[#285b3b] hover:text-white disabled:border-[#c8d7cb] disabled:bg-[#dce8de] disabled:text-[#7d9480]"
                 disabled={creanceSoldeLoading || !creanceSoldeData?.hasMore}
                 onClick={() => setCreanceSoldePage((current) => current + 1)}
               >
                 Suivant
               </Button>
             </div>
-            <div className="text-[13px] text-slate-600">
-              {creanceSoldeCountLoading && "Comptage en arrière-plan..."}
-              {!creanceSoldeCountLoading && creanceSoldeTotal !== null && `Total: ${creanceSoldeTotal}`}
-              {!creanceSoldeCountLoading && creanceSoldeCountFailed && "Total indisponible"}
+
+            <div className="rounded-md border border-[#dbe8dc] bg-white px-3 py-2 text-[13px] font-medium text-[#4f6653]">
+              {creanceSoldeData ? `${creanceSoldeData.items.length} ligne(s) affichée(s)` : "0 ligne"}
             </div>
           </DialogFooter>
         </DialogContent>
