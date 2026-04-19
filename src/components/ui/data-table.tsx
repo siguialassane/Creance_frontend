@@ -118,15 +118,17 @@ export function DataTable<TData, TValue>({
       // Pour la pagination côté serveur, on utilise les données telles quelles
       return data
     }
-    
-    if (!query) return data
-    const q = query.toString().toLowerCase()
+
+    // Utiliser localQuery quand onSearchValueChange est fourni (contrôle par le parent)
+    const searchValue = onSearchValueChange ? localQuery : query
+    if (!searchValue) return data
+    const q = searchValue.toString().toLowerCase()
     return (data as TData[]).filter((row) =>
       Object.values(row ?? {}).some((val) =>
         (val ?? "").toString().toLowerCase().includes(q)
       )
     )
-  }, [data, query, useServerPagination])
+  }, [data, query, localQuery, useServerPagination, onSearchValueChange])
 
   const table = useReactTable({
     data: filteredData,

@@ -5,6 +5,12 @@ export interface TypeActe {
   TYPACTE_DELAI?: number | null;
   TYPACTE_SERV?: number | null;
   TYPACTE_ORD_EMIS?: number | null;
+  code?: string;
+  libelle?: string;
+  precedent?: string | null;
+  delai?: number | null;
+  service?: number | null;
+  ordreEmission?: number | null;
 }
 
 export interface TypeActeApiResponse {
@@ -20,10 +26,18 @@ export interface TypeActeApiResponse {
 }
 
 export interface TypeActeCreateRequest {
-  TYPACTE_CODE: string;
-  TYPACTE_LIB: string;
+  code: string;
+  libelle: string;
+  TYPACTE_CODE_PREC?: string | null;
+  TYPACTE_DELAI?: number | null;
+  TYPACTE_SERV?: number | null;
+  TYPACTE_ORD_EMIS?: number | null;
 }
 
 export interface TypeActeUpdateRequest {
-  TYPACTE_LIB: string;
+  libelle: string;
+  TYPACTE_CODE_PREC?: string | null;
+  TYPACTE_DELAI?: number | null;
+  TYPACTE_SERV?: number | null;
+  TYPACTE_ORD_EMIS?: number | null;
 }

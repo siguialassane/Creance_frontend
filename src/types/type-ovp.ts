@@ -16,10 +16,10 @@ export interface TypeOvpApiResponse {
 }
 
 export interface TypeOvpCreateRequest {
-  TYPOVP_CODE: string;
-  TYPOVP_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeOvpUpdateRequest {
-  TYPOVP_LIB: string;
+  libelle: string;
 }

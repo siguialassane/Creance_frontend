@@ -20,22 +20,7 @@ export function useObjetsCreance() {
 
   return useQuery({
     queryKey: objetCreanceKeys.lists(),
-    queryFn: async () => {
-      try {
-        const res = await ObjetCreanceService.getAll(apiClient);
-        console.log('📦 Réponse brute objets créance:', res);
-        
-        // Structure réelle de l'API: { data: { content: [...], totalElements, ... } }
-        // Le service retourne response.data, donc res = { data: { content: [...] }, ... }
-        const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || [];
-        
-        console.log('✅ Données objets créance transformées:', data);
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error('❌ Erreur chargement objets créance:', error);
-        return [];
-      }
-    },
+    queryFn: () => ObjetCreanceService.getAll(apiClient).then((res) => res.data),
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {

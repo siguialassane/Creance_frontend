@@ -16,10 +16,10 @@ export interface TypeGarantiePersonnelleApiResponse {
 }
 
 export interface TypeGarantiePersonnelleCreateRequest {
-  TYPGAR_PHYS_CODE: string;
-  TYPGAR_PHYS_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeGarantiePersonnelleUpdateRequest {
-  TYPGAR_PHYS_LIB: string;
+  libelle: string;
 }

@@ -4,7 +4,8 @@ export class MessageService {
   private static readonly BASE_URL = "/messages";
 
   static async getAll(apiClient: any): Promise<MessageApiResponse> {
-    const response = await apiClient.get<MessageApiResponse>(MessageService.BASE_URL);
+    // Utiliser /all pour obtenir une liste simple sans pagination
+    const response = await apiClient.get<MessageApiResponse>(`${MessageService.BASE_URL}/all`);
     return response.data;
   }
 

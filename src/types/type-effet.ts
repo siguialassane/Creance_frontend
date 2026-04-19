@@ -16,10 +16,10 @@ export interface TypeEffetApiResponse {
 }
 
 export interface TypeEffetCreateRequest {
-  TYPEFT_CODE: string;
-  TYPEFT_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeEffetUpdateRequest {
-  TYPEFT_LIB: string;
+  libelle: string;
 }

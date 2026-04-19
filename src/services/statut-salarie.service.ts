@@ -1,4 +1,4 @@
-import { StatutSalarie, StatutSalarieApiResponse, StatutSalarieCreateRequest, StatutSalarieUpdateRequest } from "@/types/statut-salarie";
+import { StatutSalarie, StatutSalarieCreateRequest, StatutSalarieUpdateRequest } from "@/types/statut-salarie";
 
 export class StatutSalarieService {
   private static readonly BASE_URL = "/statut-salaries";
@@ -10,10 +10,10 @@ export class StatutSalarieService {
 
   static async getByCode(apiClient: any, code: string): Promise<StatutSalarie> {
     const response = await apiClient.get(`${StatutSalarieService.BASE_URL}/${code}`);
-    if (!response.data.data || response.data.data.length === 0) {
+    if (!response.data.data) {
       throw new Error("Statut salarié non trouvé");
     }
-    return response.data.data[0];
+    return response.data.data;
   }
 
   static async create(apiClient: any, statut: StatutSalarieCreateRequest): Promise<any> {
@@ -33,7 +33,7 @@ export class StatutSalarieService {
 
   static async search(apiClient: any, searchTerm: string): Promise<any> {
     const response = await apiClient.get(`${StatutSalarieService.BASE_URL}/search`, {
-      params: { q: searchTerm }
+      params: { libelle: searchTerm }
     });
     return response.data;
   }

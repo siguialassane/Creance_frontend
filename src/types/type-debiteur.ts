@@ -1,6 +1,10 @@
 export interface TypeDebiteur {
   TYPDEB_CODE: string;
   TYPDEB_LIB: string;
+  code?: string;
+  libelle?: string;
+  typdeb_code?: string;
+  typdeb_lib?: string;
   TYPDEB_LIBLONG?: string;
   TYPDEB_ACTIF?: boolean;
   TYPDEB_ORDRE?: number;
@@ -19,13 +23,11 @@ export interface TypeDebiteurApiResponse {
 }
 
 export interface TypeDebiteurCreateRequest {
-  TYPDEB_LIB: string;
-  TYPDEB_LIBLONG?: string;
-  TYPDEB_ACTIF?: boolean;
-  TYPDEB_ORDRE?: number;
+  code: string;
+  libelle: string;
 }
 
-export interface TypeDebiteurUpdateRequest extends Partial<TypeDebiteurCreateRequest> {
-  TYPDEB_CODE: string;
+export interface TypeDebiteurUpdateRequest {
+  libelle: string;
 }
 

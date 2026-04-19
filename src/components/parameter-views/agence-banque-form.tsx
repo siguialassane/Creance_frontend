@@ -14,44 +14,36 @@ interface AgenceBanqueFormProps {
 
 export default function AgenceBanqueForm({ agence, onSubmit, onCancel, isLoading = false }: AgenceBanqueFormProps) {
   const [formData, setFormData] = useState<AgenceBanqueCreateRequest>({
-    AG_LIB: '',
     BQ_CODE: '',
-    AG_RESPONS: '',
-    AG_ADRESS: '',
-    AG_CONTACT: '',
-    AG_LIBLONG: '',
-    AG_SIGLE: '',
-    AG_AUTLIB: ''
+    BQAG_CODE: '',
+    BQAG_LIB: '',
+    BQAG_NUM: null,
+    ANC_AG: null,
+    ANC_BQAG_CODE: null
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Récupérer la liste des banques pour le select
   const { data: banquesResponse } = useBanques()
   const banques = banquesResponse || []
 
   useEffect(() => {
     if (agence) {
       setFormData({
-        // Mapping depuis AgenceBanque (lecture)
-        AG_LIB: agence.BQAG_LIB || '',
         BQ_CODE: agence.BQ_CODE || '',
-        AG_RESPONS: '',
-        AG_ADRESS: '',
-        AG_CONTACT: '',
-        AG_LIBLONG: '',
-        AG_SIGLE: '',
-        AG_AUTLIB: ''
+        BQAG_CODE: agence.BQAG_CODE || '',
+        BQAG_LIB: agence.BQAG_LIB || '',
+        BQAG_NUM: agence.BQAG_NUM || null,
+        ANC_AG: agence.ANC_AG || null,
+        ANC_BQAG_CODE: agence.ANC_BQAG_CODE || null
       })
     } else {
       setFormData({
-        AG_LIB: '',
         BQ_CODE: '',
-        AG_RESPONS: '',
-        AG_ADRESS: '',
-        AG_CONTACT: '',
-        AG_LIBLONG: '',
-        AG_SIGLE: '',
-        AG_AUTLIB: ''
+        BQAG_CODE: '',
+        BQAG_LIB: '',
+        BQAG_NUM: null,
+        ANC_AG: null,
+        ANC_BQAG_CODE: null
       })
     }
     setErrors({})
@@ -60,38 +52,32 @@ export default function AgenceBanqueForm({ agence, onSubmit, onCancel, isLoading
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.AG_LIB.trim()) {
-      newErrors.AG_LIB = 'Le libellé est requis'
-    } else if (formData.AG_LIB.length > 100) {
-      newErrors.AG_LIB = 'Le libellé ne peut pas dépasser 100 caractères'
-    }
-
     if (!formData.BQ_CODE.trim()) {
       newErrors.BQ_CODE = 'La banque est requise'
     }
 
-    if (formData.AG_RESPONS && formData.AG_RESPONS.length > 50) {
-      newErrors.AG_RESPONS = 'Le responsable ne peut pas dépasser 50 caractères'
+    if (!formData.BQAG_CODE.trim()) {
+      newErrors.BQAG_CODE = 'Le code agence est requis'
+    } else if (formData.BQAG_CODE.length > 20) {
+      newErrors.BQAG_CODE = 'Le code agence ne peut pas dépasser 20 caractères'
     }
 
-    if (formData.AG_ADRESS && formData.AG_ADRESS.length > 200) {
-      newErrors.AG_ADRESS = 'L\'adresse ne peut pas dépasser 200 caractères'
+    if (!formData.BQAG_LIB.trim()) {
+      newErrors.BQAG_LIB = 'Le libellé de l\'agence est requis'
+    } else if (formData.BQAG_LIB.length > 100) {
+      newErrors.BQAG_LIB = 'Le libellé ne peut pas dépasser 100 caractères'
     }
 
-    if (formData.AG_CONTACT && formData.AG_CONTACT.length > 50) {
-      newErrors.AG_CONTACT = 'Le contact ne peut pas dépasser 50 caractères'
+    if (formData.BQAG_NUM && formData.BQAG_NUM.length > 20) {
+      newErrors.BQAG_NUM = 'Le numéro d\'agence ne peut pas dépasser 20 caractères'
     }
 
-    if (formData.AG_LIBLONG && formData.AG_LIBLONG.length > 200) {
-      newErrors.AG_LIBLONG = 'Le libellé long ne peut pas dépasser 200 caractères'
+    if (formData.ANC_AG && formData.ANC_AG.length > 50) {
+      newErrors.ANC_AG = 'L\'ancien code agence ne peut pas dépasser 50 caractères'
     }
 
-    if (formData.AG_SIGLE && formData.AG_SIGLE.length > 20) {
-      newErrors.AG_SIGLE = 'Le sigle ne peut pas dépasser 20 caractères'
-    }
-
-    if (formData.AG_AUTLIB && formData.AG_AUTLIB.length > 100) {
-      newErrors.AG_AUTLIB = 'Le libellé alternatif ne peut pas dépasser 100 caractères'
+    if (formData.ANC_BQAG_CODE && formData.ANC_BQAG_CODE.length > 50) {
+      newErrors.ANC_BQAG_CODE = 'L\'ancien code banque-agence ne peut pas dépasser 50 caractères'
     }
 
     setErrors(newErrors)
@@ -102,15 +88,16 @@ export default function AgenceBanqueForm({ agence, onSubmit, onCancel, isLoading
     e.preventDefault()
     if (validateForm()) {
       if (agence) {
-        // Mise à jour
         const updateData: AgenceBanqueUpdateRequest = {
-          // Utiliser l'identifiant existant côté lecture
           AG_CODE: agence.BQAG_NUM,
-          ...formData
+          BQAG_CODE: formData.BQAG_CODE,
+          BQAG_LIB: formData.BQAG_LIB,
+          BQAG_NUM: formData.BQAG_NUM,
+          ANC_AG: formData.ANC_AG,
+          ANC_BQAG_CODE: formData.ANC_BQAG_CODE
         }
         onSubmit(updateData)
       } else {
-        // Création
         onSubmit(formData)
       }
     }
@@ -118,13 +105,12 @@ export default function AgenceBanqueForm({ agence, onSubmit, onCancel, isLoading
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    
+
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value === '' ? null : value
     }))
-    
-    // Effacer l'erreur pour ce champ
+
     if (errors[name]) {
       setErrors(prev => {
         const newErrors = { ...prev }
@@ -132,6 +118,32 @@ export default function AgenceBanqueForm({ agence, onSubmit, onCancel, isLoading
         return newErrors
       })
     }
+  }
+
+  const inputStyle = (fieldName: string) => ({
+    width: '100%',
+    padding: '0.75rem 1rem',
+    border: errors[fieldName] ? '1px solid #ef4444' : '1px solid #d1d5db',
+    borderRadius: '0.5rem',
+    fontSize: '1rem',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    backgroundColor: errors[fieldName] ? '#fef2f2' : 'white',
+    boxSizing: 'border-box' as const
+  })
+
+  const labelStyle = {
+    display: 'block',
+    marginBottom: '0.5rem',
+    fontWeight: '600' as const,
+    color: '#374151',
+    fontSize: '0.875rem'
+  }
+
+  const errorStyle = {
+    margin: '0.5rem 0 0 0',
+    color: '#ef4444',
+    fontSize: '0.875rem'
   }
 
   return (
@@ -152,7 +164,7 @@ export default function AgenceBanqueForm({ agence, onSubmit, onCancel, isLoading
         borderRadius: '12px',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
         width: '90%',
-        maxWidth: '600px',
+        maxWidth: '750px',
         maxHeight: '90vh',
         overflow: 'auto'
       }}>
@@ -197,77 +209,22 @@ export default function AgenceBanqueForm({ agence, onSubmit, onCancel, isLoading
 
         {/* Corps du formulaire */}
         <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Libellé */}
+          {/* Ligne 1 : Code banque + Code agence */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '1.25rem'
+          }}>
+            {/* Code de la banque — 1ère position */}
             <div>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.5rem',
-                fontWeight: '600',
-                color: '#374151',
-                fontSize: '0.875rem'
-              }}>
-                Nom de l'agence *
-              </label>
-              <input
-                type="text"
-                name="AG_LIB"
-                value={formData.AG_LIB}
-                onChange={handleChange}
-                placeholder="Ex: Agence Plateau"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: errors.AG_LIB ? '1px solid #ef4444' : '1px solid #d1d5db',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  backgroundColor: errors.AG_LIB ? '#fef2f2' : 'white'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#28A325'
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = errors.AG_LIB ? '#ef4444' : '#d1d5db'
-                }}
-              />
-              {errors.AG_LIB && (
-                <p style={{
-                  margin: '0.5rem 0 0 0',
-                  color: '#ef4444',
-                  fontSize: '0.875rem'
-                }}>
-                  {errors.AG_LIB}
-                </p>
-              )}
-            </div>
-
-            {/* Banque */}
-            <div>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.5rem',
-                fontWeight: '600',
-                color: '#374151',
-                fontSize: '0.875rem'
-              }}>
-                Banque *
+              <label style={labelStyle}>
+                Code de la banque *
               </label>
               <select
                 name="BQ_CODE"
                 value={formData.BQ_CODE}
                 onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: errors.BQ_CODE ? '1px solid #ef4444' : '1px solid #d1d5db',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  backgroundColor: errors.BQ_CODE ? '#fef2f2' : 'white'
-                }}
+                style={inputStyle('BQ_CODE')}
                 onFocus={(e) => {
                   e.target.style.borderColor = '#28A325'
                 }}
@@ -278,201 +235,141 @@ export default function AgenceBanqueForm({ agence, onSubmit, onCancel, isLoading
                 <option value="">Sélectionner une banque</option>
                 {banques.map((banque: Banque) => (
                   <option key={banque.BQ_CODE} value={banque.BQ_CODE}>
-                    {banque.BQ_LIB}
+                    {banque.BQ_CODE} — {banque.BQ_LIB}
                   </option>
                 ))}
               </select>
-              {errors.BQ_CODE && (
-                <p style={{
-                  margin: '0.5rem 0 0 0',
-                  color: '#ef4444',
-                  fontSize: '0.875rem'
-                }}>
-                  {errors.BQ_CODE}
-                </p>
-              )}
+              {errors.BQ_CODE && <p style={errorStyle}>{errors.BQ_CODE}</p>}
             </div>
 
-            {/* Responsable */}
+            {/* Code de l'agence — 2ème position */}
             <div>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.5rem',
-                fontWeight: '600',
-                color: '#374151',
-                fontSize: '0.875rem'
-              }}>
-                Responsable
+              <label style={labelStyle}>
+                Code de l'agence *
               </label>
               <input
                 type="text"
-                name="AG_RESPONS"
-                value={formData.AG_RESPONS}
+                name="BQAG_CODE"
+                value={formData.BQAG_CODE || ''}
                 onChange={handleChange}
-                placeholder="Ex: M. Koné"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: errors.AG_RESPONS ? '1px solid #ef4444' : '1px solid #d1d5db',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  backgroundColor: errors.AG_RESPONS ? '#fef2f2' : 'white'
-                }}
+                placeholder="Ex: AG001"
+                style={inputStyle('BQAG_CODE')}
                 onFocus={(e) => {
                   e.target.style.borderColor = '#28A325'
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = errors.AG_RESPONS ? '#ef4444' : '#d1d5db'
+                  e.target.style.borderColor = errors.BQAG_CODE ? '#ef4444' : '#d1d5db'
                 }}
               />
-              {errors.AG_RESPONS && (
-                <p style={{
-                  margin: '0.5rem 0 0 0',
-                  color: '#ef4444',
-                  fontSize: '0.875rem'
-                }}>
-                  {errors.AG_RESPONS}
-                </p>
-              )}
+              {errors.BQAG_CODE && <p style={errorStyle}>{errors.BQAG_CODE}</p>}
             </div>
+          </div>
 
-            {/* Adresse */}
+          {/* Ligne 2 : Libellé de l'agence */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr',
+            gap: '1.25rem',
+            marginTop: '1.25rem'
+          }}>
             <div>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.5rem',
-                fontWeight: '600',
-                color: '#374151',
-                fontSize: '0.875rem'
-              }}>
-                Adresse
-              </label>
-              <textarea
-                name="AG_ADRESS"
-                value={formData.AG_ADRESS}
-                onChange={handleChange}
-                placeholder="Ex: Abidjan, Plateau"
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: errors.AG_ADRESS ? '1px solid #ef4444' : '1px solid #d1d5db',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  backgroundColor: errors.AG_ADRESS ? '#fef2f2' : 'white',
-                  resize: 'vertical',
-                  fontFamily: 'inherit'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#28A325'
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = errors.AG_ADRESS ? '#ef4444' : '#d1d5db'
-                }}
-              />
-              {errors.AG_ADRESS && (
-                <p style={{
-                  margin: '0.5rem 0 0 0',
-                  color: '#ef4444',
-                  fontSize: '0.875rem'
-                }}>
-                  {errors.AG_ADRESS}
-                </p>
-              )}
-            </div>
-
-            {/* Contact */}
-            <div>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.5rem',
-                fontWeight: '600',
-                color: '#374151',
-                fontSize: '0.875rem'
-              }}>
-                Contact
+              <label style={labelStyle}>
+                Libellé de l'agence *
               </label>
               <input
                 type="text"
-                name="AG_CONTACT"
-                value={formData.AG_CONTACT}
+                name="BQAG_LIB"
+                value={formData.BQAG_LIB}
                 onChange={handleChange}
-                placeholder="Ex: +225 20 30 40 50"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: errors.AG_CONTACT ? '1px solid #ef4444' : '1px solid #d1d5db',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  backgroundColor: errors.AG_CONTACT ? '#fef2f2' : 'white'
-                }}
+                placeholder="Ex: Agence Plateau"
+                style={inputStyle('BQAG_LIB')}
                 onFocus={(e) => {
                   e.target.style.borderColor = '#28A325'
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = errors.AG_CONTACT ? '#ef4444' : '#d1d5db'
+                  e.target.style.borderColor = errors.BQAG_LIB ? '#ef4444' : '#d1d5db'
                 }}
               />
-              {errors.AG_CONTACT && (
-                <p style={{
-                  margin: '0.5rem 0 0 0',
-                  color: '#ef4444',
-                  fontSize: '0.875rem'
-                }}>
-                  {errors.AG_CONTACT}
-                </p>
-              )}
+              {errors.BQAG_LIB && <p style={errorStyle}>{errors.BQAG_LIB}</p>}
             </div>
+          </div>
 
-            {/* Sigle */}
+          {/* Ligne 3 : N° agence + Ancien code agence */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '1.25rem',
+            marginTop: '1.25rem'
+          }}>
             <div>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.5rem',
-                fontWeight: '600',
-                color: '#374151',
-                fontSize: '0.875rem'
-              }}>
-                Sigle
+              <label style={labelStyle}>
+                N° Agence
               </label>
               <input
                 type="text"
-                name="AG_SIGLE"
-                value={formData.AG_SIGLE}
+                name="BQAG_NUM"
+                value={formData.BQAG_NUM || ''}
                 onChange={handleChange}
-                placeholder="Ex: AP"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: errors.AG_SIGLE ? '1px solid #ef4444' : '1px solid #d1d5db',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  backgroundColor: errors.AG_SIGLE ? '#fef2f2' : 'white'
-                }}
+                placeholder="Ex: 12345"
+                style={inputStyle('BQAG_NUM')}
                 onFocus={(e) => {
                   e.target.style.borderColor = '#28A325'
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = errors.AG_SIGLE ? '#ef4444' : '#d1d5db'
+                  e.target.style.borderColor = errors.BQAG_NUM ? '#ef4444' : '#d1d5db'
                 }}
               />
-              {errors.AG_SIGLE && (
-                <p style={{
-                  margin: '0.5rem 0 0 0',
-                  color: '#ef4444',
-                  fontSize: '0.875rem'
-                }}>
-                  {errors.AG_SIGLE}
-                </p>
-              )}
+              {errors.BQAG_NUM && <p style={errorStyle}>{errors.BQAG_NUM}</p>}
+            </div>
+
+            <div>
+              <label style={labelStyle}>
+                Ancien code agence
+              </label>
+              <input
+                type="text"
+                name="ANC_AG"
+                value={formData.ANC_AG || ''}
+                onChange={handleChange}
+                placeholder="Ex: ANC-AG-01"
+                style={inputStyle('ANC_AG')}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#28A325'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = errors.ANC_AG ? '#ef4444' : '#d1d5db'
+                }}
+              />
+              {errors.ANC_AG && <p style={errorStyle}>{errors.ANC_AG}</p>}
+            </div>
+          </div>
+
+          {/* Ligne 4 : Ancien code banque-agence */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr',
+            gap: '1.25rem',
+            marginTop: '1.25rem'
+          }}>
+            <div>
+              <label style={labelStyle}>
+                Ancien code banque-agence
+              </label>
+              <input
+                type="text"
+                name="ANC_BQAG_CODE"
+                value={formData.ANC_BQAG_CODE || ''}
+                onChange={handleChange}
+                placeholder="Ex: ANC-BQAG-001"
+                style={inputStyle('ANC_BQAG_CODE')}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#28A325'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = errors.ANC_BQAG_CODE ? '#ef4444' : '#d1d5db'
+                }}
+              />
+              {errors.ANC_BQAG_CODE && <p style={errorStyle}>{errors.ANC_BQAG_CODE}</p>}
             </div>
           </div>
 

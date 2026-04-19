@@ -10,10 +10,10 @@ export class TypeDebiteurService {
 
   static async getByCode(apiClient: any, code: string): Promise<TypeDebiteur> {
     const response = await apiClient.get<TypeDebiteurApiResponse>(`${TypeDebiteurService.BASE_URL}/${code}`);
-    if (!response.data.data || response.data.data.length === 0) {
+    if (!response.data.data) {
       throw new Error("Type débiteur non trouvé");
     }
-    return response.data.data[0];
+    return response.data.data as unknown as TypeDebiteur;
   }
 
   static async create(apiClient: any, type: TypeDebiteurCreateRequest): Promise<TypeDebiteurApiResponse> {
@@ -33,7 +33,7 @@ export class TypeDebiteurService {
 
   static async search(apiClient: any, searchTerm: string): Promise<TypeDebiteurApiResponse> {
     const response = await apiClient.get<TypeDebiteurApiResponse>(`${TypeDebiteurService.BASE_URL}/search`, {
-      params: { q: searchTerm }
+      params: { libelle: searchTerm }
     });
     return response.data;
   }

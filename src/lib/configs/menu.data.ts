@@ -1,17 +1,32 @@
 const Recovery = "/assets/recovery.svg";
 const Settings = "/assets/settings-enable.svg";
-const FollowClient = "/assets/suiv-client.svg";
-const Patrimoine = "/assets/patrimoine.svg";
 const Account = "/assets/account.svg";
 const Operation = "/assets/operation.svg";
-const Archivre = "/assets/archive.svg";
-const Contentieux = "/assets/contentieux.svg";
 const Creance = "/assets/creance.svg";
-const Help = "/assets/help.svg";
+const FollowClient = "/assets/suiv-client.svg";
 import { MenuItem, SubMenuItem } from "../types/menu";
 
+interface MenuSubMenuConfig {
+  name: string;
+  path?: string;
+  customPath?: boolean;
+  columns?: SubMenuItem['columns'];
+  headers?: SubMenuItem['headers'];
+  nameColumn?: string;
+  nameHeader?: string;
+  subMenu?: SubMenuItem[];
+}
+
+interface MenuConfig {
+  name: string;
+  path?: string;
+  icon?: MenuItem['icon'];
+  subMenu?: MenuSubMenuConfig[];
+  columns?: SubMenuItem['columns'];
+}
+
 // Menu exactement identique à l'original
-const menuItemsData = [
+const menuItemsData: MenuConfig[] = [
   {
     name: "Tableau de bord",
     path: "/overview",
@@ -107,6 +122,8 @@ const menuItemsData = [
       },
       {
         name: "Paramètre Généraux",
+        path: "parametre_generaux",
+        customPath: true,
       },
       {
         name: "Poste Comptable",
@@ -232,6 +249,49 @@ const menuItemsData = [
       //   path: "gestion_amiable",
       // },
     ]
+  },
+
+  {
+    name: "Extrait de compte",
+    path: "/extrait_de_compte",
+    icon: Account,
+    subMenu: [
+      {
+        name: "Créance",
+        path: "",
+        customPath: true,
+      },
+    ],
+  },
+
+  {
+    name: "Suivie Clientel",
+    path: "/suivie_clientel",
+    icon: FollowClient,
+    subMenu: [
+      {
+        name: "OVP",
+        path: "ovp",
+        customPath: true,
+        subMenu: [
+          {
+            name: "Consultation",
+            path: "consultation",
+            customPath: true,
+          },
+          {
+            name: "Création",
+            path: "creation",
+            customPath: true,
+          },
+          {
+            name: "Modification",
+            path: "modification",
+            customPath: true,
+          },
+        ],
+      },
+    ],
   },
 
   {
@@ -384,18 +444,14 @@ const menuItemsData = [
   // },
 ];
 
-const letters = new Map<string, string>([
-  ["é", "e"],
-  ["à", "a"],
-  ["'", ""],
-]);
-
-function formatLabelToPath(subMenu: any) {
-  let formattedPath = subMenu.name.trim().replaceAll(" ", "_").toLowerCase();
-  for (let key of letters.keys()) {
-    formattedPath = formattedPath.replaceAll(key, letters.get(key)!.valueOf());
-  }
-  return formattedPath;
+export function formatLabelToPath(subMenu: { name: string }) {
+  return subMenu.name
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’']/g, "")
+    .replace(/\s+/g, "_")
+    .toLowerCase();
 }
 
 export const menuItems: MenuItem[] = menuItemsData.map((menuItem, index) => ({
@@ -407,14 +463,16 @@ export const menuItems: MenuItem[] = menuItemsData.map((menuItem, index) => ({
     (subMenu, subIndex): SubMenuItem => ({
       id: (index * 100) + subIndex, // ID unique pour chaque sous-menu
       name: subMenu.name,
-      nameColumn: (subMenu as any).nameColumn,
-      nameHeader: (subMenu as any).nameHeader,
-      headers: (subMenu as any).headers,
-      subMenuType: subMenu as any,      
+      nameColumn: subMenu.nameColumn,
+      nameHeader: subMenu.nameHeader,
+      headers: subMenu.headers,
+      subMenuType: subMenu,      
       viewName: menuItem.path === "/settings" ? "parameter" : undefined,
-      columns: (subMenu as any).columns,
-      path: (subMenu as any).customPath ? (subMenu as any).path : formatLabelToPath(subMenu), // Utiliser le chemin personnalisé s'il existe, sinon formater le nom
-      subMenus: (subMenu as any).subMenu
+      columns: subMenu.columns,
+      path: subMenu.customPath
+        ? (subMenu.path ?? formatLabelToPath(subMenu))
+        : formatLabelToPath(subMenu),
+      subMenus: subMenu.subMenu
     })
   ),
 }));

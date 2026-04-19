@@ -20,15 +20,19 @@ export function useModesPaiement() {
 
   return useQuery({
     queryKey: modePaiementKeys.lists(),
-    queryFn: () => ModePaiementService.getAll(apiClient).then((res) => res.data),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
-    retry: (failureCount, error: any) => {
-      if (error?.response?.status === 401) {
-        return false;
-      }
-      return failureCount < 2;
+    queryFn: async () => {
+      const res = await ModePaiementService.getAll(apiClient);
+      const data = res.data;
+      return Array.isArray(data) ? data : [];
     },
+    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: Infinity,
+    cacheTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 }
 
@@ -51,7 +55,7 @@ export function useSearchModesPaiement(searchTerm: string) {
     queryKey: modePaiementKeys.search(searchTerm),
     queryFn: () => ModePaiementService.search(apiClient, searchTerm).then((res) => res.data),
     enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!searchTerm,
-    staleTime: 1000 * 60 * 2, // 2 minutes pour les recherches
+    staleTime: 1000 * 60 * 2,
   });
 }
 
@@ -61,7 +65,7 @@ export function useCreateModePaiement() {
 
   return useMutation({
     mutationFn: (mode: ModePaiementCreateRequest) => ModePaiementService.create(apiClient, mode),
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: modePaiementKeys.lists() });
       toast.success("Mode de paiement créé avec succès");
     },
@@ -107,4 +111,3 @@ export function useDeleteModePaiement() {
     },
   });
 }
-

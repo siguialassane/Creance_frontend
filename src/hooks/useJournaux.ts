@@ -21,29 +21,20 @@ export function useJournaux() {
   return useQuery({
     queryKey: journalKeys.lists(),
     queryFn: async () => {
-      try {
-        const res = await JournalService.getAll(apiClient);
-        console.log('📦 Réponse brute journaux:', res);
-        
-        // Structure réelle de l'API: { data: { content: [...], totalElements, ... } }
-        // Le service retourne response.data, donc res = { data: { content: [...] }, ... }
-        const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || [];
-        
-        console.log('✅ Données journaux transformées:', data);
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error('❌ Erreur chargement journaux:', error);
-        return [];
-      }
+      const res = await JournalService.getAll(apiClient);
+      // res.data est déjà un tableau
+      const data = res.data;
+      console.log('✅ Données journaux chargées depuis l\'API:', data);
+      return Array.isArray(data) ? data : [];
     },
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
-    retry: (failureCount, error: any) => {
-      if (error?.response?.status === 401) {
-        return false;
-      }
-      return failureCount < 2;
-    },
+    retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: Infinity,
+    cacheTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 }
 
@@ -66,7 +57,7 @@ export function useSearchJournaux(searchTerm: string) {
     queryKey: journalKeys.search(searchTerm),
     queryFn: () => JournalService.search(apiClient, searchTerm).then((res) => res.data),
     enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!searchTerm,
-    staleTime: 1000 * 60 * 2, // 2 minutes pour les recherches
+    staleTime: 1000 * 60 * 2,
   });
 }
 
@@ -76,7 +67,7 @@ export function useCreateJournal() {
 
   return useMutation({
     mutationFn: (journal: JournalCreateRequest) => JournalService.create(apiClient, journal),
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: journalKeys.lists() });
       toast.success("Journal créé avec succès");
     },
@@ -122,4 +113,3 @@ export function useDeleteJournal() {
     },
   });
 }
-

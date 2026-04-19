@@ -25,10 +25,17 @@ export const agenceBanqueKeys = {
 export function useAgencesBanquePaginated(params: PaginationParams = {}) {
   const apiClient = useApiClient();
   const { data: session, status } = useSession();
+  const { banqueCode, ...requestParams } = params;
   
   return useQuery({
     queryKey: agenceBanqueKeys.paginated(params),
-    queryFn: () => AgenceBanqueService.getAll(apiClient, params).then((res) => res.data),
+    queryFn: () => {
+      if (banqueCode) {
+        return AgenceBanqueService.getByBanque(apiClient, banqueCode, requestParams).then((res) => res.data);
+      }
+
+      return AgenceBanqueService.getAll(apiClient, requestParams).then((res) => res.data);
+    },
     enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken,
     retry: (failureCount, error: unknown) => {
       if ((error as ApiError)?.response?.status === 401) {

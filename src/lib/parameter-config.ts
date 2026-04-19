@@ -4,13 +4,15 @@ import { useBanques } from "@/hooks/useBanques";
 import { useClasses } from "@/hooks/useClasses";
 import { useCivilites } from "@/hooks/useCivilites";
 import { useNationalites } from "@/hooks/useNationalites";
-import { useProfessions } from "@/hooks/useProfessions";
+import { useProfessions, useProfessionsPaginated } from "@/hooks/useProfessions";
 import { useQuartiers } from "@/hooks/useQuartiers";
+import { useQuartiersSearchable } from "@/hooks/useQuartiersSearchable";
 import { useVilles, useVillesPaginated } from "@/hooks/useVilles";
 import { useZones } from "@/hooks/useZones";
 import { useTypesOperation } from "@/hooks/useTypesOperation";
 import { useTypesActe } from "@/hooks/useTypesActe";
 import { useTypesAuxiliaire } from "@/hooks/useTypesAuxiliaire";
+import { useTypesDebiteur } from "@/hooks/useTypesDebiteur";
 import { useModesPaiement } from "@/hooks/useModesPaiement";
 import { useTypeCharges } from "@/hooks/useTypeCharges";
 import { useTypeContrats } from "@/hooks/useTypeContrats";
@@ -39,6 +41,7 @@ import { useModesAcquisition } from "@/hooks/useModesAcquisition";
 import { useObjetsCreance } from "@/hooks/useObjetsCreance";
 import { useOperations } from "@/hooks/useOperations";
 import { usePeriodicites } from "@/hooks/usePeriodicites";
+import { useParams, useParamsPaginated } from "@/hooks/useParams";
 import { usePostesComptables } from "@/hooks/usePostesComptables";
 import { useStatutsCreance } from "@/hooks/useStatutsCreance";
 import { useStatutsSalarie } from "@/hooks/useStatutsSalarie";
@@ -77,6 +80,7 @@ import { Etape } from "@/types/etape";
 import { Exercice } from "@/types/exercice";
 import { Fonction } from "@/types/fonction";
 import { GroupeCreance } from "@/types/groupe-creance";
+import { Param } from "@/types/param";
 
 // Configuration des paramètres supportés
 export const PARAMETER_CONFIG = {
@@ -108,6 +112,8 @@ export const PARAMETER_CONFIG = {
         return import('@/hooks/useTypesActe').then(m => m.useCreateTypeActe)
       case 'type_auxiliaire':
         return import('@/hooks/useTypesAuxiliaire').then(m => m.useCreateTypeAuxiliaire)
+      case 'type_debiteur':
+        return import('@/hooks/useTypesDebiteur').then(m => m.useCreateTypeDebiteur)
       case 'mode_paiement':
         return import('@/hooks/useModesPaiement').then(m => m.useCreateModePaiement)
       case 'type_charge':
@@ -152,6 +158,22 @@ export const PARAMETER_CONFIG = {
         return import('@/hooks/useFonctions').then(m => m.useCreateFonction)
       case 'groupe_creance':
         return import('@/hooks/useGroupeCreances').then(m => m.useCreateGroupeCreance)
+      case 'journal':
+        return import('@/hooks/useJournaux').then(m => m.useCreateJournal)
+      case 'mode_acquisition':
+        return import('@/hooks/useModesAcquisition').then(m => m.useCreateModeAcquisition)
+      case 'operation':
+        return import('@/hooks/useOperations').then(m => m.useCreateOperation)
+      case 'periodicite':
+        return import('@/hooks/usePeriodicites').then(m => m.useCreatePeriodicite)
+      case 'param':
+        return import('@/hooks/useParams').then(m => m.useCreateParam)
+      case 'poste_comptable':
+        return import('@/hooks/usePostesComptables').then(m => m.useCreatePosteComptable)
+      case 'statut_creance':
+        return import('@/hooks/useStatutsCreance').then(m => m.useCreateStatutCreance)
+      case 'statut_salarie':
+        return import('@/hooks/useStatutsSalarie').then(m => m.useCreateStatutSalarie)
       default:
         return Promise.resolve(null)
     }
@@ -185,6 +207,8 @@ export const PARAMETER_CONFIG = {
         return import('@/hooks/useTypesActe').then(m => m.useUpdateTypeActe)
       case 'type_auxiliaire':
         return import('@/hooks/useTypesAuxiliaire').then(m => m.useUpdateTypeAuxiliaire)
+      case 'type_debiteur':
+        return import('@/hooks/useTypesDebiteur').then(m => m.useUpdateTypeDebiteur)
       case 'mode_paiement':
         return import('@/hooks/useModesPaiement').then(m => m.useUpdateModePaiement)
       case 'type_charge':
@@ -229,6 +253,22 @@ export const PARAMETER_CONFIG = {
         return import('@/hooks/useFonctions').then(m => m.useUpdateFonction)
       case 'groupe_creance':
         return import('@/hooks/useGroupeCreances').then(m => m.useUpdateGroupeCreance)
+      case 'journal':
+        return import('@/hooks/useJournaux').then(m => m.useUpdateJournal)
+      case 'mode_acquisition':
+        return import('@/hooks/useModesAcquisition').then(m => m.useUpdateModeAcquisition)
+      case 'operation':
+        return import('@/hooks/useOperations').then(m => m.useUpdateOperation)
+      case 'periodicite':
+        return import('@/hooks/usePeriodicites').then(m => m.useUpdatePeriodicite)
+      case 'param':
+        return import('@/hooks/useParams').then(m => m.useUpdateParam)
+      case 'poste_comptable':
+        return import('@/hooks/usePostesComptables').then(m => m.useUpdatePosteComptable)
+      case 'statut_creance':
+        return import('@/hooks/useStatutsCreance').then(m => m.useUpdateStatutCreance)
+      case 'statut_salarie':
+        return import('@/hooks/useStatutsSalarie').then(m => m.useUpdateStatutSalarie)
       default:
         return Promise.resolve(null)
     }
@@ -262,6 +302,8 @@ export const PARAMETER_CONFIG = {
         return import('@/hooks/useTypesActe').then(m => m.useDeleteTypeActe)
       case 'type_auxiliaire':
         return import('@/hooks/useTypesAuxiliaire').then(m => m.useDeleteTypeAuxiliaire)
+      case 'type_debiteur':
+        return import('@/hooks/useTypesDebiteur').then(m => m.useDeleteTypeDebiteur)
       case 'mode_paiement':
         return import('@/hooks/useModesPaiement').then(m => m.useDeleteModePaiement)
       case 'type_charge':
@@ -306,6 +348,22 @@ export const PARAMETER_CONFIG = {
         return import('@/hooks/useFonctions').then(m => m.useDeleteFonction)
       case 'groupe_creance':
         return import('@/hooks/useGroupeCreances').then(m => m.useDeleteGroupeCreance)
+      case 'journal':
+        return import('@/hooks/useJournaux').then(m => m.useDeleteJournal)
+      case 'mode_acquisition':
+        return import('@/hooks/useModesAcquisition').then(m => m.useDeleteModeAcquisition)
+      case 'operation':
+        return import('@/hooks/useOperations').then(m => m.useDeleteOperation)
+      case 'periodicite':
+        return import('@/hooks/usePeriodicites').then(m => m.useDeletePeriodicite)
+      case 'param':
+        return import('@/hooks/useParams').then(m => m.useDeleteParam)
+      case 'poste_comptable':
+        return import('@/hooks/usePostesComptables').then(m => m.useDeletePosteComptable)
+      case 'statut_creance':
+        return import('@/hooks/useStatutsCreance').then(m => m.useDeleteStatutCreance)
+      case 'statut_salarie':
+        return import('@/hooks/useStatutsSalarie').then(m => m.useDeleteStatutSalarie)
       default:
         return Promise.resolve(null)
     }
@@ -339,6 +397,8 @@ export const PARAMETER_CONFIG = {
         return 'TypeActeCreateRequest'
       case 'type_auxiliaire':
         return 'TypeAuxiliaireCreateRequest'
+      case 'type_debiteur':
+        return 'TypeDebiteurCreateRequest'
       case 'mode_paiement':
         return 'ModePaiementCreateRequest'
       case 'type_charge':
@@ -383,6 +443,18 @@ export const PARAMETER_CONFIG = {
         return 'FonctionCreateRequest'
       case 'groupe_creance':
         return 'GroupeCreanceCreateRequest'
+      case 'journal':
+        return 'JournalCreateRequest'
+      case 'operation':
+        return 'OperationCreateRequest'
+      case 'periodicite':
+        return 'PeriodiciteCreateRequest'
+      case 'param':
+        return 'ParamCreateRequest'
+      case 'poste_comptable':
+        return 'PosteComptableCreateRequest'
+      case 'statut_salarie':
+        return 'StatutSalarieCreateRequest'
       default:
         return 'any'
     }
@@ -398,6 +470,15 @@ export const PARAMETER_CONFIG = {
         id: item.BQ_CODE,
         code: item.BQ_CODE,
         libelle: item.BQ_LIB,
+        // Tous les champs pour le mode édition
+        cptoperCode: item.CPTOPER_CODE,
+        bqag: item.BQAG,
+        responsable: item.BQ_RESPONS,
+        adresse: item.BQ_ADRESS,
+        contact: item.BQ_CONTACT,
+        libelleLong: item.BQ_LIBLONG,
+        sigle: item.BQ_SIGLE,
+        autreLibelle: item.BQ_AUTLIB,
       })
     },
     agence_de_banque: {
@@ -412,6 +493,10 @@ export const PARAMETER_CONFIG = {
         banqueCode: item.BQ_CODE,
         libelle: item.BQAG_LIB,
         bqagCode: item.BQAG_CODE,
+        // Champs optionnels pour l'édition
+        bqagLib: item.BQAG_LIB,
+        ancAg: item.ANC_AG,
+        ancBqagCode: item.ANC_BQAG_CODE,
       })
     },
     classe: {
@@ -444,17 +529,43 @@ export const PARAMETER_CONFIG = {
     nationalite: {
       hook: useNationalites,
       dataKey: null,
-      mapper: (item: Nationalite) => ({ id: item.NAT_CODE, code: item.NAT_CODE, libelle: item.NAT_LIB })
+      mapper: (item: Nationalite) => ({ 
+        id: item.NAT_CODE, 
+        code: item.NAT_CODE, 
+        libelle: item.NAT_LIB,
+        // Inclure TOUS les champs pour l'édition
+        NAT_DEF: item.NAT_DEF,
+        NAT_IND: item.NAT_IND,
+        ...item
+      })
     },
     profession: {
       hook: useProfessions,
+      hookPaginated: (params: any) => useProfessionsPaginated(params),
       dataKey: null,
-      mapper: (item: Profession) => ({ id: item.PROF_CODE, code: item.PROF_CODE, libelle: item.PROF_LIB })
+      queryKeyBase: 'professions',
+      mapper: (item: Profession) => ({
+        id: item.PROFES_CODE,
+        code: item.PROFES_CODE,
+        libelle: item.PROFES_LIB,
+        libelleLong: item.PROFES_LIB_LONG,
+        numero: item.PROFES_NUM,
+        ...item,
+      })
     },
     quartier: {
       hook: useQuartiers,
       dataKey: null,
-      mapper: (item: Quartier) => ({ id: item.Q_CODE, code: item.Q_CODE, libelle: item.Q_LIB })
+      mapper: (item: Quartier) => ({
+        id: item.QUART_CODE,
+        code: item.QUART_CODE,
+        libelle: item.QUART_LIB,
+        // Champs complets pour le mode édition
+        VILLE_CODE: item.VILLE_CODE,
+        ZONE_CODE: item.ZONE_CODE,
+        QUART_LIB_LONG: item.QUART_LIB_LONG,
+        QUART_NUM: item.QUART_NUM,
+      })
     },
     ville: {
       hook: useVilles,
@@ -476,32 +587,71 @@ export const PARAMETER_CONFIG = {
     type_operation: {
       hook: useTypesOperation,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.TYPOPER_CODE, code: item.TYPOPER_CODE, libelle: item.TYPOPER_LIB })
+      mapper: (item: any) => ({
+        id: item.code ?? item.TYPOPER_CODE ?? item.typoper_code,
+        code: item.code ?? item.TYPOPER_CODE ?? item.typoper_code,
+        libelle: item.libelle ?? item.TYPOPER_LIB ?? item.typoper_lib,
+        libelleCourt: item.libelleCourt ?? item.LIB_COURT ?? item.lib_court,
+        modePaiement: item.modePaiement ?? item.MODE_PAIE_CODE ?? item.mode_paiement,
+        typePaiement: item.typePaiement ?? item.TYPAIE_CODE ?? item.type_paiement,
+        ...item,
+      })
     },
     type_acte: {
       hook: useTypesActe,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.TYPACTE_CODE, code: item.TYPACTE_CODE, libelle: item.TYPACTE_LIB })
+      mapper: (item: any) => ({
+        id: item.code || item.TYPACTE_CODE,
+        code: item.code || item.TYPACTE_CODE,
+        precedent: item.precedent || item.TYPACTE_CODE_PREC,
+        libelle: item.libelle || item.TYPACTE_LIB,
+        delai: item.delai ?? item.TYPACTE_DELAI,
+        service: item.service ?? item.TYPACTE_SERV,
+        ordreEmission: item.ordreEmission ?? item.TYPACTE_ORD_EMIS,
+        ...item,
+      })
     },
     type_auxiliaire: {
       hook: useTypesAuxiliaire,
       dataKey: null,
       mapper: (item: any) => ({ id: item.TYPAUXI_CODE, code: item.TYPAUXI_CODE, libelle: item.TYPAUXI_LIB })
     },
+    type_debiteur: {
+      hook: useTypesDebiteur,
+      dataKey: null,
+      queryKeyBase: 'typesDebiteur',
+      mapper: (item: any) => ({
+        id: item.code ?? item.TYPDEB_CODE ?? item.typdeb_code,
+        code: item.code ?? item.TYPDEB_CODE ?? item.typdeb_code,
+        libelle: item.libelle ?? item.TYPDEB_LIB ?? item.typdeb_lib,
+        ...item,
+      })
+    },
     mode_paiement: {
       hook: useModesPaiement,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.TYP_PAIE_CODE, code: item.TYP_PAIE_CODE, libelle: item.TYP_PAIE_LIB })
+      mapper: (item: any) => ({ id: item.MODE_PAIE_CODE, code: item.MODE_PAIE_CODE, libelle: item.MODE_PAIE_LIB })
     },
     type_charge: {
       hook: useTypeCharges,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.TYPCHARG_CODE, code: item.TYPCHARG_CODE, libelle: item.TYPCHARG_LIB })
+      mapper: (item: TypeCharge) => ({
+        id: item.code ?? item.TYPCHARG_CODE,
+        code: item.code ?? item.TYPCHARG_CODE,
+        libelle: item.libelle ?? item.TYPCHARG_LIB,
+        sens: item.sens ?? item.TYPCHARG_SENS,
+        ...item,
+      })
     },
     type_contrat: {
       hook: useTypeContrats,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.TYPCONT_CODE, code: item.TYPCONT_CODE, libelle: item.TYPCONT_LIB })
+      mapper: (item: TypeContrat) => ({
+        id: item.code ?? item.TYPCONT_CODE,
+        code: item.code ?? item.TYPCONT_CODE,
+        libelle: item.libelle ?? item.TYPCONT_LIB,
+        ...item,
+      })
     },
     type_compte: {
       hook: useTypeComptes,
@@ -516,7 +666,7 @@ export const PARAMETER_CONFIG = {
     type_echeancier: {
       hook: useTypeEcheanciers,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.TYPECH_CODE, code: item.TYPECH_CODE, libelle: item.TYPECH_LIB })
+      mapper: (item: any) => ({ id: item.code ?? item.TYPECH_CODE, code: item.code ?? item.TYPECH_CODE, libelle: item.libelle ?? item.TYPECH_LIB, ...item })
     },
     type_effet: {
       hook: useTypeEffets,
@@ -603,8 +753,16 @@ export const PARAMETER_CONFIG = {
     entite: {
       hook: useEntites,
       dataKey: null,
-      // Aligné sur le backend: AC_ENTITE attend ENT_CODE / ENT_LIB
-      mapper: (item: any) => ({ id: item.ENT_CODE, code: item.ENT_CODE, libelle: item.ENT_LIB })
+      mapper: (item: any) => ({
+        id: item.ENTITE_CODE,
+        code: item.ENTITE_CODE,
+        libelle: item.ENTITE_LIB,
+        // Tous les champs pour le mode édition
+        libelleLong: item.ENTITE_LIB_LONG,
+        responsable: item.ENTITE_RESP,
+        assigne: item.ENTITE_ASSIGN,
+        libelleMinusc: item.ENTITE_LIB_MINUSC,
+      })
     },
     etape: {
       hook: useEtapes,
@@ -614,10 +772,16 @@ export const PARAMETER_CONFIG = {
     exercice: {
       hook: useExercices,
       dataKey: null,
-      mapper: (item: any) => ({ 
-        id: item.NUM_EXE || item.EXO_CODE, 
-        code: item.NUM_EXE || item.EXO_CODE, 
+      mapper: (item: any) => ({
+        id: item.NUM_EXE,
+        code: item.NUM_EXE,
         libelle: item.EXO_LIB,
+        // Tous les champs pour le mode édition
+        dateDebut: item.EXO_DATEDEB,
+        dateFin: item.EXO_DATEFIN,
+        clos: item.EXO_CLOS,
+        dateAdoptionBudget: item.DATE_ADOPTION_BUD,
+        enCours: item.EXO_ENCOURS,
         // Préserver les données originales pour l'affichage dans les colonnes
         ...item
       })
@@ -625,10 +789,13 @@ export const PARAMETER_CONFIG = {
     fonction: {
       hook: useFonctions,
       dataKey: null,
-      mapper: (item: any) => ({ 
-        id: item.FONCT_CODE || item.FON_CODE, 
-        code: item.FONCT_CODE || item.FON_CODE, 
-        libelle: item.FONCT_LIB || item.FON_LIB,
+      mapper: (item: any) => ({
+        id: item.FONCT_CODE,
+        code: item.FONCT_CODE,
+        libelle: item.FONCT_LIB,
+        // Tous les champs pour le mode édition
+        libelleLong: item.FONCT_LIB_LONG,
+        numero: item.FONCT_NUM,
         // Préserver les données originales pour l'affichage dans les colonnes
         ...item
       })
@@ -636,52 +803,120 @@ export const PARAMETER_CONFIG = {
     groupe_creance: {
       hook: useGroupeCreances,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.GC_CODE, code: item.GC_CODE, libelle: item.GC_LIB })
+      queryKeyBase: 'groupeCreances',
+      mapper: (item: any) => ({
+        id: item.GRP_CREAN_CODE,
+        code: item.GRP_CREAN_CODE,
+        entiteCode: item.ENTITE_CODE,
+        libelle: item.GRP_CREAN_LIB,
+        libelleLong: item.GRP_CREAN_LIB_LONG,
+        hierachie: item.HIERACHIE,
+        ...item
+      })
     },
     journal: {
       hook: useJournaux,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.J_CODE, code: item.J_CODE, libelle: item.J_LIB })
+      mapper: (item: any) => ({ id: item.CODE_JOURNAL, code: item.CODE_JOURNAL, libelle: item.LIB_JOURNAL })
     },
     message: {
       hook: useMessages,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.MSG_CODE, code: item.MSG_CODE, libelle: item.MSG_LIB })
+      queryKeyBase: 'messages',
+      mapper: (item: any) => ({
+        id: item.CODE_MESSAGE,
+        code: item.CODE_MESSAGE,
+        libelle: item.LIBELLE_MESSAGE,
+        ...item
+      })
     },
     mode_acquisition: {
       hook: useModesAcquisition,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.MA_CODE, code: item.MA_CODE, libelle: item.MA_LIB })
+      queryKeyBase: 'modes-acquisition',
+      mapper: (item: any) => ({
+        id: item.MODAC_CODE,
+        code: item.MODAC_CODE,
+        libelle: item.MODAC_LIB,
+        ...item
+      })
     },
     objet_creance: {
       hook: useObjetsCreance,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.OC_CODE, code: item.OC_CODE, libelle: item.OC_LIB })
+      queryKeyBase: 'objets-creance',
+      mapper: (item: any) => ({
+        id: item.OBJ_CREAN_CODE,
+        code: item.OBJ_CREAN_CODE,
+        libelle: item.OBJ_CREAN_LIB,
+        ...item
+      })
     },
     operation: {
       hook: useOperations,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.OP_CODE, code: item.OP_CODE, libelle: item.OP_LIB })
+      mapper: (item: any) => ({
+        id: item.OPERAT_CODE,
+        code: item.OPERAT_CODE,
+        libelle: item.OPERAT_LIB,
+        // Tous les champs pour le mode édition
+        quartCode: item.QUART_CODE,
+        operatLib: item.OPERAT_LIB,
+        // Préserver les données originales
+        ...item
+      })
     },
     periodicite: {
       hook: usePeriodicites,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.PER_CODE, code: item.PER_CODE, libelle: item.PER_LIB })
+      queryKeyBase: 'periodicites',
+      mapper: (item: any) => ({
+        id: item.PERIOD_CODE,
+        code: item.PERIOD_CODE,
+        libelle: item.PERIOD_LIB,
+        ...item
+      })
+    },
+    param: {
+      hook: useParams,
+      hookPaginated: (params: any) => useParamsPaginated(params),
+      dataKey: null,
+      queryKeyBase: 'params',
+      mapper: (item: Param) => ({
+        id: item.PARAM_CODE,
+        code: item.PARAM_CODE,
+        libelle: item.PARAM_LIB,
+        commentaire: item.PARAM_COMMENT,
+        valeur: item.PARAM_VALEUR,
+        ...item,
+      })
     },
     poste_comptable: {
       hook: usePostesComptables,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.PC_CODE, code: item.PC_CODE, libelle: item.PC_LIB })
+      queryKeyBase: 'postes-comptables',
+      mapper: (item: any) => ({
+        id: item.PC_CODE,
+        code: item.PC_CODE,
+        libelle: item.PC_LIB,
+        typePcNum: item.TYPE_PC_NUM,
+        situationGeographique: item.PC_SITGEO,
+        ville: item.PC_VILLE,
+        remarque: item.PC_REM,
+        ...item,
+      })
     },
     statut_creance: {
       hook: useStatutsCreance,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.SC_CODE, code: item.SC_CODE, libelle: item.SC_LIB })
+      queryKeyBase: 'statuts-creance',
+      mapper: (item: any) => ({ id: item.STAT_CODE, code: item.STAT_CODE, libelle: item.STAT_LIB, ...item })
     },
     statut_salarie: {
       hook: useStatutsSalarie,
       dataKey: null,
-      mapper: (item: any) => ({ id: item.SS_CODE, code: item.SS_CODE, libelle: item.SS_LIB })
+      queryKeyBase: 'status-salaries',
+      mapper: (item: any) => ({ id: item.STATSAL_CODE, code: item.STATSAL_CODE, libelle: item.STATSAL_LIB, ...item })
     }
     }
     return configs[type] || null
@@ -720,6 +955,8 @@ export const PARAMETER_CONFIG = {
         return import('@/services/type-acte.service').then(m => m.TypeActeService.update)
       case 'type_auxiliaire':
         return import('@/services/type-auxiliaire.service').then(m => m.TypeAuxiliaireService.update)
+      case 'type_debiteur':
+        return import('@/services/type-debiteur.service').then(m => m.TypeDebiteurService.update)
       case 'mode_paiement':
         return import('@/services/mode-paiement.service').then(m => m.ModePaiementService.update)
       case 'type_charge':
@@ -764,6 +1001,26 @@ export const PARAMETER_CONFIG = {
         return import('@/services/fonction.service').then(m => m.FonctionService.update)
       case 'groupe_creance':
         return import('@/services/groupe-creance.service').then(m => m.GroupeCreanceService.update)
+      case 'journal':
+        return import('@/services/journal.service').then(m => m.JournalService.update)
+      case 'message':
+        return import('@/services/message.service').then(m => m.MessageService.update)
+      case 'mode_acquisition':
+        return import('@/services/mode-acquisition.service').then(m => m.ModeAcquisitionService.update)
+      case 'objet_creance':
+        return import('@/services/objet-creance.service').then(m => m.ObjetCreanceService.update)
+      case 'operation':
+        return import('@/services/operation.service').then(m => m.OperationService.update)
+      case 'periodicite':
+        return import('@/services/periodicite.service').then(m => m.PeriodiciteService.update)
+      case 'param':
+        return import('@/services/param.service').then(m => m.ParamService.update)
+      case 'statut_creance':
+        return import('@/services/statut-creance.service').then(m => m.StatutCreanceService.update)
+      case 'statut_salarie':
+        return import('@/services/statut-salarie.service').then(m => m.StatutSalarieService.update)
+      case 'poste_comptable':
+        return import('@/services/poste-comptable.service').then(m => m.PosteComptableService.update)
       default:
         return Promise.resolve(null)
     }
@@ -799,6 +1056,8 @@ export const PARAMETER_CONFIG = {
         return import('@/services/type-acte.service').then(m => m.TypeActeService.create)
       case 'type_auxiliaire':
         return import('@/services/type-auxiliaire.service').then(m => m.TypeAuxiliaireService.create)
+      case 'type_debiteur':
+        return import('@/services/type-debiteur.service').then(m => m.TypeDebiteurService.create)
       case 'mode_paiement':
         return import('@/services/mode-paiement.service').then(m => m.ModePaiementService.create)
       case 'type_charge':
@@ -843,6 +1102,26 @@ export const PARAMETER_CONFIG = {
         return import('@/services/fonction.service').then(m => m.FonctionService.create)
       case 'groupe_creance':
         return import('@/services/groupe-creance.service').then(m => m.GroupeCreanceService.create)
+      case 'journal':
+        return import('@/services/journal.service').then(m => m.JournalService.create)
+      case 'message':
+        return import('@/services/message.service').then(m => m.MessageService.create)
+      case 'mode_acquisition':
+        return import('@/services/mode-acquisition.service').then(m => m.ModeAcquisitionService.create)
+      case 'objet_creance':
+        return import('@/services/objet-creance.service').then(m => m.ObjetCreanceService.create)
+      case 'operation':
+        return import('@/services/operation.service').then(m => m.OperationService.create)
+      case 'periodicite':
+        return import('@/services/periodicite.service').then(m => m.PeriodiciteService.create)
+      case 'param':
+        return import('@/services/param.service').then(m => m.ParamService.create)
+      case 'statut_creance':
+        return import('@/services/statut-creance.service').then(m => m.StatutCreanceService.create)
+      case 'statut_salarie':
+        return import('@/services/statut-salarie.service').then(m => m.StatutSalarieService.create)
+      case 'poste_comptable':
+        return import('@/services/poste-comptable.service').then(m => m.PosteComptableService.create)
       default:
         return Promise.resolve(null)
     }
@@ -878,6 +1157,8 @@ export const PARAMETER_CONFIG = {
         return import('@/services/type-acte.service').then(m => m.TypeActeService.delete)
       case 'type_auxiliaire':
         return import('@/services/type-auxiliaire.service').then(m => m.TypeAuxiliaireService.delete)
+      case 'type_debiteur':
+        return import('@/services/type-debiteur.service').then(m => m.TypeDebiteurService.delete)
       case 'mode_paiement':
         return import('@/services/mode-paiement.service').then(m => m.ModePaiementService.delete)
       case 'type_charge':
@@ -922,6 +1203,26 @@ export const PARAMETER_CONFIG = {
         return import('@/services/fonction.service').then(m => m.FonctionService.delete)
       case 'groupe_creance':
         return import('@/services/groupe-creance.service').then(m => m.GroupeCreanceService.delete)
+      case 'journal':
+        return import('@/services/journal.service').then(m => m.JournalService.delete)
+      case 'message':
+        return import('@/services/message.service').then(m => m.MessageService.delete)
+      case 'mode_acquisition':
+        return import('@/services/mode-acquisition.service').then(m => m.ModeAcquisitionService.delete)
+      case 'objet_creance':
+        return import('@/services/objet-creance.service').then(m => m.ObjetCreanceService.delete)
+      case 'operation':
+        return import('@/services/operation.service').then(m => m.OperationService.delete)
+      case 'periodicite':
+        return import('@/services/periodicite.service').then(m => m.PeriodiciteService.delete)
+      case 'param':
+        return import('@/services/param.service').then(m => m.ParamService.delete)
+      case 'statut_creance':
+        return import('@/services/statut-creance.service').then(m => m.StatutCreanceService.delete)
+      case 'statut_salarie':
+        return import('@/services/statut-salarie.service').then(m => m.StatutSalarieService.delete)
+      case 'poste_comptable':
+        return import('@/services/poste-comptable.service').then(m => m.PosteComptableService.delete)
       default:
         return Promise.resolve(null)
     }

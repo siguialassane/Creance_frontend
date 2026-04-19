@@ -1,9 +1,6 @@
 export interface StatutSalarie {
-  SS_CODE: string;
-  SS_LIB: string;
-  SS_LIBLONG?: string;
-  SS_ACTIF?: boolean;
-  SS_ORDRE?: number;
+  STATSAL_CODE: string;
+  STATSAL_LIB: string;
 }
 
 export interface StatutSalarieApiResponse {
@@ -19,13 +16,11 @@ export interface StatutSalarieApiResponse {
 }
 
 export interface StatutSalarieCreateRequest {
-  SS_LIB: string;
-  SS_LIBLONG?: string;
-  SS_ACTIF?: boolean;
-  SS_ORDRE?: number;
+  STATSAL_CODE: string;
+  STATSAL_LIB: string;
 }
 
 export interface StatutSalarieUpdateRequest extends Partial<StatutSalarieCreateRequest> {
-  SS_CODE: string;
+  STATSAL_CODE: string;
 }
 

@@ -11,7 +11,6 @@ export const quartierKeys = {
   list: (filters: Record<string, unknown>) => [...quartierKeys.lists(), { filters }] as const,
   details: () => [...quartierKeys.all, "detail"] as const,
   detail: (id: string) => [...quartierKeys.details(), id] as const,
-  search: (term: string) => [...quartierKeys.all, "search", term] as const,
 };
 
 export function useQuartiers() {
@@ -21,21 +20,10 @@ export function useQuartiers() {
   return useQuery({
     queryKey: quartierKeys.lists(),
     queryFn: async () => {
-      try {
-        const res = await QuartierService.getAll(apiClient);
-        console.log('📦 Réponse brute quartiers:', res);
-
-        // Structure réelle de l'API: 
-        // { data: { content: [...], totalElements, totalPages }, message: "OK", status: "SUCCESS" }
-        // Le service retourne response.data, donc res = { data: { content: [...] }, ... }
-        const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || [];
-
-        console.log('✅ Données quartiers transformées:', data);
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error('❌ Erreur chargement quartiers:', error);
-        return [];
-      }
+      const res = await QuartierService.getAll(apiClient);
+      // /quartiers/all retourne { data: Quartier[], message, status }
+      const data = (res as any)?.data;
+      return Array.isArray(data) ? data : [];
     },
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
     retry: 2,
@@ -59,25 +47,13 @@ export function useQuartier(code: string) {
   });
 }
 
-export function useSearchQuartiers(searchTerm: string) {
-  const apiClient = useApiClient();
-  const { data: session, status } = useSessionWrapper();
-
-  return useQuery({
-    queryKey: quartierKeys.search(searchTerm),
-    queryFn: () => QuartierService.search(apiClient, searchTerm).then((res) => res.data),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!searchTerm,
-    staleTime: 1000 * 60 * 2, // 2 minutes pour les recherches
-  });
-}
-
 export function useCreateQuartier() {
   const queryClient = useQueryClient();
   const apiClient = useApiClient();
 
   return useMutation({
     mutationFn: (quartier: QuartierCreateRequest) => QuartierService.create(apiClient, quartier),
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: quartierKeys.lists() });
       toast.success("Quartier créé avec succès");
     },
@@ -95,7 +71,7 @@ export function useUpdateQuartier() {
   return useMutation({
     mutationFn: ({ code, quartier }: { code: string; quartier: QuartierUpdateRequest }) =>
       QuartierService.update(apiClient, code, quartier),
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: quartierKeys.lists() });
       queryClient.invalidateQueries({ queryKey: quartierKeys.detail(variables.code) });
       toast.success("Quartier mis à jour avec succès");

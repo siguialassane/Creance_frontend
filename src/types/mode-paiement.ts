@@ -1,25 +1,33 @@
 export interface ModePaiement {
-  TYP_PAIE_CODE: string;
-  TYP_PAIE_LIB: string;
+  MODE_PAIE_CODE: string;
+  MODE_PAIE_LIB: string;
 }
 
 export interface ModePaiementApiResponse {
-  data: ModePaiement[];
-  message: string;
-  status: string;
+  data: {
+    content?: ModePaiement[];
+    totalElements?: number;
+    totalPages?: number;
+    size?: number;
+    number?: number;
+    first?: boolean;
+    last?: boolean;
+  } | ModePaiement[];
+  message?: string;
+  status?: string;
   error?: {
     code: string;
     details: string;
     path: string;
   };
-  timestamp: string;
+  timestamp?: string;
 }
 
 export interface ModePaiementCreateRequest {
-  TYP_PAIE_CODE: string;
-  TYP_PAIE_LIB: string;
+  MODE_PAIE_CODE: string;
+  MODE_PAIE_LIB: string;
 }
 
 export interface ModePaiementUpdateRequest {
-  TYP_PAIE_LIB: string;
+  MODE_PAIE_LIB: string;
 }

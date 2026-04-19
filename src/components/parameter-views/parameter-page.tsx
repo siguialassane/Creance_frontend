@@ -97,6 +97,7 @@ interface ParameterPageProps<T extends BaseParameterItem> {
   onSearchSubmit?: () => void
   onSearchReset?: () => void
   onRefresh?: () => void
+  extraActionsSlot?: React.ReactNode
 }
 
 export function ParameterPage<T extends BaseParameterItem>({
@@ -125,6 +126,7 @@ export function ParameterPage<T extends BaseParameterItem>({
   onSearchSubmit,
   onSearchReset,
   onRefresh,
+  extraActionsSlot,
 }: ParameterPageProps<T>) {
   const [pendingDelete, setPendingDelete] = React.useState<T | null>(null)
   
@@ -315,6 +317,7 @@ export function ParameterPage<T extends BaseParameterItem>({
       onSearchSubmit={onSearchSubmit}
       onSearchReset={onSearchReset}
       onRefresh={onRefresh}
+      extraActionsSlot={extraActionsSlot}
     />
   )
 }

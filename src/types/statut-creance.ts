@@ -1,13 +1,10 @@
 export interface StatutCreance {
-  SC_CODE: string;
-  SC_LIB: string;
-  SC_LIBLONG?: string;
-  SC_ACTIF?: boolean;
-  SC_ORDRE?: number;
+  STAT_CODE: string;
+  STAT_LIB: string | null;
 }
 
 export interface StatutCreanceApiResponse {
-  data: StatutCreance[];
+  data: StatutCreance | StatutCreance[];
   message: string;
   status: string;
   error?: {
@@ -19,13 +16,9 @@ export interface StatutCreanceApiResponse {
 }
 
 export interface StatutCreanceCreateRequest {
-  SC_LIB: string;
-  SC_LIBLONG?: string;
-  SC_ACTIF?: boolean;
-  SC_ORDRE?: number;
+  STAT_CODE: string;
+  STAT_LIB?: string | null;
 }
 
-export interface StatutCreanceUpdateRequest extends Partial<StatutCreanceCreateRequest> {
-  SC_CODE: string;
-}
+export interface StatutCreanceUpdateRequest extends Partial<StatutCreanceCreateRequest> {}
 

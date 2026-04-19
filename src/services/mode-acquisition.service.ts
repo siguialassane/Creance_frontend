@@ -4,16 +4,18 @@ export class ModeAcquisitionService {
   private static readonly BASE_URL = "/modes-acquisition";
 
   static async getAll(apiClient: any): Promise<ModeAcquisitionApiResponse> {
-    const response = await apiClient.get<ModeAcquisitionApiResponse>(ModeAcquisitionService.BASE_URL);
+    // Utiliser /all pour obtenir une liste simple sans pagination
+    const response = await apiClient.get<ModeAcquisitionApiResponse>(`${ModeAcquisitionService.BASE_URL}/all`);
     return response.data;
   }
 
   static async getByCode(apiClient: any, code: string): Promise<ModeAcquisition> {
+    // The backend GET /{code} returns a single object wrapped in ApiResult, not an array
     const response = await apiClient.get<ModeAcquisitionApiResponse>(`${ModeAcquisitionService.BASE_URL}/${code}`);
-    if (!response.data.data || response.data.data.length === 0) {
+    if (!response.data.data) {
       throw new Error("Mode d'acquisition non trouvé");
     }
-    return response.data.data[0];
+    return response.data.data;
   }
 
   static async create(apiClient: any, mode: ModeAcquisitionCreateRequest): Promise<ModeAcquisitionApiResponse> {
@@ -38,4 +40,3 @@ export class ModeAcquisitionService {
     return response.data;
   }
 }
-

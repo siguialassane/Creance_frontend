@@ -10,10 +10,11 @@ export class StatutCreanceService {
 
   static async getByCode(apiClient: any, code: string): Promise<StatutCreance> {
     const response = await apiClient.get<StatutCreanceApiResponse>(`${StatutCreanceService.BASE_URL}/${code}`);
-    if (!response.data.data || response.data.data.length === 0) {
+    const data = response.data.data;
+    if (!data || Array.isArray(data)) {
       throw new Error("Statut créance non trouvé");
     }
-    return response.data.data[0];
+    return data;
   }
 
   static async create(apiClient: any, statut: StatutCreanceCreateRequest): Promise<StatutCreanceApiResponse> {
@@ -33,7 +34,7 @@ export class StatutCreanceService {
 
   static async search(apiClient: any, searchTerm: string): Promise<StatutCreanceApiResponse> {
     const response = await apiClient.get<StatutCreanceApiResponse>(`${StatutCreanceService.BASE_URL}/search`, {
-      params: { q: searchTerm }
+      params: { libelle: searchTerm }
     });
     return response.data;
   }

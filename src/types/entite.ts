@@ -1,10 +1,10 @@
 export interface Entite {
-  ENT_CODE: string;
-  ENT_LIB: string;
-  ENT_LIB_LONG?: string;
-  ENT_RESP?: string;
-  ENT_ASSIGN?: string;
-  ENT_LIB_MINUSC?: string;
+  ENTITE_CODE: string;
+  ENTITE_LIB: string;
+  ENTITE_LIB_LONG: string | null;
+  ENTITE_RESP: string | null;
+  ENTITE_ASSIGN: string | null;
+  ENTITE_LIB_MINUSC: string | null;
 }
 
 export interface EntiteApiResponse {
@@ -20,15 +20,14 @@ export interface EntiteApiResponse {
 }
 
 export interface EntiteCreateRequest {
-  ENT_LIB: string;
-  ENT_LIB_LONG?: string;
-  ENT_RESP?: string;
-  ENT_ASSIGN?: string;
+  ENTITE_LIB: string;
+  ENTITE_LIB_LONG?: string | null;
+  ENTITE_RESP?: string | null;
+  ENTITE_ASSIGN?: string | null;
+  ENTITE_LIB_MINUSC?: string | null;
 }
 
-export interface EntiteUpdateRequest extends Partial<EntiteCreateRequest> {
-  ENT_CODE: string;
-}
+export interface EntiteUpdateRequest extends Partial<EntiteCreateRequest> {}
 
 
 

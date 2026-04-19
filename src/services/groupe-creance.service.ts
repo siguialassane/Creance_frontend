@@ -4,7 +4,8 @@ export class GroupeCreanceService {
   private static readonly BASE_URL = "/groupes-creance";
 
   static async getAll(apiClient: any): Promise<GroupeCreanceApiResponse> {
-    const response = await apiClient.get<GroupeCreanceApiResponse>(`${GroupeCreanceService.BASE_URL}`);
+    // Utiliser /all pour obtenir une liste simple sans pagination
+    const response = await apiClient.get<GroupeCreanceApiResponse>(`${GroupeCreanceService.BASE_URL}/all`);
     return response.data;
   }
 

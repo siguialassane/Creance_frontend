@@ -1,9 +1,6 @@
 export interface ObjetCreance {
-  OC_CODE: string;
-  OC_LIB: string;
-  OC_LIBLONG?: string;
-  OC_ACTIF?: boolean;
-  OC_ORDRE?: number;
+  OBJ_CREAN_CODE: string;
+  OBJ_CREAN_LIB: string;
 }
 
 export interface ObjetCreanceApiResponse {
@@ -19,13 +16,10 @@ export interface ObjetCreanceApiResponse {
 }
 
 export interface ObjetCreanceCreateRequest {
-  OC_LIB: string;
-  OC_LIBLONG?: string;
-  OC_ACTIF?: boolean;
-  OC_ORDRE?: number;
+  OBJ_CREAN_CODE: string;
+  OBJ_CREAN_LIB: string;
 }
 
 export interface ObjetCreanceUpdateRequest extends Partial<ObjetCreanceCreateRequest> {
-  OC_CODE: string;
+  // OBJ_CREAN_CODE is used in the URL path, not in the body
 }
-

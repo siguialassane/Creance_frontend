@@ -1,6 +1,10 @@
 export interface TypeCharge {
   TYPCHARG_CODE: string;
   TYPCHARG_LIB: string;
+  TYPCHARG_SENS?: string;
+  code?: string;
+  libelle?: string;
+  sens?: string;
 }
 
 export interface TypeChargeApiResponse {
@@ -16,10 +20,12 @@ export interface TypeChargeApiResponse {
 }
 
 export interface TypeChargeCreateRequest {
-  TYPCHARG_CODE: string;
-  TYPCHARG_LIB: string;
+  code: string;
+  libelle: string;
+  TYPCHARG_SENS?: string;
 }
 
 export interface TypeChargeUpdateRequest {
-  TYPCHARG_LIB: string;
+  libelle: string;
+  TYPCHARG_SENS?: string;
 }

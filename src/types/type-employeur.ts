@@ -16,10 +16,10 @@ export interface TypeEmployeurApiResponse {
 }
 
 export interface TypeEmployeurCreateRequest {
-  TYPEMP_CODE: string;
-  TYPEMP_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeEmployeurUpdateRequest {
-  TYPEMP_LIB: string;
+  libelle: string;
 }

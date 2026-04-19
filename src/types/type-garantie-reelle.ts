@@ -16,10 +16,10 @@ export interface TypeGarantieReelleApiResponse {
 }
 
 export interface TypeGarantieReelleCreateRequest {
-  TYPGAR_REEL_CODE: string;
-  TYPGAR_REEL_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeGarantieReelleUpdateRequest {
-  TYPGAR_REEL_LIB: string;
+  libelle: string;
 }

@@ -20,7 +20,21 @@ export function useZones() {
 
   return useQuery({
     queryKey: zoneKeys.lists(),
-    queryFn: () => ZoneService.getAll(apiClient).then((res) => res.data),
+    queryFn: async () => {
+      try {
+        const res = await ZoneService.getAll(apiClient);
+
+        // Structure réelle de l'API:
+        // { data: { content: [...], totalElements, totalPages }, message: "OK", status: "SUCCESS" }
+        // Le service retourne response.data, donc res = { data: { content: [...] }, ... }
+        const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || [];
+
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('❌ Erreur chargement zones:', error);
+        return [];
+      }
+    },
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {
@@ -29,6 +43,11 @@ export function useZones() {
       return failureCount < 2;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: Infinity,
+    cacheTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 }
 

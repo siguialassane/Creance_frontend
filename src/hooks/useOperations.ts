@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { OperationService } from "@/services/operation.service";
 import { OperationCreateRequest, OperationUpdateRequest } from "@/types/operation";
 import { useApiClient } from "./useApiClient";
-import { useSessionWrapper } from "./useSessionWrapper";
+import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 
 export const operationKeys = {
@@ -16,7 +16,7 @@ export const operationKeys = {
 
 export function useOperations() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSessionWrapper();
+  const { data: session, status } = useSession();
 
   return useQuery({
     queryKey: operationKeys.lists(),
@@ -47,9 +47,61 @@ export function useOperations() {
   });
 }
 
+export function useOperationsPaginated(params: {
+  page?: number;
+  size?: number;
+  search?: string;
+  sortBy?: string;
+  sortDirection?: string;
+}) {
+  const apiClient = useApiClient();
+  const { data: session, status } = useSession();
+
+  return useQuery({
+    queryKey: operationKeys.list(params as Record<string, unknown>),
+    queryFn: async () => {
+      try {
+        const res = await OperationService.getAllPaginated(apiClient, params);
+        console.log('📦 Réponse brute operations paginated:', res);
+        
+        const responseData = (res as any)?.data || res;
+        const content = responseData?.content || [];
+        const totalElements = responseData?.totalElements || 0;
+        const totalPages = responseData?.totalPages || 0;
+        
+        console.log('✅ Données operations paginated transformées:', { content, totalElements, totalPages });
+        return {
+          content: Array.isArray(content) ? content : [],
+          totalElements,
+          totalPages,
+          page: params.page || 0,
+          size: params.size || 50,
+        };
+      } catch (error) {
+        console.error('❌ Erreur chargement operations paginated:', error);
+        return {
+          content: [],
+          totalElements: 0,
+          totalPages: 0,
+          page: params.page || 0,
+          size: params.size || 50,
+        };
+      }
+    },
+    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 401) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+}
+
 export function useOperation(code: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSessionWrapper();
+  const { data: session, status } = useSession();
 
   return useQuery({
     queryKey: operationKeys.detail(code),
@@ -60,7 +112,7 @@ export function useOperation(code: string) {
 
 export function useSearchOperations(searchTerm: string) {
   const apiClient = useApiClient();
-  const { data: session, status } = useSessionWrapper();
+  const { data: session, status } = useSession();
 
   return useQuery({
     queryKey: operationKeys.search(searchTerm),

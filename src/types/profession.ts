@@ -1,13 +1,18 @@
 export interface Profession {
-  PROF_CODE: string;
-  PROF_LIB: string;
-  PROF_LIBLONG?: string;
-  PROF_ACTIF?: boolean;
-  PROF_ORDRE?: number;
+  PROFES_CODE: string;
+  PROFES_LIB: string | null;
+  PROFES_LIB_LONG: string | null;
+  PROFES_NUM: string | null;
 }
 
 export interface ProfessionApiResponse {
-  data: Profession[];
+  data: Profession | Profession[] | {
+    content?: Profession[];
+    totalElements?: number;
+    totalPages?: number;
+    size?: number;
+    number?: number;
+  };
   message: string;
   status: string;
   error?: {
@@ -19,13 +24,11 @@ export interface ProfessionApiResponse {
 }
 
 export interface ProfessionCreateRequest {
-  PROF_LIB: string;
-  PROF_LIBLONG?: string;
-  PROF_ACTIF?: boolean;
-  PROF_ORDRE?: number;
+  PROFES_CODE: string;
+  PROFES_LIB: string;
+  PROFES_LIB_LONG?: string | null;
+  PROFES_NUM?: string | null;
 }
 
-export interface ProfessionUpdateRequest extends Partial<ProfessionCreateRequest> {
-  PROF_CODE: string;
-}
+export interface ProfessionUpdateRequest extends Partial<ProfessionCreateRequest> {}
 

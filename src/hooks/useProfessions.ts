@@ -26,15 +26,40 @@ export function useProfessions(options: UseProfessionsOptions = {}) {
 
   return useQuery({
     queryKey: professionKeys.lists(),
-    queryFn: async () => {
-      const res = await ProfessionService.getAll(apiClient);
-      // Structure réelle de l'API: { data: { content: [...], totalElements, ... } }
-      // Le service retourne response.data, donc res = { data: { content: [...] }, ... }
-      const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || res;
-      console.log('✅ Données professions chargées depuis l\'API:', data);
+    queryFn: () => ProfessionService.getAll(apiClient).then((res) => {
+      const data = res.data;
       return Array.isArray(data) ? data : [];
-    },
+    }),
     enabled: enabled && isSessionReady,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+}
+
+export function useProfessionsPaginated(params: {
+  page?: number;
+  size?: number;
+  search?: string;
+  sortBy?: string;
+  sortDirection?: string;
+}) {
+  const apiClient = useApiClient();
+  const { data: session, status } = useSessionWrapper();
+
+  return useQuery({
+    queryKey: professionKeys.list(params as Record<string, unknown>),
+    queryFn: async () => {
+      const res = await ProfessionService.getAllPaginated(apiClient, params);
+      const responseData = res.data as { content?: unknown[]; totalElements?: number; totalPages?: number };
+      return {
+        content: Array.isArray(responseData?.content) ? responseData.content : [],
+        totalElements: responseData?.totalElements || 0,
+        totalPages: responseData?.totalPages || 0,
+        page: params.page || 0,
+        size: params.size || 50,
+      };
+    },
+    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
@@ -57,7 +82,10 @@ export function useSearchProfessions(searchTerm: string) {
 
   return useQuery({
     queryKey: professionKeys.search(searchTerm),
-    queryFn: () => ProfessionService.search(apiClient, searchTerm).then((res) => res.data),
+    queryFn: () => ProfessionService.search(apiClient, searchTerm).then((res) => {
+      const data = res.data;
+      return Array.isArray(data) ? data : [];
+    }),
     enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!searchTerm,
     staleTime: 1000 * 60 * 2, // 2 minutes pour les recherches
   });

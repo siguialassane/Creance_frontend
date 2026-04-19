@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { EntiteService } from "@/services/entite.service";
 import { EntiteCreateRequest, EntiteUpdateRequest } from "@/types/entite";
+import { extractPaginatedData } from "@/types/pagination";
 import { useApiClient } from "./useApiClient";
 import { useSessionWrapper } from "./useSessionWrapper";
 import { toast } from "sonner";
@@ -27,22 +28,11 @@ export function useEntites(options: UseEntitesOptions = {}) {
   return useQuery({
     queryKey: entiteKeys.lists(),
     queryFn: async () => {
-      console.log('🔍 [useEntites] Début du chargement...');
       const res = await EntiteService.getAll(apiClient);
-      console.log('📦 [useEntites] Réponse brute:', res);
-      console.log('📦 [useEntites] res.data:', res.data);
-      console.log('📦 [useEntites] res.data?.content:', res.data?.content);
-
+      // Le backend retourne ApiResult<PaginationResponse> via /entites
+      // ou ApiResult<List> via /entites/all. On extrait proprement.
       const data = res.data?.content || res.data?.data || res.data || res;
-      console.log('✅ [useEntites] Données finales:', data);
-      console.log('✅ [useEntites] Nombre d\'éléments:', Array.isArray(data) ? data.length : 'N/A');
-
-      if (Array.isArray(data) && data.length > 0) {
-        console.log('✅ [useEntites] Premier élément:', data[0]);
-        console.log('✅ [useEntites] Clés disponibles:', Object.keys(data[0]));
-      }
-
-      return Array.isArray(data) ? data : [];
+      return Array.isArray(data) ? data : (Array.isArray(data?.content) ? data.content : []);
     },
     enabled: enabled && isSessionReady,
     retry: 2,

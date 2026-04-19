@@ -1,16 +1,11 @@
 export interface Exercice {
   NUM_EXE: number;
   EXO_LIB: string;
-  EXO_DATEDEB?: string;
-  EXO_DATEFIN?: string;
-  EXO_CLOS?: string;
-  EXO_ENCOURS?: string | null;
-  DATE_ADOPTION_BUD?: string;
-  // Anciens champs pour compatibilité
-  EXO_CODE?: string;
-  EXO_LIBLONG?: string;
-  EXO_ACTIF?: boolean;
-  EXO_ORDRE?: number;
+  EXO_DATEDEB: string | null;
+  EXO_DATEFIN: string | null;
+  EXO_CLOS: string | null;
+  DATE_ADOPTION_BUD: string | null;
+  EXO_ENCOURS: string | null;
 }
 
 export interface ExerciceApiResponse {
@@ -34,14 +29,22 @@ export interface ExerciceApiResponse {
 }
 
 export interface ExerciceCreateRequest {
+  NUM_EXE: number;
   EXO_LIB: string;
-  EXO_LIBLONG?: string;
-  EXO_ACTIF?: boolean;
-  EXO_ORDRE?: number;
+  EXO_DATEDEB?: string | null;
+  EXO_DATEFIN?: string | null;
+  EXO_CLOS?: string | null;
+  DATE_ADOPTION_BUD?: string | null;
+  EXO_ENCOURS?: string | null;
 }
 
-export interface ExerciceUpdateRequest extends Partial<ExerciceCreateRequest> {
-  EXO_CODE: string;
+export interface ExerciceUpdateRequest {
+  EXO_LIB: string;
+  EXO_DATEDEB?: string | null;
+  EXO_DATEFIN?: string | null;
+  EXO_CLOS?: string | null;
+  DATE_ADOPTION_BUD?: string | null;
+  EXO_ENCOURS?: string | null;
 }
 
 

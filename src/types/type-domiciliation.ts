@@ -16,10 +16,10 @@ export interface TypeDomiciliationApiResponse {
 }
 
 export interface TypeDomiciliationCreateRequest {
-  TYPDOM_CODE: string;
-  TYPDOM_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeDomiciliationUpdateRequest {
-  TYPDOM_LIB: string;
+  libelle: string;
 }

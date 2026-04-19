@@ -16,10 +16,10 @@ export interface TypeAuxiliaireApiResponse {
 }
 
 export interface TypeAuxiliaireCreateRequest {
-  TYPAUXI_CODE: string;
-  TYPAUXI_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeAuxiliaireUpdateRequest {
-  TYPAUXI_LIB: string;
+  libelle: string;
 }

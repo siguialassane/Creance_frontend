@@ -1,9 +1,9 @@
 export interface Periodicite {
-  PER_CODE: string;
-  PER_LIB: string;
-  PER_LIBLONG?: string;
-  PER_ACTIF?: boolean;
-  PER_ORDRE?: number;
+  PERIOD_CODE: string;
+  PERIOD_LIB: string;
+  PERIOD_LIBLONG?: string;
+  PERIOD_ACTIF?: boolean;
+  PERIOD_ORDRE?: number;
 }
 
 export interface PeriodiciteApiResponse {
@@ -19,13 +19,14 @@ export interface PeriodiciteApiResponse {
 }
 
 export interface PeriodiciteCreateRequest {
-  PER_LIB: string;
-  PER_LIBLONG?: string;
-  PER_ACTIF?: boolean;
-  PER_ORDRE?: number;
+  PERIOD_CODE: string;
+  PERIOD_LIB: string;
+  PERIOD_LIBLONG?: string;
+  PERIOD_ACTIF?: boolean;
+  PERIOD_ORDRE?: number;
 }
 
 export interface PeriodiciteUpdateRequest extends Partial<PeriodiciteCreateRequest> {
-  PER_CODE: string;
+  // PERIOD_CODE is used in the URL path, not in the body
 }
 

@@ -16,10 +16,10 @@ export interface TypePieceApiResponse {
 }
 
 export interface TypePieceCreateRequest {
-  TYPE_PIECE_CODE: string;
-  TYPE_PIECE_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypePieceUpdateRequest {
-  TYPE_PIECE_LIB: string;
+  libelle: string;
 }

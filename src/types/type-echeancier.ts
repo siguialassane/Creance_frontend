@@ -16,10 +16,10 @@ export interface TypeEcheancierApiResponse {
 }
 
 export interface TypeEcheancierCreateRequest {
-  TYPECH_CODE: string;
-  TYPECH_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeEcheancierUpdateRequest {
-  TYPECH_LIB: string;
+  libelle: string;
 }

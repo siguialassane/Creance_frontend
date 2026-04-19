@@ -4,6 +4,13 @@ export interface TypeOperation {
   MODE_PAIE_CODE?: string;
   TYPAIE_CODE?: string;
   LIB_COURT?: string | null;
+  code?: string;
+  libelle?: string;
+  modePaiement?: string;
+  typePaiement?: string;
+  libelleCourt?: string | null;
+  typoper_code?: string;
+  typoper_lib?: string;
 }
 
 export interface TypeOperationApiResponse {
@@ -19,10 +26,16 @@ export interface TypeOperationApiResponse {
 }
 
 export interface TypeOperationCreateRequest {
-  TYPOPER_CODE: string;
-  TYPOPER_LIB: string;
+  code: string;
+  libelle: string;
+  MODE_PAIE_CODE?: string;
+  TYPAIE_CODE?: string;
+  LIB_COURT?: string;
 }
 
 export interface TypeOperationUpdateRequest {
-  TYPOPER_LIB: string;
+  libelle: string;
+  MODE_PAIE_CODE?: string;
+  TYPAIE_CODE?: string;
+  LIB_COURT?: string;
 }

@@ -4,7 +4,8 @@ export class ObjetCreanceService {
   private static readonly BASE_URL = "/objets-creance";
 
   static async getAll(apiClient: any): Promise<ObjetCreanceApiResponse> {
-    const response = await apiClient.get<ObjetCreanceApiResponse>(ObjetCreanceService.BASE_URL);
+    // Utiliser /all pour obtenir une liste simple sans pagination
+    const response = await apiClient.get<ObjetCreanceApiResponse>(`${ObjetCreanceService.BASE_URL}/all`);
     return response.data;
   }
 

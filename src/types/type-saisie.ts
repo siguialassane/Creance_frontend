@@ -16,10 +16,10 @@ export interface TypeSaisieApiResponse {
 }
 
 export interface TypeSaisieCreateRequest {
-  TYPSAIS_CODE: string;
-  TYPSAIS_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeSaisieUpdateRequest {
-  TYPSAIS_LIB: string;
+  libelle: string;
 }

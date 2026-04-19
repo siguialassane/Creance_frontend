@@ -1,9 +1,7 @@
 export interface Operation {
-  OP_CODE: string;
-  OP_LIB: string;
-  OP_LIBLONG?: string;
-  OP_ACTIF?: boolean;
-  OP_ORDRE?: number;
+  OPERAT_CODE: string;
+  QUART_CODE?: string;
+  OPERAT_LIB?: string;
 }
 
 export interface OperationApiResponse {
@@ -19,13 +17,11 @@ export interface OperationApiResponse {
 }
 
 export interface OperationCreateRequest {
-  OP_LIB: string;
-  OP_LIBLONG?: string;
-  OP_ACTIF?: boolean;
-  OP_ORDRE?: number;
+  OPERAT_CODE: string;
+  QUART_CODE?: string;
+  OPERAT_LIB?: string;
 }
 
 export interface OperationUpdateRequest extends Partial<OperationCreateRequest> {
-  OP_CODE: string;
+  // OPERAT_CODE is the primary key, sent in URL path
 }
-

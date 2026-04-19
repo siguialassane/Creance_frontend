@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { usePathname } from "next/navigation"
 import colors from "../../lib/theme/colors"
 import { StyledMenuItem } from "../../lib/theme/typography"
 import { SubMenuItem } from "../../lib/types/menu"
@@ -59,31 +60,114 @@ const AnimatedSubIcon = styled.div<{ $isSelected: boolean; $isHovered?: boolean 
   filter: ${props => props.$isSelected ? 'brightness(1.2)' : 'brightness(1)'};
 `
 
+const NestedContainer = styled.div`
+  margin-left: 12px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+`
+
+const ExpandIcon = styled.div<{ $isOpen: boolean }>`
+  margin-left: auto;
+  color: #fff;
+  font-size: 11px;
+  transform: ${props => props.$isOpen ? 'rotate(90deg)' : 'rotate(0deg)'};
+  transition: transform 0.2s ease;
+`
+
+function buildSubMenuHref(parentPath: string, subMenuPath: string) {
+    if (subMenuPath === "") {
+        return parentPath
+    }
+
+    if (subMenuPath.startsWith("/")) {
+        return subMenuPath
+    }
+
+    return `${parentPath}/${subMenuPath}`
+}
+
+function hasActiveChild(subMenu: SubMenuItem, parentPath: string, pathname: string): boolean {
+    const currentHref = buildSubMenuHref(parentPath, subMenu.path?.toString().trim() || "")
+
+    if (pathname === currentHref) {
+        return true
+    }
+
+    if (!subMenu.subMenus?.length) {
+        return false
+    }
+
+    return subMenu.subMenus.some((child) => hasActiveChild(child, currentHref, pathname))
+}
+
 const SubMenuItemComponent = ({ subMenu, isSelected, onPressed, hasLeftIndicator, parrentPath }: SubMenuItemProps) => {
     const [isHovered, setIsHovered] = useState(false)
+    const pathname = usePathname()
 
     // Si le path est vide ou null/undefined, utiliser seulement le path parent
     // Si le path commence par /, c'est un path absolu, l'utiliser tel quel
     const subMenuPath = subMenu.path?.toString().trim() || ""
-    let href: string
-    if (subMenuPath === "") {
-      href = parrentPath
-    } else if (subMenuPath.startsWith("/")) {
-      href = subMenuPath // Path absolu
-    } else {
-      href = parrentPath + '/' + subMenuPath
+    const href = useMemo(() => buildSubMenuHref(parrentPath, subMenuPath), [parrentPath, subMenuPath])
+    const childIsActive = useMemo(() => hasActiveChild(subMenu, parrentPath, pathname), [subMenu, parrentPath, pathname])
+    const [isExpanded, setIsExpanded] = useState(childIsActive)
+
+    useEffect(() => {
+        if (childIsActive) {
+            setIsExpanded(true)
+        }
+    }, [childIsActive])
+
+    const currentIsSelected = isSelected || childIsActive
+
+    if (subMenu.subMenus?.length) {
+        return (
+            <div>
+                <BorderedStyle
+                    $isSelected={currentIsSelected}
+                    $isHovered={isHovered}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    onClick={() => {
+                        setIsExpanded((previous) => !previous)
+                        onPressed(subMenu)
+                    }}
+                >
+                    <StyledMenuItem $textColor={currentIsSelected ? '#FFFFFF' : isHovered ? '#E5E7EB' : colors.lightGray}>
+                        <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'flex-start', alignItems: 'center', width: '100%' }}>
+                            <SubMenuNameStyled>{subMenu.name}</SubMenuNameStyled>
+                            <ExpandIcon $isOpen={isExpanded}>▶</ExpandIcon>
+                        </div>
+                    </StyledMenuItem>
+                </BorderedStyle>
+
+                {isExpanded && (
+                    <NestedContainer>
+                        {subMenu.subMenus.map((child) => (
+                            <SubMenuItemComponent
+                                key={child.id}
+                                parrentPath={href}
+                                onPressed={onPressed}
+                                isSelected={pathname === buildSubMenuHref(href, child.path?.toString().trim() || "")}
+                                subMenu={child}
+                                hasLeftIndicator={false}
+                            />
+                        ))}
+                    </NestedContainer>
+                )}
+            </div>
+        )
     }
 
     return (
         (
             <Link href={href} onClick={() => parrentPath !== '/settings' && onPressed(subMenu)}>
                 <BorderedStyle 
-                    $isSelected={isSelected} 
+                    $isSelected={currentIsSelected} 
                     $isHovered={isHovered}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                 >
-                    <StyledMenuItem $textColor={isSelected ? '#FFFFFF' : isHovered ? '#E5E7EB' : colors.lightGray}>
+                    <StyledMenuItem $textColor={currentIsSelected ? '#FFFFFF' : isHovered ? '#E5E7EB' : colors.lightGray}>
 
                         <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'flex-start', alignItems: 'center' }}>
                             {/* <AnimatedSubIcon $isSelected={isSelected} $isHovered={isHovered}>

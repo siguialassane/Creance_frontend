@@ -1,9 +1,8 @@
 export interface Nationalite {
-  NAT_CODE: string;
+  NAT_CODE: string | number;
   NAT_LIB: string;
-  NAT_LIBLONG?: string;
-  NAT_ACTIF?: boolean;
-  NAT_ORDRE?: number;
+  NAT_DEF?: string;
+  NAT_IND?: string;
 }
 
 export interface NationaliteApiResponse {
@@ -19,13 +18,15 @@ export interface NationaliteApiResponse {
 }
 
 export interface NationaliteCreateRequest {
+  NAT_CODE?: string | number;
   NAT_LIB: string;
-  NAT_LIBLONG?: string;
-  NAT_ACTIF?: boolean;
-  NAT_ORDRE?: number;
+  NAT_DEF?: string;
+  NAT_IND?: string;
 }
 
-export interface NationaliteUpdateRequest extends Partial<NationaliteCreateRequest> {
-  NAT_CODE: string;
+export interface NationaliteUpdateRequest {
+  NAT_LIB: string;
+  NAT_DEF?: string;
+  NAT_IND?: string;
 }
 

@@ -16,10 +16,10 @@ export interface TypeCompteApiResponse {
 }
 
 export interface TypeCompteCreateRequest {
-  TYPCPT_CODE: string;
-  TYPCPT_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeCompteUpdateRequest {
-  TYPCPT_LIB: string;
+  libelle: string;
 }

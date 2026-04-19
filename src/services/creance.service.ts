@@ -1,4 +1,4 @@
-import { CreanceCreateRequest, CreanceApiResponse, CreanceResponse } from "@/types/creance";
+import { CreanceCreateRequest, CreanceApiResponse, CreanceResponse, SuivieClientelCreanceSoldeCount, SuivieClientelCreanceSoldePage } from "@/types/creance";
 import { PaginationParams, ApiResponse } from "@/types/pagination";
 import { fetchPaginatedData, ApiClient } from "@/lib/api";
 
@@ -58,6 +58,54 @@ export class CreanceService {
     if (!response.data.data) {
       throw new Error("Créance non trouvée");
     }
+    return response.data.data;
+  }
+
+  static async getSuivieClientelByCode(apiClient: any, code: string): Promise<CreanceResponse> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/${code}/suivie-clientel`);
+    if (!response.data.data) {
+      throw new Error("Créance non trouvée pour le suivi clientèle");
+    }
+    return response.data.data;
+  }
+
+  static async getSuivieClientelOvpCreationContext(apiClient: any, code: string): Promise<CreanceResponse> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/${code}/suivie-clientel/ovp-creation-context`);
+    if (!response.data.data) {
+      throw new Error("Contexte de création OVP introuvable");
+    }
+    return response.data.data;
+  }
+
+  static async searchSuivieClientelOvpActes(apiClient: any, query = ""): Promise<Array<Record<string, unknown>>> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/suivie-clientel/ovp/actes/search`, {
+      params: { q: query },
+    });
+    return response.data.data || [];
+  }
+
+  static async createSuivieClientelOvp(apiClient: any, code: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const response = await apiClient.post(`${CreanceService.BASE_URL}/${code}/suivie-clientel/ovp`, payload);
+    return response.data.data;
+  }
+
+  static async getSuivieClientelCreancesSolde(
+    apiClient: ApiClient,
+    params: { offset?: number; size?: number; search?: string } = {}
+  ): Promise<SuivieClientelCreanceSoldePage> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/suivie-clientel/creances-solde`, {
+      params,
+    });
+    return response.data.data;
+  }
+
+  static async countSuivieClientelCreancesSolde(
+    apiClient: ApiClient,
+    params: { search?: string } = {}
+  ): Promise<SuivieClientelCreanceSoldeCount> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/suivie-clientel/creances-solde/count`, {
+      params,
+    });
     return response.data.data;
   }
 

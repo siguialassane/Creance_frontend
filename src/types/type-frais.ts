@@ -16,10 +16,10 @@ export interface TypeFraisApiResponse {
 }
 
 export interface TypeFraisCreateRequest {
-  TYPFRAIS_CODE: string;
-  TYPFRAIS_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeFraisUpdateRequest {
-  TYPFRAIS_LIB: string;
+  libelle: string;
 }

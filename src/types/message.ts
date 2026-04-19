@@ -1,9 +1,6 @@
 export interface Message {
-  MSG_CODE: string;
-  MSG_LIB: string;
-  MSG_LIBLONG?: string;
-  MSG_ACTIF?: boolean;
-  MSG_ORDRE?: number;
+  CODE_MESSAGE: string;
+  LIBELLE_MESSAGE: string;
 }
 
 export interface MessageApiResponse {
@@ -19,13 +16,10 @@ export interface MessageApiResponse {
 }
 
 export interface MessageCreateRequest {
-  MSG_LIB: string;
-  MSG_LIBLONG?: string;
-  MSG_ACTIF?: boolean;
-  MSG_ORDRE?: number;
+  CODE_MESSAGE: string;
+  LIBELLE_MESSAGE: string;
 }
 
 export interface MessageUpdateRequest extends Partial<MessageCreateRequest> {
-  MSG_CODE: string;
+  // CODE_MESSAGE is used in the URL path, not in the body
 }
-

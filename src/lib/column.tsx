@@ -98,6 +98,8 @@ export const COLUMN_CONFIGS = {
     profession: [
       { key: 'code', label: 'Code', sortable: true },
       { key: 'libelle', label: 'Libellé', sortable: true },
+      { key: 'libelleLong', label: 'Libellé long', sortable: true },
+      { key: 'numero', label: 'Numéro', sortable: true },
     ],
     quartier: [
       { key: 'code', label: 'Code', sortable: true },
@@ -171,7 +173,10 @@ export const COLUMN_CONFIGS = {
     ],
     groupe_creance: [
       { key: 'code', label: 'Code', sortable: true },
+      { key: 'entiteCode', label: 'Code Entité', sortable: true },
       { key: 'libelle', label: 'Libellé', sortable: true },
+      { key: 'libelleLong', label: 'Libellé Long', sortable: true },
+      { key: 'hierachie', label: 'Hiérarchie', sortable: true },
     ],
     journal: [
       { key: 'code', label: 'Code', sortable: true },
@@ -195,6 +200,7 @@ export const COLUMN_CONFIGS = {
     ],
     operation: [
       { key: 'code', label: 'Code', sortable: true },
+      { key: 'quartCode', label: 'Quartier', sortable: true },
       { key: 'libelle', label: 'Libellé', sortable: true },
     ],
     periodicite: [

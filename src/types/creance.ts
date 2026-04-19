@@ -40,6 +40,102 @@ export interface CreanceCreateRequest {
   observations?: string;
 }
 
+export interface SuivieClientelOvp {
+  OVP_CODE?: string | number;
+  OVP_DEB_CODE?: string | number;
+  OVP_EMP_CODE?: string;
+  DOM_CODE?: string;
+  CPTOPER_CODE?: string;
+  SOU_CODE?: string;
+  SOU_LIB?: string;
+  PERIOD_CODE?: string;
+  PERIOD_LIB?: string;
+  ACTE_CODE?: string | number;
+  ACTE_LIB?: string;
+  TYPOVP_CODE?: string;
+  TYPOVP_LIB?: string;
+  GARPHYS_CODE?: string | number;
+  GARANTIE_TIERS_LIB?: string;
+  OVP_DATDEB?: string;
+  OVP_DATFIN?: string;
+  OVP_DATSIGNE?: string;
+  OVP_MONT?: number;
+  OVP_MONT_CREAN?: number;
+  OVP_NB_VIRM?: number;
+  CPTOPER_BQAG_CODE?: string;
+  CPTOPER_LIB?: string;
+  CPTOPER_BANQUE_LIB?: string;
+  EMP_CODE?: string;
+  EMP_NOM?: string;
+  EMP_PREN?: string;
+  EMPLOYEUR_LIB?: string;
+  [key: string]: unknown;
+}
+
+export interface SuivieClientelDomiciliation {
+  DOM_CODE?: string;
+  DOM_DEB_CODE?: string | number;
+  DOM_LIB?: string;
+  TYPDOM_CODE?: string;
+  BQAG_CODE?: string;
+  BQAG_LIB?: string;
+  BQ_LIB?: string;
+  [key: string]: unknown;
+}
+
+export interface SuivieClientelVirement {
+  VIRM_CODE?: string | number;
+  VIRM_DATE?: string;
+  VIRM_MONT?: number;
+  VIRM_VALIDE?: string;
+  [key: string]: unknown;
+}
+
+export interface SuivieClientelOption {
+  CODE?: string | number;
+  LIBELLE?: string;
+  [key: string]: unknown;
+}
+
+export interface SuivieClientelCreationOptions {
+  sourcesOvp?: SuivieClientelOption[];
+  periodicites?: SuivieClientelOption[];
+  typesOvp?: SuivieClientelOption[];
+  actes?: SuivieClientelOption[];
+  comptesOperation?: SuivieClientelOption[];
+  domiciliations?: SuivieClientelOption[];
+  tiers?: SuivieClientelOption[];
+  [key: string]: unknown;
+}
+
+export interface SuivieClientelCreanceSoldeRow {
+  CREANCE: string;
+  DEBITEUR?: string;
+  CAPIT_INIT?: number;
+  SOLDE_INIT?: number;
+  SOLDE_EXIG?: number;
+  [key: string]: unknown;
+}
+
+export interface SuivieClientelCreanceSoldePage {
+  status: "IDLE" | "LOADING" | "READY" | "ERROR";
+  offset: number;
+  size: number;
+  loaded: number;
+  hasMore: boolean;
+  total?: number;
+  search?: string;
+  startedAt?: string;
+  loadedAt?: string;
+  errorMessage?: string;
+  items: SuivieClientelCreanceSoldeRow[];
+}
+
+export interface SuivieClientelCreanceSoldeCount {
+  total: number;
+  search?: string;
+}
+
 export interface CreanceResponse {
   CREAN_CODE: string;
   DEB_CODE: string;
@@ -59,11 +155,36 @@ export interface CreanceResponse {
   // Informations groupe et objet (depuis JOIN)
   GROUPE_CREANCE_LIB?: string;
   OBJET_CREANCE_LIB?: string;
+  PERIOD_LIB?: string;
+  ENTITE_LIB?: string;
+  DEBITEUR_NOM?: string;
+  CPT_CODE?: string;
 
   // Informations ordonnateur (depuis JOIN)
   ORDO_CODE: string;
   ORDO_NOM?: string;
   ORDO_PREN?: string;
+
+  // Informations complémentaires pour l'extrait de compte
+  CREAN_USER_CODE?: string;
+  GESTIONNAIRE_NOM?: string;
+  USER_NOM?: string;
+  USER_PREN?: string;
+  PRODUIT_LIB?: string;
+  PRODUIT_GROUPE_LIB?: string;
+  POSTE_COMPTABLE_LIB?: string;
+  TYPE_TITRE_LIB?: string;
+  SOL_EXIG?: number;
+  SOLDE_PRINC?: number;
+  SOLDE_PENALITE?: number;
+  SOLDE_AUT_FRAIS?: number;
+  TOT_PAIEMENT?: number;
+  ECH_IMP?: number;
+  ECH_ENCOURS?: number;
+  SOLDE_EXIGIBLE?: number;
+  PC_CODE?: string;
+  TYPE_TITRE_CODE?: number;
+  CPTE_CLI_NUM?: number;
 
   // Montants de base
   CREAN_CAPIT_INIT: number;
@@ -122,7 +243,7 @@ export interface CreanceResponse {
     GAREEL_REFGAR?: string;
     GAREEL_VALEST?: number;
     GAREEL_DATEVAL?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   }>;
 
   // Garanties personnelles (array selon la doc)
@@ -133,7 +254,7 @@ export interface CreanceResponse {
     DEB_NOM?: string;
     DEB_PREN?: string;
     DEB_RAIS_SOCIALE?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   }>;
 
   // Pièces (array selon la doc)
@@ -142,10 +263,35 @@ export interface CreanceResponse {
     PIECE_TYPE?: string;
     PIECE_NUM?: string;
     PIECE_DATEDEP?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   }>;
 
-  [key: string]: any;
+  regularisations?: Array<{
+    CREAN_CODE: string;
+    REGUL_DATE?: string;
+    REGUL_DATE_CTL?: string;
+    REGUL_MONT?: number;
+    PAIEMENT?: number;
+    SOLDE?: number;
+    REGUL_MOTIF?: string;
+    REGUL_TYPE_CODE?: string;
+    REGUL_USER_CODE?: string;
+    AFFECTATION?: string | null;
+    [key: string]: unknown;
+  }>;
+
+  ovp?: SuivieClientelOvp;
+  domiciliation?: SuivieClientelDomiciliation;
+  virements?: SuivieClientelVirement[];
+  VIREMENTS_TOTAL_MONTANT?: number;
+  OVP_COUNT?: number;
+  HAS_OVP?: boolean;
+  HAS_DOMICILIATION?: boolean;
+  CAN_CREATE_OVP?: boolean;
+  CREATION_BLOCK_REASON?: string;
+  creationOptions?: SuivieClientelCreationOptions;
+
+  [key: string]: unknown;
 }
 
 export interface CreanceApiResponse {

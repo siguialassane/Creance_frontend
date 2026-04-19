@@ -11,10 +11,10 @@ export class TypeEcheancierService {
 
   static async getByCode(apiClient: ApiClient, code: string): Promise<TypeEcheancier> {
     const response = await apiClient.get<TypeEcheancierApiResponse>(`${TypeEcheancierService.BASE_URL}/${code}`);
-    if (!response.data.data || response.data.data.length === 0) {
+    if (!response.data.data) {
       throw new Error("TypeEcheancier non trouvé");
     }
-    return response.data.data[0];
+    return response.data.data as unknown as TypeEcheancier;
   }
 
   static async create(apiClient: ApiClient, type: TypeEcheancierCreateRequest): Promise<TypeEcheancierApiResponse> {

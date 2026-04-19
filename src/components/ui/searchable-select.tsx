@@ -17,12 +17,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { PaginationInfo } from "@/types/pagination"
 
 export interface SearchableSelectItem {
   value: string
   label: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 interface SearchableSelectProps {
@@ -85,15 +84,6 @@ export function SearchableSelect({
       }, 100)
     }
   }, [open, onSearchChange])
-
-  // Empêcher la fermeture du popover quand on clique à l'intérieur
-  const handlePopoverInteractOutside = React.useCallback((e: Event) => {
-    // Empêcher la fermeture si on clique dans le popover ou sur un autre champ du formulaire
-    const target = e.target as HTMLElement
-    if (target.closest('[role="dialog"]') || target.closest('[cmdk-root]')) {
-      e.preventDefault()
-    }
-  }, [])
 
   // Gérer le changement de recherche
   const handleSearchChange = React.useCallback((newSearch: string) => {
@@ -172,6 +162,7 @@ export function SearchableSelect({
       <PopoverTrigger asChild>
         <div className="relative w-full">
           <Button
+            type="button"
             variant="outline"
             role="combobox"
             aria-expanded={open}
@@ -188,9 +179,11 @@ export function SearchableSelect({
               backgroundColor: disabled ? '#f3f4f6' : '#f3f4f6',
             }}
           >
-            {value
-              ? (displayValue ? displayValue(selectedItem!) : selectedItem?.label) || placeholder
-              : placeholder}
+            <span className="min-w-0 flex-1 truncate text-left">
+              {value
+                ? (displayValue ? displayValue(selectedItem!) : selectedItem?.label) || placeholder
+                : placeholder}
+            </span>
             {isLoading && !open ? (
               <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin opacity-50" />
             ) : (

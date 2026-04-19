@@ -127,6 +127,28 @@ export function useCreateBanque() {
   });
 }
 
+/**
+ * Hook pour mettre à jour une banque
+ */
+export function useUpdateBanque() {
+  const queryClient = useQueryClient();
+  const apiClient = useApiClient();
+
+  return useMutation({
+    mutationFn: ({ code, banque }: { code: string; banque: BanqueUpdateRequest }) =>
+      BanqueService.update(apiClient, code, banque),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: banqueKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: banqueKeys.detail(variables.code) });
+      toast.success("Banque mise à jour avec succès");
+    },
+    onError: (error: unknown) => {
+      const message = (error as ApiError)?.response?.data?.message || "Erreur lors de la mise à jour de la banque";
+      toast.error(message);
+    },
+  });
+}
+
 
 /**
  * Hook pour supprimer une banque

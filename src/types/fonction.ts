@@ -1,12 +1,8 @@
 export interface Fonction {
   FONCT_CODE: string;
   FONCT_LIB: string;
-  FONCT_LIB_LONG?: string | null;
-  FONCT_NUM?: number | null;
-  // Anciens champs pour compatibilité
-  FONCT_LIBLONG?: string;
-  FONCT_ACTIF?: boolean;
-  FONCT_ORDRE?: number;
+  FONCT_LIB_LONG: string | null;
+  FONCT_NUM: string | null;
 }
 
 export interface FonctionApiResponse {
@@ -30,14 +26,16 @@ export interface FonctionApiResponse {
 }
 
 export interface FonctionCreateRequest {
+  FONCT_CODE: string;
   FONCT_LIB: string;
-  FONCT_LIBLONG?: string;
-  FONCT_ACTIF?: boolean;
-  FONCT_ORDRE?: number;
+  FONCT_LIB_LONG?: string | null;
+  FONCT_NUM?: string | null;
 }
 
-export interface FonctionUpdateRequest extends Partial<FonctionCreateRequest> {
-  FONCT_CODE: string;
+export interface FonctionUpdateRequest {
+  FONCT_LIB: string;
+  FONCT_LIB_LONG?: string | null;
+  FONCT_NUM?: string | null;
 }
 
 

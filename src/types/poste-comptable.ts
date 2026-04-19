@@ -1,13 +1,14 @@
 export interface PosteComptable {
   PC_CODE: string;
-  PC_LIB: string;
-  PC_LIBLONG?: string;
-  PC_ACTIF?: boolean;
-  PC_ORDRE?: number;
+  PC_LIB?: string | null;
+  TYPE_PC_NUM?: number | null;
+  PC_SITGEO?: string | null;
+  PC_VILLE?: string | null;
+  PC_REM?: string | null;
 }
 
 export interface PosteComptableApiResponse {
-  data: PosteComptable[];
+  data: PosteComptable | PosteComptable[];
   message: string;
   status: string;
   error?: {
@@ -19,13 +20,13 @@ export interface PosteComptableApiResponse {
 }
 
 export interface PosteComptableCreateRequest {
-  PC_LIB: string;
-  PC_LIBLONG?: string;
-  PC_ACTIF?: boolean;
-  PC_ORDRE?: number;
+  PC_CODE: string;
+  PC_LIB?: string | null;
+  TYPE_PC_NUM?: number | null;
+  PC_SITGEO?: string | null;
+  PC_VILLE?: string | null;
+  PC_REM?: string | null;
 }
 
-export interface PosteComptableUpdateRequest extends Partial<PosteComptableCreateRequest> {
-  PC_CODE: string;
-}
+export interface PosteComptableUpdateRequest extends Partial<PosteComptableCreateRequest> {}
 

@@ -1,6 +1,8 @@
 export interface TypeContrat {
   TYPCONT_CODE: string;
   TYPCONT_LIB: string;
+  code?: string;
+  libelle?: string;
 }
 
 export interface TypeContratApiResponse {
@@ -16,10 +18,10 @@ export interface TypeContratApiResponse {
 }
 
 export interface TypeContratCreateRequest {
-  TYPCONT_CODE: string;
-  TYPCONT_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeContratUpdateRequest {
-  TYPCONT_LIB: string;
+  libelle: string;
 }

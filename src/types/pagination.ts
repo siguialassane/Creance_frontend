@@ -16,6 +16,7 @@ export interface PaginationParams {
   search?: string;
   sortDirection?: 'ASC' | 'DESC';
   sortBy?: string;
+  banqueCode?: string;
   // Filtres pour créances
   statutRecouvrement?: string;
   groupeCreance?: string;
@@ -100,6 +101,10 @@ export function normalizePaginationParams(params: PaginationParams): PaginationP
   // Sort by validation
   if (params.sortBy && params.sortBy.trim() !== '') {
     normalized.sortBy = params.sortBy.trim();
+  }
+
+  if (params.banqueCode && params.banqueCode.trim() !== '') {
+    normalized.banqueCode = params.banqueCode.trim();
   }
 
   return normalized;

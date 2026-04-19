@@ -4,7 +4,8 @@ export class EntiteService {
   private static readonly BASE_URL = "/entites";
 
   static async getAll(apiClient: any): Promise<any> {
-    const response = await apiClient.get(`${EntiteService.BASE_URL}`);
+    // Utilise /all pour obtenir une liste simple non paginée
+    const response = await apiClient.get(`${EntiteService.BASE_URL}/all`);
     return response.data;
   }
 

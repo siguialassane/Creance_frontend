@@ -1,6 +1,11 @@
 import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
 
+const authUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
+const useSecureCookies = authUrl
+  ? authUrl.startsWith("https://")
+  : process.env.NODE_ENV === "production";
+
 type LoginResponse = {
   data?: {
     token: string;
@@ -67,6 +72,7 @@ async function loginWithCredentials(username: string, password: string) {
 }
 
 export const authConfig = {
+  secret: process.env.AUTH_SECRET,
   session: { strategy: "jwt" },
   cookies: {
     sessionToken: {
@@ -75,7 +81,7 @@ export const authConfig = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: useSecureCookies,
         maxAge: 60 * 60 * 24 * 30, // 30 jours (aligné avec le refresh token)
       },
     },
@@ -103,8 +109,12 @@ export const authConfig = {
     }),
   ],
   callbacks: {
-    authorized({ auth, request: _req }) {
-      // Only allow when a valid session exists
+    authorized({ auth, request }) {
+      const { pathname } = request.nextUrl;
+      if (pathname.startsWith("/api/auth")) {
+        return true;
+      }
+
       return !!auth?.user;
     },
     async jwt({ token, user, trigger, session }) {

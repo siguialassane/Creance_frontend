@@ -158,6 +158,24 @@ export default function Sidebar({ isOpen = true, onClose, className, isCollapsed
     useEffect(() => {
         if (!isClient || !pathname) return;
 
+        const matchesSubMenu = (subMenus: MenuItem["subMenus"], parentPath: string): boolean => {
+            if (!subMenus) return false;
+
+            return subMenus.some(subMenu => {
+                const subMenuPath = subMenu.path === ""
+                    ? parentPath
+                    : subMenu.path.startsWith("/")
+                        ? subMenu.path
+                        : `${parentPath}/${subMenu.path}`;
+
+                if (pathname === subMenuPath) {
+                    return true;
+                }
+
+                return matchesSubMenu(subMenu.subMenus, subMenuPath);
+            });
+        };
+
         // Trouver le menu correspondant à l'URL actuelle
         const currentMenu = menuItems.find(menu => {
             // Vérifier si l'URL correspond au menu principal
@@ -166,19 +184,7 @@ export default function Sidebar({ isOpen = true, onClose, className, isCollapsed
             }
             // Vérifier si l'URL correspond à un sous-menu
             if (menu.subMenus) {
-                return menu.subMenus.some(subMenu => {
-                    // Si le path est vide, le sous-menu pointe vers le path parent
-                    // Si le path commence par /, c'est un path absolu
-                    let subMenuPath: string
-                    if (subMenu.path === "") {
-                        subMenuPath = menu.path || ""
-                    } else if (subMenu.path.startsWith("/")) {
-                        subMenuPath = subMenu.path // Path absolu
-                    } else {
-                        subMenuPath = `${menu.path || ""}/${subMenu.path}`
-                    }
-                    return pathname === subMenuPath;
-                });
+                return matchesSubMenu(menu.subMenus, menu.path || "");
             }
             return false;
         });

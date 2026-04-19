@@ -8,12 +8,31 @@ export class OperationService {
     return response.data;
   }
 
+  static async getAllPaginated(apiClient: any, params: {
+    page?: number;
+    size?: number;
+    search?: string;
+    sortBy?: string;
+    sortDirection?: string;
+  }): Promise<OperationApiResponse> {
+    const response = await apiClient.get<OperationApiResponse>(OperationService.BASE_URL, {
+      params: {
+        page: params.page || 0,
+        size: params.size || 50,
+        ...(params.search && { search: params.search }),
+        ...(params.sortBy && { sortBy: params.sortBy }),
+        ...(params.sortDirection && { sortDirection: params.sortDirection }),
+      },
+    });
+    return response.data;
+  }
+
   static async getByCode(apiClient: any, code: string): Promise<Operation> {
     const response = await apiClient.get<OperationApiResponse>(`${OperationService.BASE_URL}/${code}`);
-    if (!response.data.data || response.data.data.length === 0) {
+    if (!response.data.data) {
       throw new Error("Opération non trouvée");
     }
-    return response.data.data[0];
+    return response.data.data;
   }
 
   static async create(apiClient: any, operation: OperationCreateRequest): Promise<OperationApiResponse> {
@@ -33,7 +52,7 @@ export class OperationService {
 
   static async search(apiClient: any, searchTerm: string): Promise<OperationApiResponse> {
     const response = await apiClient.get<OperationApiResponse>(`${OperationService.BASE_URL}/search`, {
-      params: { q: searchTerm }
+      params: { libelle: searchTerm }
     });
     return response.data;
   }

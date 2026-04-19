@@ -1,13 +1,14 @@
 export interface Quartier {
-  Q_CODE: string;
-  Q_LIB: string;
-  Q_LIBLONG?: string;
-  Q_ACTIF?: boolean;
-  Q_ORDRE?: number;
+  QUART_CODE: string;
+  ZONE_CODE?: string;
+  VILLE_CODE: string;
+  QUART_LIB?: string;
+  QUART_LIB_LONG?: string;
+  QUART_NUM?: string;
 }
 
 export interface QuartierApiResponse {
-  data: Quartier[];
+  data: Quartier[] | { content: Quartier[]; totalElements: number; totalPages: number };
   message: string;
   status: string;
   error?: {
@@ -19,13 +20,19 @@ export interface QuartierApiResponse {
 }
 
 export interface QuartierCreateRequest {
-  Q_LIB: string;
-  Q_LIBLONG?: string;
-  Q_ACTIF?: boolean;
-  Q_ORDRE?: number;
+  QUART_CODE: string;
+  VILLE_CODE: string;
+  QUART_LIB: string;
+  ZONE_CODE?: string;
+  QUART_LIB_LONG?: string;
+  QUART_NUM?: string;
 }
 
-export interface QuartierUpdateRequest extends Partial<QuartierCreateRequest> {
-  Q_CODE: string;
+export interface QuartierUpdateRequest {
+  VILLE_CODE: string;
+  QUART_LIB: string;
+  ZONE_CODE?: string;
+  QUART_LIB_LONG?: string;
+  QUART_NUM?: string;
 }
 

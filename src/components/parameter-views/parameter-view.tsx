@@ -15,6 +15,10 @@ import { getFormFieldsForType, validateFormField, type FormFieldConfig } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { useBanquesSearchable } from '@/hooks/useBanquesSearchable'
+import { useEntitesSearchable } from '@/hooks/useEntitesSearchable'
+import { useQuartiersSearchable } from '@/hooks/useQuartiersSearchable'
+import { useVillesSearchable } from '@/hooks/useVillesSearchable'
+import { useZonesSearchable } from '@/hooks/useZonesSearchable'
 
 interface PaginationData {
   totalElements?: number
@@ -70,6 +74,8 @@ export default function ParameterView({
   type,
   useServerPagination = false
 }: ParameterViewProps) {
+  const isAgenceBanqueType = type === 'agence_de_banque'
+
   // Initialisation directe avec une fonction pour éviter les re-calculs
   const [data, setData] = useState<SimpleItem[]>([])
 
@@ -85,6 +91,7 @@ export default function ParameterView({
   // État pour la recherche (synchronisé avec DataTable)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentSearchValue, setCurrentSearchValue] = useState('')
+  const [selectedBanqueFilter, setSelectedBanqueFilter] = useState<{ value: string; label: string } | null>(null)
 
   // État pour indiquer le chargement lors de la pagination
   const [isPaginationLoading, setIsPaginationLoading] = useState(false)
@@ -111,6 +118,36 @@ export default function ParameterView({
   // Hook pour les banques - toujours appelé pour respecter les règles des hooks
   // Mais seulement utilisé si le type est agence_de_banque
   const banquesSearchable = useBanquesSearchable()
+  const entitesSearchable = useEntitesSearchable()
+
+  // Hook pour les quartiers
+  const quartiersSearchable = useQuartiersSearchable()
+
+  // Hook pour les villes
+  const villesSearchable = useVillesSearchable()
+
+  // Hook pour les zones
+  const zonesSearchable = useZonesSearchable()
+
+  // Mapping des hooks searchables par nom
+  const searchableHooks: Record<string, any> = {
+    useBanquesSearchable: banquesSearchable,
+    useEntitesSearchable: entitesSearchable,
+    useQuartiersSearchable: quartiersSearchable,
+    useVillesSearchable: villesSearchable,
+    useZonesSearchable: zonesSearchable,
+  }
+
+  const banqueFilterItems = useMemo(() => {
+    if (!selectedBanqueFilter) {
+      return banquesSearchable.items
+    }
+
+    const hasSelectedItem = banquesSearchable.items.some((item) => item.value === selectedBanqueFilter.value)
+    return hasSelectedItem
+      ? banquesSearchable.items
+      : [selectedBanqueFilter, ...banquesSearchable.items]
+  }, [banquesSearchable.items, selectedBanqueFilter])
   
   // Initialiser formData avec les champs requis (seulement au montage ou changement de type)
   useEffect(() => {
@@ -164,7 +201,7 @@ export default function ParameterView({
   // Dépendance pour le useEffect basée sur la pagination (mémoïsée)
   const paginationDependency = useMemo(() => {
     return useServerPagination ? JSON.stringify(paginationParams) : undefined
-  }, [useServerPagination, paginationParams.page, paginationParams.size, paginationParams.search, paginationParams.sortBy, paginationParams.sortDirection])
+  }, [useServerPagination, paginationParams.page, paginationParams.size, paginationParams.search, paginationParams.sortBy, paginationParams.sortDirection, paginationParams.banqueCode])
 
   useEffect(() => {
     if (type && currentConfig && apiData) {
@@ -176,8 +213,13 @@ export default function ParameterView({
       if (useServerPagination && apiData && typeof apiData === 'object' && !Array.isArray(apiData) && 'data' in apiData) {
         // Pour la pagination côté serveur, extraire depuis apiData.data.content
         const paginatedResponse = apiData as { data?: { content?: unknown[] } }
-        dataArray = Array.isArray(paginatedResponse.data?.content) 
-          ? paginatedResponse.data.content 
+        dataArray = Array.isArray(paginatedResponse.data?.content)
+          ? paginatedResponse.data.content
+          : []
+      } else if (apiData && typeof apiData === 'object' && !Array.isArray(apiData) && 'content' in apiData) {
+        // Cas où l'API retourne directement { content: [...] } sans wrapper 'data'
+        dataArray = Array.isArray((apiData as { content?: unknown[] }).content)
+          ? (apiData as { content: unknown[] }).content
           : []
       } else if (currentConfig?.dataKey === null) {
         // Les données sont déjà extraites dans le hook
@@ -195,6 +237,7 @@ export default function ParameterView({
 
       // Désactiver le chargement quand les données arrivent
       setIsTableLoading(false)
+      setIsPaginationLoading(false)
     } else if (initData) {
       // Utiliser les données initiales si pas de type spécifique
       setData(initData)
@@ -229,16 +272,18 @@ export default function ParameterView({
     formFields.forEach(field => {
       // Mapper depuis l'item vers le formulaire
       const apiKey = field.apiKey || field.key
-      // Essayer plusieurs clés possibles
-      // Pour agence_de_banque, banqueCode peut être dans banqueCode ou BQ_CODE
+
       if (field.key === 'banqueCode' && type === 'agence_de_banque') {
         itemData[field.key] = item.banqueCode || item.BQ_CODE || ''
+      } else if (type === 'agence_de_banque' && (field.key === 'ancAg' || field.key === 'ancBqagCode')) {
+        // Pour les champs optionnels ANC_AG et ANC_BQAG_CODE
+        itemData[field.key] = item[field.key] || item[apiKey] || ''
       } else {
-        itemData[field.key] = item[field.key] || item[apiKey] || 
+        itemData[field.key] = item[field.key] || item[apiKey] ||
                              (field.key === 'code' ? item.code : '') ||
                              (field.key === 'libelle' ? item.libelle : '') || ''
       }
-      
+
       // Pour les dates, convertir en format YYYY-MM-DD
       if (field.type === 'date' && itemData[field.key]) {
         try {
@@ -294,7 +339,7 @@ export default function ParameterView({
         )
       } else {
         const code = (item as any).code ?? (item as any).id
-        await deleteService(apiClient, String(code))
+        await (deleteService as any)(apiClient, String(code))
       }
 
       // Rafraîchir les données depuis le serveur
@@ -324,66 +369,87 @@ export default function ParameterView({
     setCurrentSearchValue('')
     setSearchQuery('')
 
-    const newParams = normalizePaginationParams({
-      ...paginationParams,
-      search: '',
-      page: 0 // Remettre à la page 0
-    })
-
-    // Mettre à jour les paramètres
-    setPaginationParams(newParams)
-
-    // Indiquer le chargement lors d'une recherche
+    // Indiquer le chargement
     setIsTableLoading(true)
     setIsPaginationLoading(true)
 
-    // Déclencher le refetch
-    const refetchResult = refetch()
-    if (refetchResult && typeof refetchResult.finally === 'function') {
-      refetchResult.finally(() => {
-        setIsTableLoading(false)
-        setIsPaginationLoading(false)
-      })
-    } else {
-      setIsTableLoading(false)
-      setIsPaginationLoading(false)
-    }
-  }, [paginationParams, refetch])
+    // Mettre à jour les paramètres — le changement de state déclenchera
+    // automatiquement le hook React Query avec les nouveaux params
+    setPaginationParams(prev => normalizePaginationParams({
+      ...prev,
+      search: '',
+      page: 0
+    }))
+  }, [])
 
   const handleSearchSubmit = useCallback(() => {
     // Utiliser currentSearchValue qui contient la valeur actuelle du champ
     const searchTerm = currentSearchValue
 
-    // Déclencher la recherche quand on clique sur le bouton
-    setPaginationParams(prev => {
-      const newParams = normalizePaginationParams({
-        ...prev,
-        search: searchTerm,
-        page: 0 // Remettre à la page 0 lors d'une recherche
-      })
+    // Indiquer le chargement
+    setIsTableLoading(true)
+    setIsPaginationLoading(true)
 
-      console.log("onSearchSubmit called - searchTerm:", searchTerm)
-      console.log("onSearchSubmit called - paginationParams:", newParams)
+    // Mettre à jour les paramètres de pagination — le changement de state
+    // déclenchera automatiquement le hook React Query avec les nouveaux params
+    setPaginationParams(prev => normalizePaginationParams({
+      ...prev,
+      search: searchTerm,
+      page: 0
+    }))
 
-      // Indiquer le chargement lors d'une recherche
-      setIsTableLoading(true)
-      setIsPaginationLoading(true)
+    console.log("onSearchSubmit called - searchTerm:", searchTerm)
+  }, [currentSearchValue])
 
-      // Déclencher le refetch
-      const refetchResult = refetch()
-      if (refetchResult && typeof refetchResult.finally === 'function') {
-        refetchResult.finally(() => {
-          setIsTableLoading(false)
-          setIsPaginationLoading(false)
-        })
-      } else {
-        setIsTableLoading(false)
-        setIsPaginationLoading(false)
-      }
+  const handleBanqueFilterChange = useCallback((banqueCode: string) => {
+    const selectedItem = banquesSearchable.items.find((item) => item.value === banqueCode)
 
-      return newParams
-    })
-  }, [currentSearchValue, refetch])
+    setSelectedBanqueFilter(
+      banqueCode
+        ? {
+            value: banqueCode,
+            label: selectedItem?.label || banqueCode,
+          }
+        : null
+    )
+
+    setIsTableLoading(true)
+    setIsPaginationLoading(true)
+
+    setPaginationParams((prev) => normalizePaginationParams({
+      ...prev,
+      banqueCode: banqueCode || undefined,
+      page: 0,
+    }))
+  }, [banquesSearchable.items])
+
+  const agenceBanqueFilter = useMemo(() => {
+    if (!isAgenceBanqueType) {
+      return null
+    }
+
+    return (
+      <div className="flex items-center gap-2 min-w-[280px] max-w-[360px]">
+        <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+          Banque
+        </Label>
+        <SearchableSelect
+          value={paginationParams.banqueCode || ''}
+          onValueChange={handleBanqueFilterChange}
+          items={banqueFilterItems}
+          placeholder="Filtrer par banque"
+          searchPlaceholder="Rechercher une banque..."
+          emptyMessage="Aucune banque trouvée"
+          disabled={banquesSearchable.isLoading || isTableLoading}
+          isLoading={banquesSearchable.isLoading}
+          hasMore={banquesSearchable.hasMore}
+          onLoadMore={banquesSearchable.loadMore}
+          isFetchingMore={banquesSearchable.isFetchingMore}
+          onSearchChange={banquesSearchable.setSearch}
+        />
+      </div>
+    )
+  }, [banqueFilterItems, banquesSearchable.hasMore, banquesSearchable.isFetchingMore, banquesSearchable.isLoading, banquesSearchable.loadMore, banquesSearchable.setSearch, handleBanqueFilterChange, isAgenceBanqueType, isTableLoading, paginationParams.banqueCode])
 
   // Fonction de validation qui ne met pas à jour l'état (pour éviter les re-renders infinis)
   const isValidForm = useMemo((): boolean => {
@@ -452,6 +518,62 @@ export default function ParameterView({
     }
   }
 
+  const extractMutationItem = useCallback((response: unknown): Record<string, unknown> | null => {
+    if (!response || typeof response !== 'object') {
+      return null
+    }
+
+    const responseData = (response as { data?: unknown }).data
+    if (!responseData || typeof responseData !== 'object' || Array.isArray(responseData)) {
+      return null
+    }
+
+    if ('content' in responseData) {
+      return null
+    }
+
+    return responseData as Record<string, unknown>
+  }, [])
+
+  const syncLocalDataFromMutation = useCallback((
+    response: unknown,
+    mode: 'create' | 'update',
+    previousItem?: SimpleItem | null
+  ) => {
+    if (!currentConfig?.mapper) {
+      return
+    }
+
+    const mutationItem = extractMutationItem(response)
+    if (!mutationItem) {
+      return
+    }
+
+    const mappedItem = currentConfig.mapper(mutationItem as any) as SimpleItem
+    if (mappedItem?.id == null) {
+      return
+    }
+
+    setData((prev) => {
+      const withoutTemps = prev.filter((item) => !String(item.id || '').startsWith('temp_'))
+
+      if (mode === 'create') {
+        return [mappedItem, ...withoutTemps.filter((item) => item.id !== mappedItem.id)]
+      }
+
+      const previousIdentifiers = new Set<string | number>()
+      if (previousItem?.id !== undefined) previousIdentifiers.add(previousItem.id)
+      if (previousItem?.code !== undefined) previousIdentifiers.add(previousItem.code as string | number)
+
+      return withoutTemps.map((item) => {
+        if (item.id === mappedItem.id || previousIdentifiers.has(item.id) || previousIdentifiers.has(item.code as string | number)) {
+          return mappedItem
+        }
+        return item
+      })
+    })
+  }, [currentConfig, extractMutationItem])
+
   const handleCreateNewItem = async () => {
     if (!type || !currentConfig) return
 
@@ -478,7 +600,8 @@ export default function ParameterView({
       setData(prev => [...prev, newItem])
 
       // Déclencher l'ajout côté serveur selon le type
-      await handleServerCreate(rawItem, type)
+      const createResponse = await handleServerCreate(rawItem, type)
+      syncLocalDataFromMutation(createResponse, 'create')
 
       // Fermer le formulaire et réinitialiser les données
       setShowForm(false)
@@ -500,7 +623,10 @@ export default function ParameterView({
       setFormError(errorMessage)
 
       // Supprimer l'élément temporaire en cas d'erreur
-      setData(prev => prev.filter(item => !item.id.startsWith('temp_')))
+      setData(prev => prev.filter(item => {
+        const itemId = String(item.id || '')
+        return !itemId.startsWith('temp_')
+      }))
     } finally {
       setIsFormLoading(false)
     }
@@ -539,15 +665,18 @@ export default function ParameterView({
         // Obtenir le code de l'élément à mettre à jour
         const itemCode = String(editingItem.code || editingItem.id || '')
         // Appeler le service directement avec l'objet brut
-        await updateService(apiClient, itemCode, rawItem)
+        const updateResponse = await (updateService as any)(apiClient, itemCode, rawItem)
+        syncLocalDataFromMutation(updateResponse, 'update', editingItem)
       }
 
-      // Invalider le cache et afficher un message de succès
-      queryClient.invalidateQueries({ queryKey: [type] })
+      // Invalider le cache avec la bonne clé
+      const config = currentConfig as any
+      const queryKey = config?.queryKeyBase ? [config.queryKeyBase] : [type]
+      queryClient.invalidateQueries({ queryKey, exact: false })
       toast.success('Élément mis à jour avec succès')
 
       // Rafraîchir les données depuis le serveur
-      refetch()
+      await refetch()
 
       // Fermer le formulaire
       setShowForm(false)
@@ -610,14 +739,18 @@ export default function ParameterView({
       }
 
       // Appeler le service directement
-      await createService(apiClient, item)
+      const response = await createService(apiClient, item)
 
-      // Invalider le cache et afficher un message de succès
-      queryClient.invalidateQueries({ queryKey: [itemType] })
+      // Invalider le cache avec la bonne clé
+      const config = currentConfig as any
+      const queryKey = config?.queryKeyBase ? [config.queryKeyBase] : [itemType]
+      queryClient.invalidateQueries({ queryKey, exact: false })
       toast.success('Élément créé avec succès')
 
       // Rafraîchir les données depuis le serveur
-      refetch()
+      await refetch()
+
+      return response
 
     } catch (error) {
       console.error('Erreur lors de la création:', error)
@@ -791,8 +924,9 @@ export default function ParameterView({
         onSearchChange={handleSearchChange}
         onSearchValueChange={handleSearchValueChange}
         onSearchReset={handleSearchReset}
-        onSearchSubmit={currentConfig?.hook?.name.includes('Paginated') ? handleSearchSubmit : undefined}
+        onSearchSubmit={useServerPagination ? handleSearchSubmit : undefined}
         onRefresh={refetch}
+        extraActionsSlot={agenceBanqueFilter}
         onEdit={handleEdit}
         onDelete={handleDelete}
         status={isLoading}
@@ -805,7 +939,7 @@ export default function ParameterView({
 
       {/* Formulaire modal */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-xl border shadow-xl">
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden rounded-xl border shadow-xl">
           {/* Header stylé */}
           <div className="bg-gradient-to-r from-emerald-50 to-white border-b px-6 py-4">
             <DialogHeader>
@@ -836,7 +970,7 @@ export default function ParameterView({
               </div>
             )}
 
-            <div className="space-y-4 mb-5">
+            <div className="grid grid-cols-2 gap-x-5 gap-y-4 mb-5">
               {formFields.map((field) => (
                 <div key={field.key} className="space-y-2">
                   <Label 
@@ -846,20 +980,20 @@ export default function ParameterView({
                     {field.label} {field.required && '*'}
                   </Label>
                   
-                  {field.type === 'searchable-select' && field.searchableHook === 'useBanquesSearchable' ? (
+                  {field.type === 'searchable-select' && field.searchableHook && searchableHooks[field.searchableHook] ? (
                     <SearchableSelect
                       value={formData[field.key] || ''}
                       onValueChange={(value) => handleFieldChange(field.key, value)}
-                      items={banquesSearchable.items}
-                      placeholder={banquesSearchable.isLoading ? 'Chargement...' : (field.placeholder || `Sélectionner ${field.label.toLowerCase()}...`)}
+                      items={searchableHooks[field.searchableHook].items}
+                      placeholder={searchableHooks[field.searchableHook].isLoading ? 'Chargement...' : (field.placeholder || `Sélectionner ${field.label.toLowerCase()}...`)}
                       searchPlaceholder={`Rechercher ${field.label.toLowerCase()}...`}
                       emptyMessage={`Aucune ${field.label.toLowerCase()} trouvée`}
-                      disabled={banquesSearchable.isLoading || isFormLoading}
-                      isLoading={banquesSearchable.isLoading}
-                      hasMore={banquesSearchable.hasMore}
-                      onLoadMore={banquesSearchable.loadMore}
-                      isFetchingMore={banquesSearchable.isFetchingMore}
-                      onSearchChange={banquesSearchable.setSearch}
+                      disabled={searchableHooks[field.searchableHook].isLoading || isFormLoading}
+                      isLoading={searchableHooks[field.searchableHook].isLoading}
+                      hasMore={searchableHooks[field.searchableHook].hasMore}
+                      onLoadMore={searchableHooks[field.searchableHook].loadMore}
+                      isFetchingMore={searchableHooks[field.searchableHook].isFetchingMore}
+                      onSearchChange={searchableHooks[field.searchableHook].setSearch}
                       className={formErrors[field.key] ? 'border-red-500' : formData[field.key] ? 'border-[#28A325]' : ''}
                     />
                   ) : field.type === 'select' && field.options ? (
@@ -914,6 +1048,7 @@ export default function ParameterView({
                       maxLength={field.maxLength}
                       min={field.min}
                       max={field.max}
+                      disabled={isFormLoading || ((type === 'param' || type === 'statut_salarie' || type === 'type_debiteur' || type === 'type_echeancier' || type === 'type_charge' || type === 'type_operation') && !!editingItem && field.key === 'code')}
                       style={{
                         border: '1px solid #000',
                         padding: '5px 15px',

@@ -7,18 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  Search, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
+import {
+  Search,
+  Plus,
+  Edit,
+  Trash2,
   MoreHorizontal,
-  Building2,
-  MapPin,
-  User,
-  Phone,
-  Mail,
   Banknote
 } from 'lucide-react'
 import { 
@@ -33,7 +27,7 @@ import AgenceBanqueForm from './agence-banque-form'
 export default function ModernAgenceBanqueView() {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const [sortField, setSortField] = useState<keyof AgenceBanque>('AG_LIB')
+  const [sortField, setSortField] = useState<keyof AgenceBanque>('BQAG_LIB')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [itemsPerPage] = useState(10)
   const [showForm, setShowForm] = useState(false)
@@ -64,16 +58,16 @@ export default function ModernAgenceBanqueView() {
   // Filtrage et tri des données
   const filteredAndSortedAgences = useMemo(() => {
     let filtered = agences.filter(agence =>
-      agence.AG_LIB?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agence.AG_CODE?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agence.AG_RESPONS?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agence.BQ_CODE?.toLowerCase().includes(searchTerm.toLowerCase())
+      agence.BQAG_LIB?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agence.BQAG_CODE?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agence.BQ_CODE?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agence.BQAG_NUM?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
     filtered.sort((a, b) => {
       const aValue = a[sortField] || ''
       const bValue = b[sortField] || ''
-      
+
       if (sortDirection === 'asc') {
         return aValue < bValue ? -1 : aValue > bValue ? 1 : 0
       } else {
@@ -108,9 +102,9 @@ export default function ModernAgenceBanqueView() {
     setConfirmationModal({
       isOpen: true,
       title: 'Supprimer l\'agence',
-      message: `Êtes-vous sûr de vouloir supprimer l'agence "${agence.AG_LIB}" ?`,
+      message: `Êtes-vous sûr de vouloir supprimer l'agence "${agence.BQAG_LIB}" (${agence.BQAG_CODE}) ?`,
       onConfirm: () => {
-        deleteAgenceMutation.mutate(agence.AG_CODE, {
+        deleteAgenceMutation.mutate(agence.BQAG_CODE, {
           onSuccess: () => {
             setConfirmationModal({ isOpen: false, title: '', message: '', onConfirm: () => {} })
           }
@@ -121,9 +115,9 @@ export default function ModernAgenceBanqueView() {
 
   const handleFormSubmit = (formData: AgenceBanqueCreateRequest | AgenceBanqueUpdateRequest) => {
     if (editingAgence) {
-      // Mise à jour
+      // Mise à jour — utiliser la clé composite (BQ_CODE, BQAG_LIB)
       updateAgenceMutation.mutate({
-        code: editingAgence.AG_CODE,
+        code: `${editingAgence.BQ_CODE}/${editingAgence.BQAG_LIB}`,
         agence: formData as AgenceBanqueUpdateRequest
       }, {
         onSuccess: () => {
@@ -207,7 +201,7 @@ export default function ModernAgenceBanqueView() {
       {/* Agences Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {paginatedAgences.map((agence) => (
-          <Card key={agence.AG_CODE} className="hover:shadow-lg transition-shadow">
+          <Card key={`${agence.BQ_CODE}-${agence.BQAG_CODE}`} className="hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -215,10 +209,10 @@ export default function ModernAgenceBanqueView() {
                     <Banknote className="h-5 w-5 text-emerald-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">{agence.AG_LIB}</CardTitle>
-                    <p className="text-sm text-gray-500">{agence.AG_CODE}</p>
+                    <CardTitle className="text-lg">{agence.BQAG_LIB}</CardTitle>
+                    <p className="text-sm text-gray-500">Code: {agence.BQAG_CODE}</p>
                     <Badge variant="secondary" className="text-xs mt-1">
-                      {agence.BQ_CODE}
+                      Banque: {agence.BQ_CODE}
                     </Badge>
                   </div>
                 </div>
@@ -233,7 +227,7 @@ export default function ModernAgenceBanqueView() {
                       <Edit className="mr-2 h-4 w-4" />
                       Modifier
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => handleDelete(agence)}
                       className="text-red-600"
                     >
@@ -244,30 +238,25 @@ export default function ModernAgenceBanqueView() {
                 </DropdownMenu>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {agence.AG_RESPONS && (
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">{agence.AG_RESPONS}</span>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-xs font-medium text-gray-500 uppercase">N° Agence</span>
+                  <p className="text-gray-700 font-medium">{agence.BQAG_NUM || '—'}</p>
                 </div>
-              )}
-              {agence.AG_ADRESS && (
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">{agence.AG_ADRESS}</span>
+                <div>
+                  <span className="text-xs font-medium text-gray-500 uppercase">Code Banque</span>
+                  <p className="text-gray-700 font-medium">{agence.BQ_CODE}</p>
                 </div>
-              )}
-              {agence.AG_CONTACT && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">{agence.AG_CONTACT}</span>
+                <div>
+                  <span className="text-xs font-medium text-gray-500 uppercase">Anc. Code Agence</span>
+                  <p className="text-gray-700 font-medium">{agence.ANC_AG || '—'}</p>
                 </div>
-              )}
-              {agence.AG_SIGLE && (
-                <Badge variant="secondary" className="w-fit">
-                  {agence.AG_SIGLE}
-                </Badge>
-              )}
+                <div>
+                  <span className="text-xs font-medium text-gray-500 uppercase">Anc. Code BQ-AG</span>
+                  <p className="text-gray-700 font-medium">{agence.ANC_BQAG_CODE || '—'}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ))}

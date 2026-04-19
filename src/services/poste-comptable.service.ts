@@ -10,10 +10,11 @@ export class PosteComptableService {
 
   static async getByCode(apiClient: any, code: string): Promise<PosteComptable> {
     const response = await apiClient.get<PosteComptableApiResponse>(`${PosteComptableService.BASE_URL}/${code}`);
-    if (!response.data.data || response.data.data.length === 0) {
+    const data = response.data.data;
+    if (!data || Array.isArray(data)) {
       throw new Error("Poste comptable non trouvé");
     }
-    return response.data.data[0];
+    return data;
   }
 
   static async create(apiClient: any, poste: PosteComptableCreateRequest): Promise<PosteComptableApiResponse> {
@@ -33,7 +34,7 @@ export class PosteComptableService {
 
   static async search(apiClient: any, searchTerm: string): Promise<PosteComptableApiResponse> {
     const response = await apiClient.get<PosteComptableApiResponse>(`${PosteComptableService.BASE_URL}/search`, {
-      params: { q: searchTerm }
+      params: { libelle: searchTerm }
     });
     return response.data;
   }

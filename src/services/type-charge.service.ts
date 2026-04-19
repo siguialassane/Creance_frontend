@@ -11,19 +11,25 @@ export class TypeChargeService {
 
   static async getByCode(apiClient: ApiClient, code: string): Promise<TypeCharge> {
     const response = await apiClient.get<TypeChargeApiResponse>(`${TypeChargeService.BASE_URL}/${code}`);
-    if (!response.data.data || response.data.data.length === 0) {
+    if (!response.data.data) {
       throw new Error("TypeCharge non trouvé");
     }
-    return response.data.data[0];
+    return response.data.data as unknown as TypeCharge;
   }
 
   static async create(apiClient: ApiClient, type: TypeChargeCreateRequest): Promise<TypeChargeApiResponse> {
-    const response = await apiClient.post<TypeChargeApiResponse>(TypeChargeService.BASE_URL, type);
+    const response = await apiClient.post<TypeChargeApiResponse>(
+      TypeChargeService.BASE_URL,
+      type
+    );
     return response.data;
   }
 
   static async update(apiClient: ApiClient, code: string, type: TypeChargeUpdateRequest): Promise<TypeChargeApiResponse> {
-    const response = await apiClient.put<TypeChargeApiResponse>(`${TypeChargeService.BASE_URL}/${code}`, type);
+    const response = await apiClient.put<TypeChargeApiResponse>(
+      `${TypeChargeService.BASE_URL}/${code}`,
+      type
+    );
     return response.data;
   }
 

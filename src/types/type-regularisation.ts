@@ -16,10 +16,10 @@ export interface TypeRegularisationApiResponse {
 }
 
 export interface TypeRegularisationCreateRequest {
-  REGUL_TYPE_CODE: string;
-  REGUL_TYPE_LIB: string;
+  code: string;
+  libelle: string;
 }
 
 export interface TypeRegularisationUpdateRequest {
-  REGUL_TYPE_LIB: string;
+  libelle: string;
 }

@@ -24,17 +24,18 @@ export interface BanqueApiResponse {
 }
 
 export interface BanqueCreateRequest {
+  BQ_CODE: string;
   BQ_LIB: string;
-  BQ_RESPONS?: string;
-  BQ_ADRESS?: string;
-  BQ_CONTACT?: string;
-  BQ_LIBLONG?: string;
-  BQ_SIGLE?: string;
-  BQ_AUTLIB?: string;
+  CPTOPER_CODE?: string | null;
+  BQAG?: string | null;
+  BQ_RESPONS?: string | null;
+  BQ_ADRESS?: string | null;
+  BQ_CONTACT?: string | null;
+  BQ_LIBLONG?: string | null;
+  BQ_SIGLE?: string | null;
+  BQ_AUTLIB?: string | null;
 }
 
-export interface BanqueUpdateRequest extends Partial<BanqueCreateRequest> {
-  BQ_CODE: string;
-}
+export interface BanqueUpdateRequest extends Partial<BanqueCreateRequest> {}
 
 

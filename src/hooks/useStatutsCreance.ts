@@ -20,22 +20,10 @@ export function useStatutsCreance() {
 
   return useQuery({
     queryKey: statutCreanceKeys.lists(),
-    queryFn: async () => {
-      try {
-        const res = await StatutCreanceService.getAll(apiClient);
-        console.log('📦 Réponse brute statuts creance:', res);
-        
-        // Structure réelle de l'API: { data: { content: [...], totalElements, ... } }
-        // Le service retourne response.data, donc res = { data: { content: [...] }, ... }
-        const data = (res as any)?.data?.content || (res as any)?.content || (res as any)?.data || [];
-        
-        console.log('✅ Données statuts creance transformées:', data);
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error('❌ Erreur chargement statuts creance:', error);
-        return [];
-      }
-    },
+    queryFn: () => StatutCreanceService.getAll(apiClient).then((res) => {
+      const data = res.data;
+      return Array.isArray(data) ? data : [];
+    }),
     enabled: status === 'authenticated' && !!(session as any)?.accessToken,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {
@@ -64,7 +52,10 @@ export function useSearchStatutsCreance(searchTerm: string) {
 
   return useQuery({
     queryKey: statutCreanceKeys.search(searchTerm),
-    queryFn: () => StatutCreanceService.search(apiClient, searchTerm).then((res) => res.data),
+    queryFn: () => StatutCreanceService.search(apiClient, searchTerm).then((res) => {
+      const data = res.data;
+      return Array.isArray(data) ? data : [];
+    }),
     enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!searchTerm,
     staleTime: 1000 * 60 * 2, // 2 minutes pour les recherches
   });

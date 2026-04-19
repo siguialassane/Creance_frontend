@@ -11,10 +11,11 @@ export class TypeContratService {
 
   static async getByCode(apiClient: ApiClient, code: string): Promise<TypeContrat> {
     const response = await apiClient.get<TypeContratApiResponse>(`${TypeContratService.BASE_URL}/${code}`);
-    if (!response.data.data || response.data.data.length === 0) {
+    const item = Array.isArray(response.data.data) ? response.data.data[0] : response.data.data;
+    if (!item) {
       throw new Error("TypeContrat non trouvé");
     }
-    return response.data.data[0];
+    return item;
   }
 
   static async create(apiClient: ApiClient, type: TypeContratCreateRequest): Promise<TypeContratApiResponse> {

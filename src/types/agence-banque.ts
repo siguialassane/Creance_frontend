@@ -1,7 +1,8 @@
 export interface AgenceBanque {
-  BQAG_NUM: string;
-  BQAG_LIB: string;
   BQ_CODE: string;
+  BQAG_CODE: string;
+  BQAG_LIB: string;
+  BQAG_NUM: string | null;
   ANC_AG: string | null;
   ANC_BQAG_CODE: string | null;
 }
@@ -22,10 +23,11 @@ export interface AgenceBanqueCreateRequest {
   BQ_CODE: string;
   BQAG_CODE: string;
   BQAG_LIB: string;
-  // BQAG_NUM peut être absent (généré côté DB) selon le modèle.
   BQAG_NUM?: string | null;
   ANC_AG?: string | null;
   ANC_BQAG_CODE?: string | null;
 }
 
-export interface AgenceBanqueUpdateRequest extends Partial<AgenceBanqueCreateRequest> {}
+export interface AgenceBanqueUpdateRequest extends Partial<AgenceBanqueCreateRequest> {
+  AG_CODE?: string | null;
+}

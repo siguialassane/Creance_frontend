@@ -1,36 +1,33 @@
 export interface Journal {
-  J_CODE: string;
-  J_LIB: string;
-  J_LIBLONG?: string;
-  J_ACTIF?: boolean;
-  J_ORDRE?: number;
+  CODE_JOURNAL: number;
+  LIB_JOURNAL: string;
 }
 
 export interface JournalApiResponse {
-  data: Journal[];
-  message: string;
-  status: string;
+  data: {
+    content?: Journal[];
+    totalElements?: number;
+    totalPages?: number;
+    size?: number;
+    number?: number;
+    first?: boolean;
+    last?: boolean;
+  } | Journal[];
+  message?: string;
+  status?: string;
   error?: {
     code: string;
     details: string;
     path: string;
   };
-  timestamp: string;
+  timestamp?: string;
 }
 
 export interface JournalCreateRequest {
-  J_LIB: string;
-  J_LIBLONG?: string;
-  J_ACTIF?: boolean;
-  J_ORDRE?: number;
+  CODE_JOURNAL: number;
+  LIB_JOURNAL: string;
 }
 
-export interface JournalUpdateRequest extends Partial<JournalCreateRequest> {
-  J_CODE: string;
+export interface JournalUpdateRequest {
+  LIB_JOURNAL: string;
 }
-
-
-
-
-
-
