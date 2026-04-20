@@ -73,6 +73,33 @@ function extractBankLabel(optionLabel: string) {
   return optionLabel.split("/").pop()?.trim() || "-"
 }
 
+function formatRoundedAmountInput(value?: number | string | null) {
+  if (value === null || value === undefined || value === "") {
+    return ""
+  }
+
+  const normalized = String(value)
+    .replace(/[\u202f\u00a0\s]/g, "")
+    .replace(",", ".")
+    .replace(/[^\d.]/g, "")
+
+  if (!normalized) {
+    return ""
+  }
+
+  const [integerPart = "", ...decimalParts] = normalized.split(".")
+  const sanitized = decimalParts.length > 0
+    ? `${integerPart || "0"}.${decimalParts.join("")}`
+    : integerPart
+  const parsed = Number(sanitized)
+
+  if (!Number.isFinite(parsed)) {
+    return ""
+  }
+
+  return formatAmount(parsed).replace(/[\u202f\u00a0]/g, " ")
+}
+
 function getModeTitle(mode: OvpMode) {
   switch (mode) {
     case "creation":
@@ -214,6 +241,13 @@ function computeProjectedVirements(form: CreationFormState) {
   })
 }
 
+function buildInitialCreationForm(creance?: CreanceResponse | null): CreationFormState {
+  return {
+    ...emptyCreationForm(),
+    montantCreance: formatRoundedAmountInput(creance?.SOLDE_EXIGIBLE),
+  }
+}
+
 export default function OvpModePage({ mode }: OvpModePageProps) {
   const apiClient = useApiClient()
   const router = useRouter()
@@ -241,6 +275,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
   const [acteLoading, setActeLoading] = useState(false)
   const [selectedOvpCode, setSelectedOvpCode] = useState("")
   const [showOvpHistoryDialog, setShowOvpHistoryDialog] = useState(false)
+  const [showMissingDomiciliationDialog, setShowMissingDomiciliationDialog] = useState(false)
   const deferredCreanceSoldeSearch = useDeferredValue(creanceSoldeSearch)
 
   const clearCreanceSoldeListState = () => {
@@ -282,12 +317,15 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
           : await CreanceService.getSuivieClientelByCode(apiClient, codeFromQuery)
 
         setCreance(response)
-        setCreationForm(emptyCreationForm())
+        setCreationForm(buildInitialCreationForm(response))
         if (mode === "creation") {
           const initialActes = normalizeOptions(response.creationOptions?.actes)
           setDefaultActeOptions(initialActes)
           setActeOptions(initialActes)
           setActeSearch("")
+          setShowMissingDomiciliationDialog(!response.HAS_DOMICILIATION)
+        } else {
+          setShowMissingDomiciliationDialog(false)
         }
       } catch (err) {
         const message = (err as Error & { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -295,6 +333,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
           || "Impossible de récupérer la créance."
         setError(message)
         setCreance(null)
+        setShowMissingDomiciliationDialog(false)
       } finally {
         setLoading(false)
       }
@@ -520,12 +559,15 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
         ? await CreanceService.getSuivieClientelOvpCreationContext(apiClient, trimmedCode)
         : await CreanceService.getSuivieClientelByCode(apiClient, trimmedCode)
       setCreance(response)
-      setCreationForm(emptyCreationForm())
+      setCreationForm(buildInitialCreationForm(response))
       if (mode === "creation") {
         const initialActes = normalizeOptions(response.creationOptions?.actes)
         setDefaultActeOptions(initialActes)
         setActeOptions(initialActes)
         setActeSearch("")
+        setShowMissingDomiciliationDialog(!response.HAS_DOMICILIATION)
+      } else {
+        setShowMissingDomiciliationDialog(false)
       }
     } catch (err) {
       const message = (err as Error & { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -533,13 +575,18 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
         || "Impossible de récupérer la créance."
       setError(message)
       setCreance(null)
+      setShowMissingDomiciliationDialog(false)
     } finally {
       setLoading(false)
     }
   }
 
   const handleCreationFieldChange = (field: keyof CreationFormState, value: string) => {
-    setCreationForm((current) => ({ ...current, [field]: value }))
+    const nextValue = field === "montantCreance"
+      ? formatRoundedAmountInput(value)
+      : value
+
+    setCreationForm((current) => ({ ...current, [field]: nextValue }))
   }
 
   const handleActeSearchChange = async (value: string) => {
@@ -826,11 +873,6 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                       <span>Création OVP</span>
                       <span className="text-[12px] font-medium text-slate-500">{displayData.hasOvp ? `${displayData.ovpCount} OVP existant${displayData.ovpCount > 1 ? "s" : ""}` : "Aucun OVP existant"}</span>
                     </div>
-                    {!displayData.hasDomiciliation && displayData.creationBlockReason !== "-" && (
-                      <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
-                        {displayData.creationBlockReason}
-                      </div>
-                    )}
                     <div className="grid grid-cols-[1.15fr_0.95fr] gap-x-8 gap-y-3 p-4">
                       <FieldGroup>
                         <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Source Ovp</span><SearchableSelect value={creationForm.sourceOvpCode} onValueChange={(value) => handleCreationFieldChange("sourceOvpCode", value)} items={displayData.creationOptions.sourcesOvp} placeholder="Sélectionner" isLoading={false} /></div>
@@ -838,7 +880,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                         <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Acte</span><SearchableSelect value={creationForm.acteCode} onValueChange={(value) => handleCreationFieldChange("acteCode", value)} items={acteOptions} placeholder="Sélectionner" isLoading={acteLoading} onSearchChange={handleActeSearchChange} search={acteSearch} /></div>
                         <div className="grid grid-cols-[300px_250px] gap-4">
                           <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Date Début</span><Input type="date" value={creationForm.dateDebut} onChange={(event) => handleCreationFieldChange("dateDebut", event.target.value)} className="h-9 border-[#9fd89c]" /></div>
-                          <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Montant Créan.</span><Input value={creationForm.montantCreance} onChange={(event) => handleCreationFieldChange("montantCreance", event.target.value)} className="h-9 border-[#9fd89c] text-right" /></div>
+                          <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Montant Créan.</span><Input inputMode="decimal" value={creationForm.montantCreance} onChange={(event) => handleCreationFieldChange("montantCreance", event.target.value)} className="h-9 border-[#9fd89c] text-right tabular-nums" /></div>
                         </div>
                         <div className="grid grid-cols-[300px_250px] gap-4">
                           <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Date Fin</span><Input type="date" value={isManualDateFinMode ? creationForm.dateFin : creationPreview.dateFin} onChange={(event) => handleCreationFieldChange("dateFin", event.target.value)} disabled={!isManualDateFinMode} className={isManualDateFinMode ? "h-9 border-[#9fd89c]" : "h-9 border-[#9fd89c] bg-slate-100"} /></div>
@@ -1001,6 +1043,38 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
           <DialogFooter className="border-t border-slate-200 px-8 py-4">
             <Button type="button" variant="outline" className="min-w-[112px]" onClick={() => setShowOvpHistoryDialog(false)}>
               Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showMissingDomiciliationDialog}
+        onOpenChange={(open) => {
+          if (open) {
+            setShowMissingDomiciliationDialog(true)
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onInteractOutside={(event) => event.preventDefault()}
+          className="max-w-md border border-amber-200 bg-white shadow-xl"
+        >
+          <DialogHeader>
+            <DialogTitle className="text-[18px] font-semibold text-amber-900">Information</DialogTitle>
+            <DialogDescription className="text-[14px] leading-6 text-slate-700">
+              Le débiteur n&apos;a pas de domiciliation. L&apos;OVP sera enregistré sans domiciliation.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              className="bg-[#2444d7] text-white hover:bg-[#1a36b0]"
+              onClick={() => setShowMissingDomiciliationDialog(false)}
+            >
+              Ok
             </Button>
           </DialogFooter>
         </DialogContent>

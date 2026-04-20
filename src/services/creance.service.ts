@@ -2,14 +2,24 @@ import { CreanceCreateRequest, CreanceApiResponse, CreanceResponse, SuivieClient
 import { PaginationParams, ApiResponse } from "@/types/pagination";
 import { fetchPaginatedData, ApiClient } from "@/lib/api";
 
+type JsonRecord = Record<string, unknown>;
+
 export class CreanceService {
   private static readonly BASE_URL = "/creances";
+
+  private static cleanFormattedAmount(value: unknown): unknown {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    return value.replace(/[\u202f\u00a0\s]/g, '');
+  }
 
   /**
    * Nettoie les champs numériques en supprimant les espaces de formatage
    * pour éviter l'erreur ORA-01722 (nombre non valide)
    */
-  private static cleanNumericFields(data: any): any {
+  private static cleanNumericFields<T extends JsonRecord>(data: T): T {
     const cleaned = { ...data };
 
     // Champs numériques qui peuvent avoir des espaces de formatage
@@ -41,19 +51,19 @@ export class CreanceService {
   /**
    * Récupère toutes les créances avec pagination
    */
-  static async getAll(apiClient: ApiClient, params: PaginationParams = {}): Promise<ApiResponse<any>> {
-    return await fetchPaginatedData<any>(CreanceService.BASE_URL, params);
+  static async getAll(apiClient: ApiClient, params: PaginationParams = {}): Promise<ApiResponse<JsonRecord>> {
+    return await fetchPaginatedData<JsonRecord>(CreanceService.BASE_URL, params);
   }
 
   /**
    * Récupère toutes les créances (méthode legacy pour compatibilité)
    */
-  static async getAllLegacy(apiClient: any): Promise<any> {
+  static async getAllLegacy(apiClient: ApiClient): Promise<unknown> {
     const response = await apiClient.get(`${CreanceService.BASE_URL}`);
     return response.data;
   }
 
-  static async getByCode(apiClient: any, code: string): Promise<CreanceResponse> {
+  static async getByCode(apiClient: ApiClient, code: string): Promise<CreanceResponse> {
     const response = await apiClient.get(`${CreanceService.BASE_URL}/${code}`);
     if (!response.data.data) {
       throw new Error("Créance non trouvée");
@@ -61,7 +71,7 @@ export class CreanceService {
     return response.data.data;
   }
 
-  static async getSuivieClientelByCode(apiClient: any, code: string): Promise<CreanceResponse> {
+  static async getSuivieClientelByCode(apiClient: ApiClient, code: string): Promise<CreanceResponse> {
     const response = await apiClient.get(`${CreanceService.BASE_URL}/${code}/suivie-clientel`);
     if (!response.data.data) {
       throw new Error("Créance non trouvée pour le suivi clientèle");
@@ -69,7 +79,7 @@ export class CreanceService {
     return response.data.data;
   }
 
-  static async getSuivieClientelOvpCreationContext(apiClient: any, code: string): Promise<CreanceResponse> {
+  static async getSuivieClientelOvpCreationContext(apiClient: ApiClient, code: string): Promise<CreanceResponse> {
     const response = await apiClient.get(`${CreanceService.BASE_URL}/${code}/suivie-clientel/ovp-creation-context`);
     if (!response.data.data) {
       throw new Error("Contexte de création OVP introuvable");
@@ -77,15 +87,21 @@ export class CreanceService {
     return response.data.data;
   }
 
-  static async searchSuivieClientelOvpActes(apiClient: any, query = ""): Promise<Array<Record<string, unknown>>> {
+  static async searchSuivieClientelOvpActes(apiClient: ApiClient, query = ""): Promise<Array<Record<string, unknown>>> {
     const response = await apiClient.get(`${CreanceService.BASE_URL}/suivie-clientel/ovp/actes/search`, {
       params: { q: query },
     });
     return response.data.data || [];
   }
 
-  static async createSuivieClientelOvp(apiClient: any, code: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const response = await apiClient.post(`${CreanceService.BASE_URL}/${code}/suivie-clientel/ovp`, payload);
+  static async createSuivieClientelOvp(apiClient: ApiClient, code: string, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const cleanedPayload = {
+      ...payload,
+      montantCreance: this.cleanFormattedAmount(payload.montantCreance),
+      montantPeriodique: this.cleanFormattedAmount(payload.montantPeriodique),
+    };
+
+    const response = await apiClient.post(`${CreanceService.BASE_URL}/${code}/suivie-clientel/ovp`, cleanedPayload);
     return response.data.data;
   }
 
@@ -109,19 +125,19 @@ export class CreanceService {
     return response.data.data;
   }
 
-  static async create(apiClient: any, creance: CreanceCreateRequest): Promise<CreanceApiResponse> {
+  static async create(apiClient: ApiClient, creance: CreanceCreateRequest): Promise<CreanceApiResponse> {
     const cleanedCreance = this.cleanNumericFields(creance);
     const response = await apiClient.post(CreanceService.BASE_URL, cleanedCreance);
     return response.data;
   }
 
-  static async update(apiClient: any, code: string, creance: Partial<CreanceCreateRequest>): Promise<CreanceApiResponse> {
+  static async update(apiClient: ApiClient, code: string, creance: Partial<CreanceCreateRequest>): Promise<CreanceApiResponse> {
     const cleanedCreance = this.cleanNumericFields(creance);
     const response = await apiClient.put(`${CreanceService.BASE_URL}/${code}`, cleanedCreance);
     return response.data;
   }
 
-  static async delete(apiClient: any, code: string): Promise<CreanceApiResponse> {
+  static async delete(apiClient: ApiClient, code: string): Promise<CreanceApiResponse> {
     const response = await apiClient.delete(`${CreanceService.BASE_URL}/${code}`);
     return response.data;
   }
