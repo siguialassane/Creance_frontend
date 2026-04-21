@@ -62,6 +62,11 @@ export interface SuivieClientelOvp {
   OVP_MONT?: number;
   OVP_MONT_CREAN?: number;
   OVP_NB_VIRM?: number;
+  MOTIF_CODE?: string | number;
+  MOTIF_LIB?: string;
+  MOTIF_DATE?: string;
+  MOTIF_USER?: string;
+  OVP_MODIF_DATE?: string;
   CPTOPER_BQAG_CODE?: string;
   CPTOPER_LIB?: string;
   CPTOPER_BANQUE_LIB?: string;
@@ -108,6 +113,11 @@ export interface SuivieClientelCreationOptions {
   comptesOperation?: SuivieClientelOption[];
   domiciliations?: SuivieClientelOption[];
   tiers?: SuivieClientelOption[];
+  [key: string]: unknown;
+}
+
+export interface SuivieClientelModificationOptions {
+  motifs?: SuivieClientelOption[];
   [key: string]: unknown;
 }
 
@@ -296,6 +306,7 @@ export interface CreanceResponse {
   CAN_CREATE_OVP?: boolean;
   CREATION_BLOCK_REASON?: string;
   creationOptions?: SuivieClientelCreationOptions;
+  modificationOptions?: SuivieClientelModificationOptions;
 
   [key: string]: unknown;
 }

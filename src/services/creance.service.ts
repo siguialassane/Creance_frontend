@@ -105,6 +105,11 @@ export class CreanceService {
     return response.data.data;
   }
 
+  static async updateSuivieClientelOvpMotif(apiClient: ApiClient, code: string, ovpCode: string, payload: { motifCode: string }): Promise<Record<string, unknown>> {
+    const response = await apiClient.put(`${CreanceService.BASE_URL}/${code}/suivie-clientel/ovp/${ovpCode}/motif`, payload);
+    return response.data.data;
+  }
+
   static async getSuivieClientelCreancesSolde(
     apiClient: ApiClient,
     params: { afterCode?: string; size?: number; search?: string } = {}

@@ -40,6 +40,7 @@ interface SearchableSelectProps {
   onSearchChange?: (search: string) => void
   displayValue?: (item: SearchableSelectItem) => string
   search?: string
+  style?: React.CSSProperties
 }
 
 export function SearchableSelect({
@@ -58,6 +59,7 @@ export function SearchableSelect({
   onSearchChange,
   displayValue,
   search: externalSearch,
+  style,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false)
   const [internalSearch, setInternalSearch] = React.useState("")
@@ -65,6 +67,18 @@ export function SearchableSelect({
   
   const listRef = React.useRef<HTMLDivElement>(null)
   const commandInputRef = React.useRef<HTMLInputElement>(null)
+  const normalizedSearch = currentSearch.trim().toLowerCase()
+  const filteredItems = React.useMemo(() => {
+    if (!normalizedSearch) {
+      return items
+    }
+
+    return items.filter((item) => {
+      const searchableLabel = (displayValue ? displayValue(item) : item.label).toLowerCase()
+      const searchableValue = item.value.toLowerCase()
+      return searchableLabel.includes(normalizedSearch) || searchableValue.includes(normalizedSearch)
+    })
+  }, [displayValue, items, normalizedSearch])
 
   // Trouver l'item sélectionné pour afficher son label
   const selectedItem = items.find((item) => item.value === value)
@@ -175,8 +189,9 @@ export function SearchableSelect({
               className
             )}
             style={{
-              borderColor: '#28A325',
-              backgroundColor: disabled ? '#f3f4f6' : '#f3f4f6',
+              borderColor: style?.borderColor || '#28A325',
+              backgroundColor: style?.backgroundColor || (disabled ? '#f3f4f6' : '#f3f4f6'),
+              ...style,
             }}
           >
             <span className="min-w-0 flex-1 truncate text-left">
@@ -298,16 +313,16 @@ export function SearchableSelect({
               e.stopPropagation()
             }}
           >
-            {isLoading && items.length === 0 ? (
+            {isLoading && filteredItems.length === 0 ? (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span className="ml-2 text-sm text-muted-foreground">Chargement...</span>
               </div>
-            ) : items.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <CommandEmpty>{emptyMessage}</CommandEmpty>
             ) : (
               <CommandGroup>
-                {items.map((item) => (
+                {filteredItems.map((item) => (
                   <CommandItem
                     key={item.value}
                     value={item.value}
