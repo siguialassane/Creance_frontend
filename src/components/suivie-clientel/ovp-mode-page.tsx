@@ -254,6 +254,97 @@ function buildInitialCreationForm(creance?: CreanceResponse | null): CreationFor
   }
 }
 
+function buildEmptyOvpDisplayData() {
+  return {
+    codeCreance: "-",
+    groupeCode: "-",
+    groupeLibelle: "-",
+    objetCode: "-",
+    objetLibelle: "-",
+    capitalInitial: "-",
+    montantDu: "-",
+    montantDecaisse: "-",
+    debiteurCode: "-",
+    debiteurNom: "-",
+    entiteLibelle: "-",
+    objet: "-",
+    periodiciteCode: "-",
+    periodiciteLibelle: "-",
+    codePrec: "-",
+    tauxIntConv: "-",
+    tauxIntRet: "-",
+    datePremiereEcheance: "-",
+    dateDerniereEcheance: "-",
+    montantRembourse: "-",
+    encours: "-",
+    commission: "-",
+    montantInitialRecouvrer: "-",
+    frais: "-",
+    recapPrincipal: "-",
+    recapPenalite: "-",
+    recapAutresFrais: "-",
+    recapPaiement: "-",
+    recapSoldeExigible: "-",
+    ovpSource: "-",
+    ovpPeriodicite: "-",
+    ovpActe: "-",
+    ovpDateDebut: "-",
+    ovpMontantCreance: "-",
+    ovpDateFin: "-",
+    ovpMontantPeriodique: "-",
+    ovpDateSignature: "-",
+    ovpNombreVirements: "-",
+    ovpType: "-",
+    ovpTiers: "-",
+    ovpMotif: "-",
+    ovpMotifCode: "",
+    ovpMotifDate: "-",
+    ovpMotifUser: "-",
+    ovpModificationDate: "-",
+    ovpIsModified: false,
+    ovpCompteOperation: "-",
+    ovpCompteBanque: "-",
+    ovpDomiciliation: "-",
+    ovpDomiciliationBanque: "-",
+    ovpEmployeur: "-",
+    virements: [] as Array<{ code: string; date: string; montant: string }>,
+    virementsTotal: "-",
+    hasOvp: false,
+    ovpCount: 0,
+    selectedOvpCode: "",
+    ovps: [] as Array<{
+      rawCode: string
+      code: string
+      dateSignature: string
+      dateDebut: string
+      dateFin: string
+      periodicite: string
+      type: string
+      montantPeriodique: string
+      montantCreance: string
+      nbVirements: string
+      motif: string
+      modificationDate: string
+      isModified: boolean
+    }>,
+    hasDomiciliation: false,
+    canCreateOvp: false,
+    creationBlockReason: "-",
+    creationOptions: {
+      sourcesOvp: [] as Array<{ value: string; label: string }>,
+      periodicites: [] as Array<{ value: string; label: string }>,
+      typesOvp: [] as Array<{ value: string; label: string }>,
+      actes: [] as Array<{ value: string; label: string }>,
+      comptesOperation: [] as Array<{ value: string; label: string }>,
+      tiers: [] as Array<{ value: string; label: string }>,
+    },
+    modificationOptions: {
+      motifs: [] as Array<{ value: string; label: string }>,
+    },
+    creationCompteBanque: "-",
+  }
+}
+
 export default function OvpModePage({ mode }: OvpModePageProps) {
   const apiClient = useApiClient()
   const router = useRouter()
@@ -469,7 +560,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
   }, [creance, mode, selectedOvpCode])
 
   const displayData = useMemo(() => {
-    if (!creance) return null
+    if (!creance) return buildEmptyOvpDisplayData()
 
     const ovps = Array.isArray(creance.ovps) && creance.ovps.length > 0
       ? creance.ovps
@@ -544,6 +635,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
       ovpMotifDate: formatDate(ovp?.MOTIF_DATE),
       ovpMotifUser: formatText(ovp?.MOTIF_USER),
       ovpModificationDate: formatDate(ovp?.OVP_MODIF_DATE),
+      ovpIsModified: Boolean(ovp?.OVP_MODIF_DATE || ovp?.MOTIF_CODE || ovp?.MOTIF_DATE),
       ovpCompteOperation: formatCodeAndLabel(ovp?.CPTOPER_CODE, ovp?.CPTOPER_LIB),
       ovpCompteBanque: formatText(ovp?.CPTOPER_BANQUE_LIB),
       ovpDomiciliation: formatCodeAndLabel(domiciliation?.DOM_CODE, domiciliation?.DOM_LIB),
@@ -595,6 +687,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
   const projectedVirements = useMemo(() => computeProjectedVirements(creationForm), [creationForm])
   const isManualDateFinMode = isManualDateFinPeriodicity(creationForm.periodiciteCode)
   const creanceSoldeCurrentPage = creanceSoldePage + 1
+  const hasLoadedCreance = Boolean(creance)
   const todayLabel = useMemo(() => new Intl.DateTimeFormat("fr-FR", {
     day: "2-digit",
     month: "long",
@@ -785,8 +878,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
             </div>
           )}
 
-          {displayData && (
-            <div className="mt-5 space-y-5 overflow-x-auto">
+          <div className="mt-5 space-y-5 overflow-x-auto">
               <div className="flex min-w-[1260px] items-start gap-5">
                 <div className="flex-1 space-y-3">
                   <div className="grid grid-cols-[320px_minmax(0,1fr)_290px] gap-x-4 gap-y-2">
@@ -836,7 +928,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
 
               {mode !== "creation" && (
                 <div className="min-w-[1260px] space-y-4">
-                    {!displayData.hasOvp && (
+                    {hasLoadedCreance && !displayData.hasOvp && (
                       <div className="rounded-xl border border-amber-300 bg-amber-50 px-5 py-4 shadow-sm">
                         <div className="flex items-center justify-between gap-4">
                           <div>
@@ -850,13 +942,11 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                       </div>
                     )}
 
-                    {displayData.hasOvp && (
-                      <>
                         <div className="rounded-xl border border-slate-300 bg-white shadow-sm">
                           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 text-[15px] font-semibold text-[#2444d7]">
                             <span>(OVP)</span>
                             <div className="flex items-center gap-3">
-                              {displayData.ovpModificationDate !== "-" && (
+                              {displayData.ovpIsModified && (
                                 <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">
                                   OVP modifie
                                 </span>
@@ -906,7 +996,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                                 <LabeledField label="Banque" value={displayData.ovpDomiciliationBanque} labelClassName="w-[60px]" />
                               </div>
                               <LabeledField label="Employeur" value={displayData.ovpEmployeur} labelClassName="w-[100px]" />
-                              {displayData.ovpModificationDate !== "-" && mode !== "modification" && (
+                              {displayData.ovpIsModified && mode !== "modification" && (
                                 <>
                                   <LabeledField
                                     label="Motif"
@@ -982,8 +1072,6 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                             <LabeledField label="Total Montant" value={displayData.virementsTotal} labelClassName="w-[110px]" valueClassName="tabular-nums" />
                           </div>
                         </div>
-                      </>
-                    )}
                 </div>
               )}
 
@@ -1076,8 +1164,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                 </div>
               )}
 
-            </div>
-          )}
+          </div>
         </div>
       </div>
 

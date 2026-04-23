@@ -185,12 +185,12 @@ export function SearchableSelect({
               "w-full justify-between h-9",
               !value && "text-muted-foreground",
               value && "pr-8",
-              disabled && "bg-gray-50 cursor-not-allowed",
+              disabled && "bg-[#eef2f5] cursor-not-allowed",
               className
             )}
             style={{
               borderColor: style?.borderColor || '#28A325',
-              backgroundColor: style?.backgroundColor || (disabled ? '#f3f4f6' : '#f3f4f6'),
+              backgroundColor: style?.backgroundColor || (disabled ? '#eef2f5' : '#ffffff'),
               ...style,
             }}
           >

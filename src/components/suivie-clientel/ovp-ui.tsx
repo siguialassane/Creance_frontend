@@ -34,7 +34,7 @@ export function DisplayBox({ value, className, valueClassName }: DisplayBoxProps
   return (
     <div
       className={[
-        "flex h-9 min-w-0 items-center rounded-[9px] border border-[#9fd89c] bg-white px-2.5 text-[14px] text-slate-800 shadow-sm",
+        "flex h-9 min-w-0 items-center rounded-[6px] border border-[#9fd89c] bg-[#eef2f5] px-3 text-[14px] text-slate-700 shadow-none",
         className || "",
       ].join(" ").trim()}
     >

@@ -265,7 +265,7 @@ const menuItemsData: MenuConfig[] = [
   },
 
   {
-    name: "Suivie Clientel",
+    name: "Suivie Clientèle",
     path: "/suivie_clientel",
     icon: FollowClient,
     subMenu: [
