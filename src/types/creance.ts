@@ -218,6 +218,54 @@ export interface SuivieClientelOvpMensuelResponse {
   totals: SuivieClientelOvpMensuelTotals;
 }
 
+export interface EtudeCreanceAffectationCurrent {
+  AFFECT_NO?: string | number;
+  GEST_CODE?: string;
+  CREAN_CODE?: string;
+  STAT_CODE?: string;
+  STATUT_LIB?: string;
+  AFFECT_DATEDEB?: string;
+  AFFECT_DATEFIN?: string;
+  AFFECT_MOTIF?: string;
+  AFFECT_DATE_CTL?: string;
+  GEST_NOM?: string;
+  GEST_PRENOM?: string;
+  GEST_POSTE?: string;
+  GESTIONNAIRE_LIB?: string;
+  [key: string]: unknown;
+}
+
+export interface EtudeCreanceAffectationGestionnaireOption extends SuivieClientelOption {
+  GEST_CODE?: string;
+  GEST_NOM?: string;
+  GEST_PRENOM?: string;
+  GEST_POSTE?: string;
+  STAT_CODE?: string;
+  STATUT_LIB?: string;
+  ENTITE_CODE?: string;
+}
+
+export interface EtudeCreanceAffectationOptions {
+  gestionnaires?: EtudeCreanceAffectationGestionnaireOption[];
+  [key: string]: unknown;
+}
+
+export interface EtudeCreanceAffectationResponse extends Partial<CreanceResponse> {
+  CREAN_CODE: string;
+  PC_CODE?: string;
+  POSTE_COMPTABLE_LIB?: string;
+  CREAN_USER_CPTE?: string;
+  CREAN_DATE_CPTE?: string;
+  CODGEST?: string;
+  NOMGEST?: string;
+  AFFECT_NO?: string | number;
+  AFFECTATION_ACTIVE_COUNT?: number;
+  affectationCurrent?: EtudeCreanceAffectationCurrent;
+  affectationOptions?: EtudeCreanceAffectationOptions;
+  closedRows?: number;
+  message?: string;
+}
+
 export interface CreanceResponse {
   CREAN_CODE: string;
   DEB_CODE: string;

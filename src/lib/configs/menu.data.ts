@@ -232,6 +232,11 @@ const menuItemsData: MenuConfig[] = [
         name: "Creance",
         path: "",
       },
+      {
+        name: "Affectation",
+        path: "affectation",
+        customPath: true,
+      },
       // {
       //   name:"Creation de  Frais",
       //   path: "creation_de_frais",

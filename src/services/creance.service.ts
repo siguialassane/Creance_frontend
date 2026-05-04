@@ -1,4 +1,4 @@
-import { CreanceCreateRequest, CreanceApiResponse, CreanceResponse, SuivieClientelCreanceSoldeCount, SuivieClientelCreanceSoldePage, SuivieClientelOvpMensuelContext, SuivieClientelOvpMensuelResponse } from "@/types/creance";
+import { CreanceCreateRequest, CreanceApiResponse, CreanceResponse, EtudeCreanceAffectationResponse, SuivieClientelCreanceSoldeCount, SuivieClientelCreanceSoldePage, SuivieClientelOvpMensuelContext, SuivieClientelOvpMensuelResponse } from "@/types/creance";
 import { PaginationParams, ApiResponse } from "@/types/pagination";
 import { fetchPaginatedData, ApiClient } from "@/lib/api";
 
@@ -76,6 +76,23 @@ export class CreanceService {
     if (!response.data.data) {
       throw new Error("Créance non trouvée pour le suivi clientèle");
     }
+    return response.data.data;
+  }
+
+  static async getEtudeCreanceAffectation(apiClient: ApiClient, code: string): Promise<EtudeCreanceAffectationResponse> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/${code}/etude-creance/affectation`);
+    if (!response.data.data) {
+      throw new Error("Contexte d'affectation introuvable");
+    }
+    return response.data.data;
+  }
+
+  static async createEtudeCreanceAffectation(
+    apiClient: ApiClient,
+    code: string,
+    payload: { gestCode: string; affectMotif?: string | null }
+  ): Promise<EtudeCreanceAffectationResponse> {
+    const response = await apiClient.post(`${CreanceService.BASE_URL}/${code}/etude-creance/affectation`, payload);
     return response.data.data;
   }
 
