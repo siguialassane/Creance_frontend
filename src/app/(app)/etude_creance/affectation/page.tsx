@@ -1,6 +1,7 @@
 "use client"
 
-import { FormEvent, useMemo, useState } from "react"
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Search } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useApiClient } from "@/hooks/useApiClient"
+import { cn } from "@/lib/utils"
 import { CreanceService } from "@/services/creance.service"
 import type { EtudeCreanceAffectationGestionnaireOption, EtudeCreanceAffectationResponse } from "@/types/creance"
 import {
@@ -61,10 +63,32 @@ function normalizeGestionnaires(options?: EtudeCreanceAffectationGestionnaireOpt
   return (options || [])
     .map((option) => ({
       ...option,
-      value: String(option.CODE ?? option.GEST_CODE ?? ""),
+      value: String(option.CODE ?? option.GEST_CODE ?? "").trim(),
       label: String(option.LIBELLE ?? option.GEST_CODE ?? ""),
     }))
     .filter((option) => option.value)
+}
+
+function resolveGestionnaireSelection(items: GestionnaireItem[], rawCode: string): {
+  match: GestionnaireItem | null
+  isAmbiguous: boolean
+} {
+  const trimmedCode = rawCode.trim()
+  if (!trimmedCode) {
+    return { match: null, isAmbiguous: false }
+  }
+
+  const exactMatch = items.find((item) => item.value.trim() === trimmedCode)
+  if (exactMatch) {
+    return { match: exactMatch, isAmbiguous: false }
+  }
+
+  const caseInsensitiveMatches = items.filter((item) => item.value.trim().toLowerCase() === trimmedCode.toLowerCase())
+  if (caseInsensitiveMatches.length === 1) {
+    return { match: caseInsensitiveMatches[0], isAmbiguous: false }
+  }
+
+  return { match: null, isAmbiguous: caseInsensitiveMatches.length > 1 }
 }
 
 function buildEmptyDisplayData(): DisplayData {
@@ -117,7 +141,7 @@ function FieldLine({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <span className={["shrink-0 text-[14px] font-semibold text-slate-800", labelClassName].join(" ").trim()}>{label}</span>
+      <span className={cn("shrink-0 text-[14px] font-semibold text-slate-800", labelClassName)}>{label}</span>
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   )
@@ -143,6 +167,7 @@ function ReadonlyField({
 
 export default function AffectationPage() {
   const apiClient = useApiClient()
+  const searchParams = useSearchParams()
   const [codeCreance, setCodeCreance] = useState("")
   const [creance, setCreance] = useState<EtudeCreanceAffectationResponse | null>(null)
   const [gestCode, setGestCode] = useState("")
@@ -153,6 +178,7 @@ export default function AffectationPage() {
   const [showGestionnaireDialog, setShowGestionnaireDialog] = useState(false)
   const [showCurrentGestionnaireDialog, setShowCurrentGestionnaireDialog] = useState(false)
   const [gestionnaireSearch, setGestionnaireSearch] = useState("")
+  const [lastAutoLoadedCode, setLastAutoLoadedCode] = useState("")
 
   const gestionnaireItems = useMemo(
     () => normalizeGestionnaires(creance?.affectationOptions?.gestionnaires),
@@ -160,7 +186,7 @@ export default function AffectationPage() {
   )
 
   const selectedGestionnaire = useMemo(
-    () => gestionnaireItems.find((item) => item.value === gestCode.trim().toUpperCase()) || null,
+    () => resolveGestionnaireSelection(gestionnaireItems, gestCode).match,
     [gestCode, gestionnaireItems]
   )
 
@@ -202,7 +228,7 @@ export default function AffectationPage() {
       nbEch: formatText(creance.CREAN_NBECH),
       duree: formatText(creance.CREAN_DUREE),
       gestionnaireActuelNom: formatText(currentAffectation?.GESTIONNAIRE_LIB ?? creance.NOMGEST),
-      nouveauGestCode: formatText(selectedGestionnaire?.GEST_CODE ?? gestCode.trim().toUpperCase()),
+      nouveauGestCode: formatText(selectedGestionnaire?.GEST_CODE ?? gestCode.trim()),
       nouveauGestNom: formatText(selectedGestionnaire?.GEST_NOM),
       nouveauGestPrenom: formatText(selectedGestionnaire?.GEST_PRENOM),
       nouveauGestPoste: formatText(selectedGestionnaire?.GEST_POSTE),
@@ -212,7 +238,7 @@ export default function AffectationPage() {
     }
   }, [creance, currentAffectation, gestCode, selectedGestionnaire])
 
-  const loadCreance = async (requestedCode?: string) => {
+  const loadCreance = useCallback(async (requestedCode?: string) => {
     const trimmedCode = (requestedCode ?? codeCreance).trim().toUpperCase()
     if (!trimmedCode) {
       setError("Veuillez saisir un code créance.")
@@ -241,7 +267,19 @@ export default function AffectationPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [apiClient, codeCreance])
+
+  const requestedCreanCodeFromQuery = (searchParams.get("creanCode") || "").trim().toUpperCase()
+
+  useEffect(() => {
+    if (!requestedCreanCodeFromQuery || requestedCreanCodeFromQuery === lastAutoLoadedCode) {
+      return
+    }
+
+    setLastAutoLoadedCode(requestedCreanCodeFromQuery)
+    setCodeCreance(requestedCreanCodeFromQuery)
+    void loadCreance(requestedCreanCodeFromQuery)
+  }, [requestedCreanCodeFromQuery, lastAutoLoadedCode, loadCreance])
 
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -249,17 +287,24 @@ export default function AffectationPage() {
   }
 
   const handleGestionnaireCodeBlur = () => {
-    const trimmedCode = gestCode.trim().toUpperCase()
+    const trimmedCode = gestCode.trim()
     if (!trimmedCode) {
       setGestCode("")
       setError(null)
       return
     }
 
-    const match = gestionnaireItems.find((item) => item.value === trimmedCode)
+    const { match, isAmbiguous } = resolveGestionnaireSelection(gestionnaireItems, trimmedCode)
     if (match) {
       setGestCode(match.value)
       setError(null)
+      return
+    }
+
+    if (isAmbiguous) {
+      setGestionnaireSearch(trimmedCode)
+      setShowGestionnaireDialog(true)
+      setError("Plusieurs gestionnaires correspondent à ce code. Utilisez la liste pour choisir la bonne ligne.")
       return
     }
 
@@ -388,7 +433,7 @@ export default function AffectationPage() {
           </div>
 
           <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_116px]">
-            <FieldLine label="Gestionnaire actuel" labelClassName="w-[148px] text-[15px] font-black text-[#b42318]">
+            <FieldLine label="Gestionnaire actuel" labelClassName="w-[148px] whitespace-nowrap text-[16px] font-black text-[#d92d20]">
               <DisplayBox
                 value={displayData.gestionnaireActuelNom}
                 className="h-10 px-4"
@@ -416,12 +461,12 @@ export default function AffectationPage() {
                 <Input
                   value={gestCode}
                   onChange={(event) => {
-                    setGestCode(event.target.value.toUpperCase())
+                    setGestCode(event.target.value)
                     setError(null)
                   }}
                   onBlur={handleGestionnaireCodeBlur}
                   placeholder="Saisir le code gestionnaire"
-                  className="h-9 border-[#9fd89c] bg-white uppercase"
+                  className="h-9 border-[#9fd89c] bg-white"
                   disabled={!creance}
                 />
                 <Button
@@ -516,9 +561,9 @@ export default function AffectationPage() {
                 {filteredGestionnaires.length === 0 ? (
                   <div className="px-4 py-8 text-center text-sm text-slate-500">Aucun gestionnaire trouvé.</div>
                 ) : (
-                  filteredGestionnaires.map((item) => (
+                  filteredGestionnaires.map((item, index) => (
                     <button
-                      key={item.value}
+                      key={`${item.value}-${item.STAT_CODE || "-"}-${index}`}
                       type="button"
                       className="grid w-full grid-cols-[140px_minmax(0,1.05fr)_minmax(0,1.05fr)_120px_220px] gap-4 border-t border-slate-200 px-4 py-3 text-left text-[15px] leading-5 hover:bg-[#eef7ee]"
                       onClick={() => handleSelectGestionnaire(item)}

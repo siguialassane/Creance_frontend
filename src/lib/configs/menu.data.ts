@@ -233,8 +233,18 @@ const menuItemsData: MenuConfig[] = [
         path: "",
       },
       {
-        name: "Affectation",
+        name: "Affectation simple",
         path: "affectation",
+        customPath: true,
+      },
+      {
+        name: "Affectation par Lot",
+        path: "affectation-par-lot",
+        customPath: true,
+      },
+      {
+        name: "Consultation des Affectations",
+        path: "consultation-affectations",
         customPath: true,
       },
       // {

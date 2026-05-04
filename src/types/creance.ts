@@ -266,6 +266,94 @@ export interface EtudeCreanceAffectationResponse extends Partial<CreanceResponse
   message?: string;
 }
 
+export interface EtudeCreanceAffectationLotRow {
+  AFFECT_NO?: string | number | null;
+  CREAN_CODE?: string;
+  DATE_AFFECTATION?: string;
+  GRP_CREAN_CODE?: string | null;
+  GROUPE_CREANCE_LIB?: string | null;
+  DEB_CODE?: string | null;
+  DEBITEUR_NOM?: string | null;
+  ETAT?: string;
+  CURRENT_GEST_CODE?: string | null;
+  CURRENT_GESTIONNAIRE_LIB?: string | null;
+  CURRENT_GEST_POSTE?: string | null;
+  AFFECTATION_ACTIVE_COUNT?: number;
+  HAS_ACTIVE_AFFECTATION?: boolean;
+  IS_VALID?: boolean;
+  RESULT_STATUS?: string;
+  MESSAGE?: string;
+  ERROR?: string;
+  [key: string]: unknown;
+}
+
+export interface EtudeCreanceAffectationLotContext {
+  affectationOptions?: EtudeCreanceAffectationOptions;
+  dateAffectation?: string;
+  emptyRowCount?: number;
+  [key: string]: unknown;
+}
+
+export interface EtudeCreanceAffectationLotResolveResponse {
+  rows: EtudeCreanceAffectationLotRow[];
+  resolvedCount?: number;
+  dateAffectation?: string;
+  [key: string]: unknown;
+}
+
+export interface EtudeCreanceAffectationLotSaveResponse extends EtudeCreanceAffectationLotContext {
+  selectedGestionnaire?: EtudeCreanceAffectationGestionnaireOption;
+  rows: EtudeCreanceAffectationLotRow[];
+  totalRequested?: number;
+  createdCount?: number;
+  reassignedCount?: number;
+  unchangedCount?: number;
+  errorCount?: number;
+  message?: string;
+}
+
+export interface EtudeCreanceAffectationConsultationRow {
+  AFFECT_NO?: string | number;
+  CREAN_CODE?: string;
+  GEST_CODE?: string;
+  GESTIONNAIRE_LIB?: string;
+  GEST_POSTE?: string;
+  STAT_CODE?: string;
+  STATUT_LIB?: string;
+  AFFECT_DATEDEB?: string;
+  AFFECT_DATEFIN?: string;
+  GRP_CREAN_CODE?: string;
+  GROUPE_CREANCE_LIB?: string;
+  DEBITEUR_NOM?: string;
+  AFFECTATION_ETAT?: string;
+  IS_ACTIVE?: number | boolean;
+  [key: string]: unknown;
+}
+
+export interface EtudeCreanceAffectationConsultationContext {
+  affectationOptions?: EtudeCreanceAffectationOptions;
+  [key: string]: unknown;
+}
+
+export interface EtudeCreanceAffectationConsultationByCreanceResponse extends EtudeCreanceAffectationConsultationContext {
+  mode?: string;
+  creanCode?: string;
+  items: EtudeCreanceAffectationConsultationRow[];
+  totalCount?: number;
+  activeCount?: number;
+  currentAffectation?: EtudeCreanceAffectationConsultationRow;
+}
+
+export interface EtudeCreanceAffectationConsultationByGestionnaireResponse extends EtudeCreanceAffectationConsultationContext {
+  mode?: string;
+  selectedGestionnaire?: EtudeCreanceAffectationGestionnaireOption;
+  gestCode?: string;
+  activeOnly?: boolean;
+  items: EtudeCreanceAffectationConsultationRow[];
+  totalCount?: number;
+  activeCount?: number;
+}
+
 export interface CreanceResponse {
   CREAN_CODE: string;
   DEB_CODE: string;

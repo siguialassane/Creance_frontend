@@ -1,4 +1,19 @@
-import { CreanceCreateRequest, CreanceApiResponse, CreanceResponse, EtudeCreanceAffectationResponse, SuivieClientelCreanceSoldeCount, SuivieClientelCreanceSoldePage, SuivieClientelOvpMensuelContext, SuivieClientelOvpMensuelResponse } from "@/types/creance";
+import {
+  CreanceCreateRequest,
+  CreanceApiResponse,
+  CreanceResponse,
+  EtudeCreanceAffectationConsultationByCreanceResponse,
+  EtudeCreanceAffectationConsultationByGestionnaireResponse,
+  EtudeCreanceAffectationConsultationContext,
+  EtudeCreanceAffectationLotContext,
+  EtudeCreanceAffectationLotResolveResponse,
+  EtudeCreanceAffectationLotSaveResponse,
+  EtudeCreanceAffectationResponse,
+  SuivieClientelCreanceSoldeCount,
+  SuivieClientelCreanceSoldePage,
+  SuivieClientelOvpMensuelContext,
+  SuivieClientelOvpMensuelResponse,
+} from "@/types/creance";
 import { PaginationParams, ApiResponse } from "@/types/pagination";
 import { fetchPaginatedData, ApiClient } from "@/lib/api";
 
@@ -93,6 +108,53 @@ export class CreanceService {
     payload: { gestCode: string; affectMotif?: string | null }
   ): Promise<EtudeCreanceAffectationResponse> {
     const response = await apiClient.post(`${CreanceService.BASE_URL}/${code}/etude-creance/affectation`, payload);
+    return response.data.data;
+  }
+
+  static async getEtudeCreanceAffectationLotContext(apiClient: ApiClient): Promise<EtudeCreanceAffectationLotContext> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/etude-creance/affectation-lot/context`);
+    return response.data.data;
+  }
+
+  static async resolveEtudeCreanceAffectationLot(
+    apiClient: ApiClient,
+    payload: { creanCodes: string[] }
+  ): Promise<EtudeCreanceAffectationLotResolveResponse> {
+    const response = await apiClient.post(`${CreanceService.BASE_URL}/etude-creance/affectation-lot/resolve`, payload);
+    return response.data.data;
+  }
+
+  static async createEtudeCreanceAffectationLot(
+    apiClient: ApiClient,
+    payload: { gestCode: string; creanCodes: string[] }
+  ): Promise<EtudeCreanceAffectationLotSaveResponse> {
+    const response = await apiClient.post(`${CreanceService.BASE_URL}/etude-creance/affectation-lot`, payload);
+    return response.data.data;
+  }
+
+  static async getEtudeCreanceAffectationConsultationContext(
+    apiClient: ApiClient
+  ): Promise<EtudeCreanceAffectationConsultationContext> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/etude-creance/affectation-consultation/context`);
+    return response.data.data;
+  }
+
+  static async getEtudeCreanceAffectationConsultationByCreance(
+    apiClient: ApiClient,
+    code: string
+  ): Promise<EtudeCreanceAffectationConsultationByCreanceResponse> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/etude-creance/affectation-consultation/creance/${code}`);
+    return response.data.data;
+  }
+
+  static async getEtudeCreanceAffectationConsultationByGestionnaire(
+    apiClient: ApiClient,
+    gestCode: string,
+    activeOnly = false
+  ): Promise<EtudeCreanceAffectationConsultationByGestionnaireResponse> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/etude-creance/affectation-consultation/gestionnaire/${gestCode}`, {
+      params: { activeOnly },
+    });
     return response.data.data;
   }
 
