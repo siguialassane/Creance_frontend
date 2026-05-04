@@ -42,6 +42,12 @@ type CreationFormState = {
   nbVirement: string
 }
 
+type NormalizedOption = {
+  value: string
+  label: string
+  [key: string]: unknown
+}
+
 const placeholderRows = Array.from({ length: 9 }, (_, index) => index)
 const MANUAL_DATE_FIN_PERIODICITE_CODE = "04"
 const CREANCE_SOLDE_CHUNK_SIZE = 50
@@ -61,11 +67,43 @@ const emptyCreationForm = (): CreationFormState => ({
   nbVirement: "",
 })
 
-function normalizeOptions(options?: SuivieClientelOption[]) {
+function normalizeOptions(options?: SuivieClientelOption[]): NormalizedOption[] {
   return (options || []).map((option) => ({
+    ...option,
     value: String(option.CODE ?? ""),
     label: String(option.LIBELLE ?? option.CODE ?? ""),
   })).filter((option) => option.value)
+}
+
+function resolveCreationDomiciliation(tierOptions: NormalizedOption[], tiersCode: string, fallbackDomiciliation?: Record<string, unknown> | null) {
+  if (!tiersCode) {
+    return fallbackDomiciliation || {}
+  }
+
+  const selectedTier = tierOptions.find((option) => option.value === tiersCode)
+  if (!selectedTier?.DOM_CODE) {
+    return {}
+  }
+
+  return {
+    DOM_CODE: selectedTier.DOM_CODE,
+    DOM_LIB: selectedTier.DOM_LIB,
+    BQ_CODE: selectedTier.BQ_CODE,
+    BQ_LIB: selectedTier.BQ_LIB,
+  }
+}
+
+function hasAnyAvailableCreationDomiciliation(response?: CreanceResponse | null) {
+  if (!response) {
+    return false
+  }
+
+  if (response.HAS_DOMICILIATION) {
+    return true
+  }
+
+  const tierOptions = normalizeOptions(response.creationOptions?.tiers)
+  return tierOptions.some((option) => Boolean(option.DOM_CODE))
 }
 
 function extractBankLabel(optionLabel: string) {
@@ -377,7 +415,6 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
   const [modificationSaving, setModificationSaving] = useState(false)
   const [showCreationSuccessDialog, setShowCreationSuccessDialog] = useState(false)
   const [showModificationSuccessDialog, setShowModificationSuccessDialog] = useState(false)
-  const [modificationSuccessCountdown, setModificationSuccessCountdown] = useState(10)
   const deferredCreanceSoldeSearch = useDeferredValue(creanceSoldeSearch)
 
   const clearCreanceSoldeListState = () => {
@@ -407,27 +444,6 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
   }, [codeFromQuery])
 
   useEffect(() => {
-    if (!showModificationSuccessDialog) {
-      setModificationSuccessCountdown(10)
-      return
-    }
-
-    const timer = window.setInterval(() => {
-      setModificationSuccessCountdown((current) => {
-        if (current <= 1) {
-          window.clearInterval(timer)
-          setShowModificationSuccessDialog(false)
-          return 0
-        }
-
-        return current - 1
-      })
-    }, 1000)
-
-    return () => window.clearInterval(timer)
-  }, [showModificationSuccessDialog])
-
-  useEffect(() => {
     if (!codeFromQuery) return
 
     const fetchInitialData = async () => {
@@ -446,7 +462,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
           setDefaultActeOptions(initialActes)
           setActeOptions(initialActes)
           setActeSearch("")
-          setShowMissingDomiciliationDialog(!response.HAS_DOMICILIATION)
+          setShowMissingDomiciliationDialog(!hasAnyAvailableCreationDomiciliation(response))
         } else {
           setShowMissingDomiciliationDialog(false)
         }
@@ -570,7 +586,6 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
     const ovp = ovps.find((item) => String(item.OVP_CODE ?? "") === selectedOvpCode)
       || ovps[0]
       || creance.ovp
-    const domiciliation = ovp?.domiciliation || creance.domiciliation
     const virements = Array.isArray(ovp?.virements)
       ? ovp.virements
       : Array.isArray(creance.virements)
@@ -587,7 +602,13 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
         : formatText(`${creance.DEB_NOM || ""} ${creance.DEB_PREN || ""}`.trim())
 
     const comptesOperation = normalizeOptions(creationOptions.comptesOperation)
+    const tierOptions = normalizeOptions(creationOptions.tiers)
     const selectedCompteOperation = comptesOperation.find((option) => option.value === creationForm.compteOperationCode)
+    const creationDomiciliation = resolveCreationDomiciliation(tierOptions, creationForm.tiersCode, creance.domiciliation as Record<string, unknown> | null | undefined)
+    const displayedDomiciliation = mode === "creation"
+      ? creationDomiciliation
+      : (ovp?.domiciliation || creance.domiciliation)
+    const hasDisplayedDomiciliation = Boolean(displayedDomiciliation && displayedDomiciliation.DOM_CODE)
 
     return {
       codeCreance: formatText(creance.CREAN_CODE),
@@ -638,8 +659,8 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
       ovpIsModified: Boolean(ovp?.OVP_MODIF_DATE || ovp?.MOTIF_CODE || ovp?.MOTIF_DATE),
       ovpCompteOperation: formatCodeAndLabel(ovp?.CPTOPER_CODE, ovp?.CPTOPER_LIB),
       ovpCompteBanque: formatText(ovp?.CPTOPER_BANQUE_LIB),
-      ovpDomiciliation: formatCodeAndLabel(domiciliation?.DOM_CODE, domiciliation?.DOM_LIB),
-      ovpDomiciliationBanque: formatText(domiciliation?.BQ_LIB),
+      ovpDomiciliation: formatCodeAndLabel(displayedDomiciliation?.DOM_CODE, displayedDomiciliation?.DOM_LIB),
+      ovpDomiciliationBanque: formatText(displayedDomiciliation?.BQ_LIB),
       ovpEmployeur: formatText(ovp?.EMPLOYEUR_LIB),
       virements: virements.map((virement) => ({
         code: formatText(virement.VIRM_CODE),
@@ -665,7 +686,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
         modificationDate: formatDate(item.OVP_MODIF_DATE),
         isModified: Boolean(item.OVP_MODIF_DATE || item.MOTIF_CODE || item.MOTIF_DATE),
       })),
-      hasDomiciliation: Boolean(creance.HAS_DOMICILIATION),
+      hasDomiciliation: mode === "creation" ? hasDisplayedDomiciliation : Boolean(creance.HAS_DOMICILIATION),
       canCreateOvp: Boolean(creance.CAN_CREATE_OVP),
       creationBlockReason: formatText(creance.CREATION_BLOCK_REASON),
       creationOptions: {
@@ -674,14 +695,14 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
         typesOvp: normalizeOptions(creationOptions.typesOvp),
         actes: normalizeOptions(creationOptions.actes),
         comptesOperation,
-        tiers: normalizeOptions(creationOptions.tiers),
+        tiers: tierOptions,
       },
       modificationOptions: {
         motifs: normalizeOptions(modificationOptions.motifs),
       },
       creationCompteBanque: selectedCompteOperation ? extractBankLabel(selectedCompteOperation.label) : "-",
     }
-  }, [creance, creationForm.compteOperationCode, selectedOvpCode])
+  }, [creance, creationForm.compteOperationCode, creationForm.tiersCode, mode, selectedOvpCode])
 
   const creationPreview = useMemo(() => computeCreationPreview(creationForm), [creationForm])
   const projectedVirements = useMemo(() => computeProjectedVirements(creationForm), [creationForm])
@@ -693,6 +714,16 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
     month: "long",
     year: "numeric",
   }).format(new Date()), [])
+
+  const consultationHref = creance?.CREAN_CODE
+    ? `/suivie_clientel/ovp/consultation?code=${creance.CREAN_CODE}`
+    : null
+
+  const redirectToConsultation = () => {
+    if (consultationHref) {
+      router.push(consultationHref)
+    }
+  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -718,7 +749,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
         setDefaultActeOptions(initialActes)
         setActeOptions(initialActes)
         setActeSearch("")
-        setShowMissingDomiciliationDialog(!response.HAS_DOMICILIATION)
+        setShowMissingDomiciliationDialog(!hasAnyAvailableCreationDomiciliation(response))
       } else {
         setShowMissingDomiciliationDialog(false)
       }
@@ -761,6 +792,11 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
 
   const handleCreateOvp = async () => {
     if (!creance || !displayData) {
+      return
+    }
+
+    if (creationForm.tiersCode && !displayData.hasDomiciliation) {
+      setError("Le tiers sélectionné n'a pas de domiciliation. Veuillez choisir un tiers domicilié avant d'enregistrer l'OVP.")
       return
     }
 
@@ -817,7 +853,6 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
 
       const refreshedCreance = await CreanceService.getSuivieClientelByCode(apiClient, String(creance.CREAN_CODE))
       setCreance(refreshedCreance)
-      setModificationSuccessCountdown(10)
       setShowModificationSuccessDialog(true)
     } catch (err) {
       const message = (err as Error & { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -853,7 +888,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
               <Button
                 type="submit"
                 disabled={loading}
-                className="h-10 rounded-[9px] bg-[#ffb37a] px-5 text-[14px] font-medium text-white hover:bg-[#f4a066]"
+                className="h-10 rounded-[9px] bg-[#2444d7] px-5 text-[14px] font-medium text-white hover:bg-[#1a36b0]"
               >
                 {loading ? "Chargement..." : "Afficher"}
               </Button>
@@ -871,12 +906,6 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
               )}
             </div>
           </form>
-
-          {error && (
-            <div className="mt-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-red-700">
-              {error}
-            </div>
-          )}
 
           <div className="mt-5 space-y-5 overflow-x-auto">
               <div className="flex min-w-[1260px] items-start gap-5">
@@ -1033,7 +1062,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                                 <Button
                                   type="button"
                                   disabled={modificationSaving || loading || !displayData.selectedOvpCode || !modificationMotifCode || modificationMotifCode === displayData.ovpMotifCode}
-                                  className="bg-[#c62828] text-white hover:bg-[#a61f1f]"
+                                  className="bg-[#f97316] text-white hover:bg-[#ea580c]"
                                   onClick={handleUpdateOvpMotif}
                                 >
                                   {modificationSaving ? "Enregistrement..." : "Enregistrer la modification"}
@@ -1092,12 +1121,22 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                           <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Montant Créan.</span><Input inputMode="decimal" value={creationForm.montantCreance} onChange={(event) => handleCreationFieldChange("montantCreance", event.target.value)} className="h-9 border-[#9fd89c] text-right tabular-nums" /></div>
                         </div>
                         <div className="grid grid-cols-[300px_250px] gap-4">
-                          <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Date Fin</span><Input type="date" value={isManualDateFinMode ? creationForm.dateFin : creationPreview.dateFin} onChange={(event) => handleCreationFieldChange("dateFin", event.target.value)} disabled={!isManualDateFinMode} className={isManualDateFinMode ? "h-9 border-[#9fd89c]" : "h-9 border-[#9fd89c] bg-slate-100"} /></div>
+                          <LabeledField
+                            label="Date Fin"
+                            value={formatDate(isManualDateFinMode ? creationForm.dateFin : creationPreview.dateFin)}
+                            labelClassName="w-[96px]"
+                            valueClassName="font-semibold text-slate-900"
+                          />
                           <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Montant. Périod</span><Input value={creationForm.montantPeriodique} onChange={(event) => handleCreationFieldChange("montantPeriodique", event.target.value)} className="h-9 border-[#9fd89c] text-right" /></div>
                         </div>
                         <div className="grid grid-cols-[300px_250px] gap-4">
                           <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Date signature</span><Input type="date" value={creationForm.dateSignature} onChange={(event) => handleCreationFieldChange("dateSignature", event.target.value)} className="h-9 border-[#9fd89c]" /></div>
-                          <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Nb Virement</span><Input value={creationPreview.nbVirement} disabled className="h-9 border-[#9fd89c] bg-slate-100 text-right" /></div>
+                          <LabeledField
+                            label="Nb Virement"
+                            value={creationPreview.nbVirement || "-"}
+                            labelClassName="w-[100px]"
+                            valueClassName="font-semibold text-slate-900 tabular-nums"
+                          />
                         </div>
                       </FieldGroup>
 
@@ -1105,19 +1144,19 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                         <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Type Ovp</span><SearchableSelect value={creationForm.typeOvpCode} onValueChange={(value) => handleCreationFieldChange("typeOvpCode", value)} items={displayData.creationOptions.typesOvp} placeholder="Sélectionner" /></div>
                         <div className="grid grid-cols-[100px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Tiers</span><SearchableSelect value={creationForm.tiersCode} onValueChange={(value) => handleCreationFieldChange("tiersCode", value)} items={displayData.creationOptions.tiers} placeholder="Sélectionner" /></div>
                         <div className="grid grid-cols-[minmax(0,1fr)_150px] gap-4">
-                          <div className="grid grid-cols-[114px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Cpte Operation</span><SearchableSelect value={creationForm.compteOperationCode} onValueChange={(value) => handleCreationFieldChange("compteOperationCode", value)} items={displayData.creationOptions.comptesOperation} placeholder="Sélectionner" /></div>
-                          <LabeledField label="Banque" value={displayData.creationCompteBanque} labelClassName="w-[60px]" />
-                        </div>
-                        <div className="grid grid-cols-[minmax(0,1fr)_150px] gap-4">
                           <LabeledField label="Domiciliation" value={displayData.ovpDomiciliation} labelClassName="w-[114px]" />
                           <LabeledField label="Banque" value={displayData.ovpDomiciliationBanque} labelClassName="w-[60px]" />
+                        </div>
+                        <div className="grid grid-cols-[minmax(0,1fr)_150px] gap-4">
+                          <div className="grid grid-cols-[114px_minmax(0,1fr)] items-center gap-2"><span className="text-[14px] font-semibold text-slate-800">Cpte Operation</span><SearchableSelect value={creationForm.compteOperationCode} onValueChange={(value) => handleCreationFieldChange("compteOperationCode", value)} items={displayData.creationOptions.comptesOperation} placeholder="Sélectionner" /></div>
+                          <LabeledField label="Banque" value={displayData.creationCompteBanque} labelClassName="w-[60px]" />
                         </div>
                         <LabeledField label="Employeur" value={displayData.ovpEmployeur} labelClassName="w-[100px]" />
                       </FieldGroup>
                     </div>
                     <div className="border-t border-slate-200 px-4 py-4">
                       <div className="flex items-center justify-end gap-4">
-                        <Button type="button" disabled={saving || loading} className="bg-[#2444d7] text-white hover:bg-[#1a36b0]" onClick={handleCreateOvp}>{saving ? "Enregistrement..." : "Enregistrer l'OVP"}</Button>
+                        <Button type="button" disabled={saving || loading} className="bg-[#f97316] text-white hover:bg-[#ea580c]" onClick={handleCreateOvp}>{saving ? "Enregistrement..." : "Enregistrer l'OVP"}</Button>
                       </div>
                     </div>
                   </div>
@@ -1207,11 +1246,16 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="text-[16px] font-semibold text-slate-900">OVP {ovpItem.code}</div>
-                        {ovpItem.isModified && (
-                          <div className="mt-2 inline-flex rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-800">
-                            Modifie
-                          </div>
-                        )}
+                        <div
+                          className={[
+                            "mt-2 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]",
+                            ovpItem.isModified
+                              ? "border-red-300 bg-red-50 text-red-700"
+                              : "border-blue-300 bg-blue-50 text-blue-700",
+                          ].join(" ")}
+                        >
+                          {ovpItem.isModified ? "Statut : Arrêté" : "Statut : Actif"}
+                        </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         <div className="rounded-md bg-white/80 px-2 py-1 text-[11px] font-medium text-slate-500">
@@ -1219,7 +1263,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
                         </div>
                         {ovpItem.isModified && ovpItem.modificationDate !== "-" && (
                           <div className="text-[11px] font-medium text-amber-800">
-                            Modifie le {ovpItem.modificationDate}
+                            Modifié le {ovpItem.modificationDate}
                           </div>
                         )}
                       </div>
@@ -1288,7 +1332,7 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
             <DialogTitle className="text-[18px] font-semibold text-amber-900">Information</DialogTitle>
             <DialogDescription asChild>
               <p className="text-[14px] font-bold leading-6 text-slate-700">
-                Le débiteur de cette créance n&apos;a pas de compte bancaire.
+                Aucune domiciliation bancaire n&apos;est disponible pour cette sélection.
               </p>
             </DialogDescription>
           </DialogHeader>
@@ -1304,20 +1348,68 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showModificationSuccessDialog} onOpenChange={setShowModificationSuccessDialog}>
-        <DialogContent className="max-w-md border border-emerald-200 bg-white shadow-xl">
+      <Dialog
+        open={Boolean(error)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setError(null)
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onInteractOutside={(event) => event.preventDefault()}
+          className="max-w-md border border-red-200 bg-white shadow-xl"
+        >
           <DialogHeader>
-            <DialogTitle className="text-[18px] font-semibold text-emerald-900">Modification enregistrée</DialogTitle>
-            <DialogDescription className="text-[14px] leading-6 text-slate-700">
-              Le motif de l&apos;OVP a bien été mis à jour.
-              {modificationSuccessCountdown > 0 ? ` Cette fenêtre se fermera automatiquement dans ${modificationSuccessCountdown}s.` : ""}
+            <DialogTitle className="text-[18px] font-semibold text-red-900">Information</DialogTitle>
+            <DialogDescription asChild>
+              <p className="text-[14px] font-medium leading-6 text-slate-700">
+                {error}
+              </p>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               type="button"
               className="bg-[#2444d7] text-white hover:bg-[#1a36b0]"
-              onClick={() => setShowModificationSuccessDialog(false)}
+              onClick={() => setError(null)}
+            >
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showModificationSuccessDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowModificationSuccessDialog(false)
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onInteractOutside={(event) => event.preventDefault()}
+          className="max-w-md border border-emerald-200 bg-white shadow-xl"
+        >
+          <DialogHeader>
+            <DialogTitle className="text-[18px] font-semibold text-emerald-900">Modification enregistrée</DialogTitle>
+            <DialogDescription className="text-[14px] leading-6 text-slate-700">
+              Le motif de l&apos;OVP a bien été mis à jour. 
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              className="bg-[#2444d7] text-white hover:bg-[#1a36b0]"
+              onClick={() => {
+                setShowModificationSuccessDialog(false)
+                redirectToConsultation()
+              }}
             >
               OK
             </Button>
@@ -1328,14 +1420,17 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
       <Dialog
         open={showCreationSuccessDialog}
         onOpenChange={(open) => {
-          setShowCreationSuccessDialog(open)
-
-          if (!open && creance?.CREAN_CODE) {
-            router.push(`/suivie_clientel/ovp/consultation?code=${creance.CREAN_CODE}`)
+          if (!open) {
+            setShowCreationSuccessDialog(false)
           }
         }}
       >
-        <DialogContent className="max-w-md border border-emerald-200 bg-white shadow-xl">
+        <DialogContent
+          showCloseButton={false}
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onInteractOutside={(event) => event.preventDefault()}
+          className="max-w-md border border-emerald-200 bg-white shadow-xl"
+        >
           <DialogHeader>
             <DialogTitle className="text-[18px] font-semibold text-emerald-900">OVP enregistré</DialogTitle>
             <DialogDescription className="text-[14px] leading-6 text-slate-700">
@@ -1346,7 +1441,10 @@ export default function OvpModePage({ mode }: OvpModePageProps) {
             <Button
               type="button"
               className="bg-[#2444d7] text-white hover:bg-[#1a36b0]"
-              onClick={() => setShowCreationSuccessDialog(false)}
+              onClick={() => {
+                setShowCreationSuccessDialog(false)
+                redirectToConsultation()
+              }}
             >
               OK
             </Button>

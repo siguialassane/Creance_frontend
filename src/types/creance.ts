@@ -105,6 +105,14 @@ export interface SuivieClientelOption {
   [key: string]: unknown;
 }
 
+export interface SuivieClientelTierOption extends SuivieClientelOption {
+  DOM_CODE?: string;
+  DOM_LIB?: string;
+  BQ_CODE?: string;
+  BQ_LIB?: string;
+  DOMICILIATION_LIBELLE?: string;
+}
+
 export interface SuivieClientelCreationOptions {
   sourcesOvp?: SuivieClientelOption[];
   periodicites?: SuivieClientelOption[];
@@ -112,7 +120,7 @@ export interface SuivieClientelCreationOptions {
   actes?: SuivieClientelOption[];
   comptesOperation?: SuivieClientelOption[];
   domiciliations?: SuivieClientelOption[];
-  tiers?: SuivieClientelOption[];
+  tiers?: SuivieClientelTierOption[];
   [key: string]: unknown;
 }
 
@@ -149,6 +157,65 @@ export interface SuivieClientelCreanceSoldePage {
 export interface SuivieClientelCreanceSoldeCount {
   total: number;
   search?: string;
+}
+
+export interface SuivieClientelOvpMensuelBankOption extends SuivieClientelOption {
+  BANQ_CODE: string;
+  BANQ_LIB: string;
+  CPT_BQ: string;
+  CPT_BQ_VAL: string;
+  CPTOPER_CODE: string;
+  AGBANQ_CODE: string;
+  DEBUG_REQUESTED_CPTOPER_CODE?: string;
+}
+
+export interface SuivieClientelOvpMensuelFilters {
+  ENTITE_CODE: string;
+  ENTITE_LIB?: string;
+  BANQ_CODE: string;
+  BANQ_LIB?: string;
+  CPT_BQ: string;
+  CPT_BQ_VAL: string;
+  CPTOPER_CODE: string;
+  AGBANQ_CODE: string;
+  DATE_DEBUT_PERIODE: string;
+  DATE_FIN_PERIODE: string;
+  DATE_TRAITE: string;
+}
+
+export interface SuivieClientelOvpMensuelRow {
+  NUM_ORD: number;
+  OVP_CODE: string | number;
+  CREAN_CODE: string;
+  NOM_DEBITEUR: string;
+  BANQ: string;
+  COMPTE: string | number;
+  COMPTE_LONG: string | number;
+  MONT: number;
+  DATE_CREA: string;
+  DATE_SIGNE: string;
+  VIRM_CODE: string | number;
+  DATE_VIRM: string;
+  [key: string]: unknown;
+}
+
+export interface SuivieClientelOvpMensuelTotals {
+  TT_CPTE: number;
+  TOT_CPTE: number;
+  TOT_MONT: number;
+  TOTAL_LIGNES: number;
+}
+
+export interface SuivieClientelOvpMensuelContext {
+  entites: SuivieClientelOption[];
+  banques: SuivieClientelOvpMensuelBankOption[];
+  defaultFilters: SuivieClientelOvpMensuelFilters;
+}
+
+export interface SuivieClientelOvpMensuelResponse {
+  filters: SuivieClientelOvpMensuelFilters;
+  items: SuivieClientelOvpMensuelRow[];
+  totals: SuivieClientelOvpMensuelTotals;
 }
 
 export interface CreanceResponse {

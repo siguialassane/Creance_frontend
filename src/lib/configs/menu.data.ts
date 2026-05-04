@@ -14,7 +14,7 @@ interface MenuSubMenuConfig {
   headers?: SubMenuItem['headers'];
   nameColumn?: string;
   nameHeader?: string;
-  subMenu?: SubMenuItem[];
+  subMenu?: MenuSubMenuConfig[];
 }
 
 interface MenuConfig {
@@ -289,6 +289,11 @@ const menuItemsData: MenuConfig[] = [
             path: "modification",
             customPath: true,
           },
+          {
+            name: "Génération mensuelle des OVP",
+            path: "generation_mensuelle",
+            customPath: true,
+          },
         ],
       },
     ],
@@ -454,25 +459,36 @@ export function formatLabelToPath(subMenu: { name: string }) {
     .toLowerCase();
 }
 
+function mapMenuSubMenus(subMenus: MenuSubMenuConfig[] | undefined, parentId: number): SubMenuItem[] | undefined {
+  return subMenus?.map(
+    (subMenu, subIndex): SubMenuItem => ({
+      id: (parentId * 100) + subIndex,
+      name: subMenu.name,
+      nameColumn: subMenu.nameColumn,
+      nameHeader: subMenu.nameHeader,
+      headers: subMenu.headers,
+      subMenuType: {
+        ...subMenu,
+        subMenu: mapMenuSubMenus(subMenu.subMenu, (parentId * 100) + subIndex),
+      },
+      viewName: undefined,
+      columns: subMenu.columns,
+      customPath: subMenu.customPath,
+      path: subMenu.customPath
+        ? (subMenu.path ?? formatLabelToPath(subMenu))
+        : formatLabelToPath(subMenu),
+      subMenus: mapMenuSubMenus(subMenu.subMenu, (parentId * 100) + subIndex),
+    })
+  )
+}
+
 export const menuItems: MenuItem[] = menuItemsData.map((menuItem, index) => ({
   id: index,
   path: menuItem.path || undefined,
   icon: menuItem.icon,
   name: menuItem.name,  
-  subMenus: menuItem.subMenu?.map(
-    (subMenu, subIndex): SubMenuItem => ({
-      id: (index * 100) + subIndex, // ID unique pour chaque sous-menu
-      name: subMenu.name,
-      nameColumn: subMenu.nameColumn,
-      nameHeader: subMenu.nameHeader,
-      headers: subMenu.headers,
-      subMenuType: subMenu,      
-      viewName: menuItem.path === "/settings" ? "parameter" : undefined,
-      columns: subMenu.columns,
-      path: subMenu.customPath
-        ? (subMenu.path ?? formatLabelToPath(subMenu))
-        : formatLabelToPath(subMenu),
-      subMenus: subMenu.subMenu
-    })
-  ),
+  subMenus: mapMenuSubMenus(menuItem.subMenu, index)?.map((subMenu) => ({
+    ...subMenu,
+    viewName: menuItem.path === "/settings" ? "parameter" : subMenu.viewName,
+  })),
 }));

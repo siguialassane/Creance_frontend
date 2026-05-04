@@ -1,4 +1,4 @@
-import { CreanceCreateRequest, CreanceApiResponse, CreanceResponse, SuivieClientelCreanceSoldeCount, SuivieClientelCreanceSoldePage } from "@/types/creance";
+import { CreanceCreateRequest, CreanceApiResponse, CreanceResponse, SuivieClientelCreanceSoldeCount, SuivieClientelCreanceSoldePage, SuivieClientelOvpMensuelContext, SuivieClientelOvpMensuelResponse } from "@/types/creance";
 import { PaginationParams, ApiResponse } from "@/types/pagination";
 import { fetchPaginatedData, ApiClient } from "@/lib/api";
 
@@ -128,6 +128,65 @@ export class CreanceService {
       params,
     });
     return response.data.data;
+  }
+
+  static async getSuivieClientelOvpMensuelContext(apiClient: ApiClient): Promise<SuivieClientelOvpMensuelContext> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/suivie-clientel/ovp-mensuel/context`);
+    return response.data.data;
+  }
+
+  static async getSuivieClientelOvpMensuel(
+    apiClient: ApiClient,
+    params: { entiteCode: string; banqueCode: string; dateDebut: string; dateFin: string }
+  ): Promise<SuivieClientelOvpMensuelResponse> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/suivie-clientel/ovp-mensuel`, {
+      params,
+    });
+    return response.data.data;
+  }
+
+  static async exportSuivieClientelOvpMensuelTxt(
+    apiClient: ApiClient,
+    params: { entiteCode: string; banqueCode: string; dateDebut: string; dateFin: string }
+  ): Promise<{ blob: Blob; fileName: string }> {
+    const response = await apiClient.get(`${CreanceService.BASE_URL}/suivie-clientel/ovp-mensuel/export/txt`, {
+      params,
+      responseType: 'blob',
+    });
+
+    const contentDisposition = response.headers['content-disposition'] as string | undefined;
+    const fileName = this.extractFileNameFromContentDisposition(contentDisposition)
+      || this.buildOvpMensuelFallbackFileName(params.banqueCode, params.dateFin);
+    return { blob: response.data, fileName };
+  }
+
+  private static buildOvpMensuelFallbackFileName(banqueCode: string, dateFin: string): string {
+    const bankNames: Record<string, string> = {
+      '042': 'BIAO',
+      '006': 'BICICI',
+      '008': 'SGBCI',
+      '007': 'SIB',
+    };
+
+    const [yyyy, mm = '01', dd = '01'] = dateFin.split('-');
+    const yy = yyyy.slice(-2);
+    const bankName = bankNames[banqueCode] || 'OVP';
+
+    return `${bankName}_${dd}${mm}${yy}.TXT`;
+  }
+
+  private static extractFileNameFromContentDisposition(contentDisposition?: string): string | null {
+    if (!contentDisposition) {
+      return null;
+    }
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+      return decodeURIComponent(utf8Match[1]);
+    }
+
+    const basicMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+    return basicMatch?.[1] ?? null;
   }
 
   static async create(apiClient: ApiClient, creance: CreanceCreateRequest): Promise<CreanceApiResponse> {
