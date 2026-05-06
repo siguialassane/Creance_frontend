@@ -217,15 +217,8 @@ export default function NouveauDebiteurPage() {
 
       console.log('🚀 Payload complet envoyé au backend (CRÉATION):', JSON.stringify(payload, null, 2));
       
-      // Vérification des champs obligatoires pour personne physique
-      if (payload.typeDebiteur === 'P') {
-        const requiredFields = ['nom', 'prenoms', 'sexe'];
-        const missingFields = requiredFields.filter(field => !payload[field] || payload[field].trim() === '');
-        if (missingFields.length > 0) {
-          console.error('❌ Champs obligatoires manquants pour personne physique:', missingFields);
-          console.error('📋 Payload actuel:', payload);
-        }
-      }
+      // Les champs de personne physique sont maintenant optionnels selon la nouvelle logique backend
+      // Plus de validation obligatoire ici - le backend gère les champs NULLABLE
       
       const response = await DebiteurService.create(
         apiClient,
