@@ -13,9 +13,9 @@ const getToday = () => {
 
 // Étape 1: Informations générales - Fusion des anciens step1 et step2
 export const step1Schema = z.object({
-  debiteur: z.string().min(1, "Le débiteur est obligatoire"), // DEB_CODE est obligatoire
-  groupeCreance: z.string().min(1, "Le groupe créance est obligatoire"), // GRP_CREAN_CODE est obligatoire
-  objetCreance: z.string().min(1, "L'objet créance est obligatoire"), // OBJ_CREAN_CODE est obligatoire
+  debiteur: z.string().min(1, "Le débiteur est obligatoire"), // DEB_CODE est obligatoire (NULLABLE = N)
+  groupeCreance: z.string().min(1, "Le groupe créance est obligatoire"), // GRP_CREAN_CODE est obligatoire (NULLABLE = N)
+  objetCreance: z.string().min(1, "L'objet créance est obligatoire"), // OBJ_CREAN_CODE est obligatoire (NULLABLE = N)
   objetDetail: z.string().optional(),
   capitalInitial: z.union([z.number(), z.string(), z.undefined()]).optional(), // CREAN_CAPIT_INIT est NULLABLE = Y
   montantDecaisse: z.number().optional(),
@@ -24,11 +24,11 @@ export const step1Schema = z.object({
   // Champs de l'ancien step2 (Dates et conditions)
   dateDeblocage: z.string().optional(), // CREAN_DATOCTROI est NULLABLE = Y
   dateEcheance: z.string().optional(), // CREAN_DATECH est NULLABLE = Y
-  periodicite: z.string().min(1, "La périodicité est obligatoire"), // PERIOD_CODE est obligatoire
+  periodicite: z.string().min(1, "La périodicité est obligatoire"), // PERIOD_CODE est obligatoire (NULLABLE = N)
   duree: z.number().optional(),
   tauxInteretConventionnel: z.number().optional(),
   tauxInteretRetard: z.number().optional(),
-  ordonnateur: z.string().optional(), // ORDO_CODE est NULLABLE = Y
+  ordonnateur: z.string().nullable().optional(), // ORDO_CODE est NULLABLE = Y
   statut: z.enum(['A', 'C', 'S']).optional(), // CREAN_STATRECOUV est NULLABLE = Y
 });
 

@@ -13,6 +13,9 @@ import { getStatutRecouvrementLibelle } from "@/lib/constants/statut-recouvremen
 import { ArrowLeft, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useTypePieces } from "@/hooks/useTypePieces";
+import { useTypeGarantiePersonnelles } from "@/hooks/useTypeGarantiePersonnelles";
+import { useStatutsSalarie } from "@/hooks/useStatutsSalarie";
 
 const VoirCreancePageInner = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -26,6 +29,18 @@ const VoirCreancePageInner = () => {
   const searchParams = useSearchParams();
   const creanceId = searchParams.get('id');
   const apiClient = useApiClient();
+
+  const { data: typePiecesRaw } = useTypePieces();
+  const { data: typeGarantiesPersonnellesRaw } = useTypeGarantiePersonnelles();
+  const { data: statutsSalarieRaw } = useStatutsSalarie();
+
+  const typePieces: any[] = Array.isArray(typePiecesRaw) ? typePiecesRaw : (typePiecesRaw as any)?.content || [];
+  const typeGarantiesPersonnelles: any[] = Array.isArray(typeGarantiesPersonnellesRaw) ? typeGarantiesPersonnellesRaw : (typeGarantiesPersonnellesRaw as any)?.content || [];
+  const statutsSalarie: any[] = Array.isArray(statutsSalarieRaw) ? statutsSalarieRaw : [];
+
+  const getTypePieceLib = (code: string) => typePieces.find((t: any) => t.TYPE_PIECE_CODE === code)?.TYPE_PIECE_LIB || code;
+  const getTypeGarPersoLib = (code: string) => typeGarantiesPersonnelles.find((t: any) => t.TYPGAR_PHYS_CODE === code)?.TYPGAR_PHYS_LIB || code;
+  const getStatutSalLib = (code: string) => statutsSalarie.find((s: any) => s.STATSAL_CODE === code)?.STATSAL_LIB || code;
 
   const steps = [
     { id: 1, title: "Informations générales", description: "Débiteur, groupe créance, objet, capital initial, dates et conditions" },
@@ -47,7 +62,7 @@ const VoirCreancePageInner = () => {
       numeroAncien: apiData.CREAN_CODE_ANC || apiData.CREAN_NUM_ANC || '',
       dateDeblocage: apiData.CREAN_DATEFT || apiData.CREAN_DATE_DEBLOCAGE || '',
       dateEcheance: apiData.CREAN_DATECH || apiData.CREAN_DATE_ECHEANCE || '',
-      periodicite: apiData.CREAN_PERIODICITE || '',
+      periodicite: apiData.PERIOD_CODE || '',
       duree: apiData.CREAN_NBECH || apiData.CREAN_DUREE || 0,
       tauxInteretConventionnel: apiData.CREAN_TAUXIC || apiData.CREAN_TAUX_IC || 0,
       tauxInteretRetard: apiData.CREAN_TAUXIR || apiData.CREAN_TAUX_IR || 0,
@@ -225,6 +240,11 @@ const VoirCreancePageInner = () => {
               onDataChange={() => {}} // Pas de modification en mode consultation
               onSubmit={() => {}} // Pas de soumission en mode consultation
               readOnly={true} // Mode lecture seule
+              debiteurInfo={creanceData ? {
+                nom: creanceData.DEB_NOM,
+                prenom: creanceData.DEB_PREN,
+                raisonSociale: creanceData.DEB_RAIS_SOCIALE,
+              } : null}
             />
           </div>
 
@@ -241,19 +261,21 @@ const VoirCreancePageInner = () => {
                       <TableRow>
                         <TableHead>Type</TableHead>
                         <TableHead>Numéro</TableHead>
-                        <TableHead>Date de dépôt</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {creanceData.pieces.map((piece, index) => (
+                      {creanceData.pieces.map((piece: any, index) => (
                         <TableRow key={index}>
-                          <TableCell>{piece.PIECE_TYPE || '-'}</TableCell>
-                          <TableCell>{piece.PIECE_NUM || '-'}</TableCell>
+                          <TableCell>{piece.TYPPIECE_LIB || getTypePieceLib(piece.TYPE_PIECE_CODE) || '-'}</TableCell>
+                          <TableCell>{piece.PIECE_REF || piece.PIECE_NUM || '-'}</TableCell>
                           <TableCell>
-                            {piece.PIECE_DATEDEP 
-                              ? new Date(piece.PIECE_DATEDEP).toLocaleDateString('fr-FR')
+                            {(piece.PIECE_DATE_RECEPT || piece.PIECE_DATE)
+                              ? new Date(piece.PIECE_DATE_RECEPT || piece.PIECE_DATE).toLocaleDateString('fr-FR')
                               : '-'}
                           </TableCell>
+                          <TableCell>{piece.PIECE_LIB || piece.PIECE_DESCRIPTION || '-'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -319,20 +341,20 @@ const VoirCreancePageInner = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Type</TableHead>
-                          <TableHead>Code débiteur</TableHead>
                           <TableHead>Nom</TableHead>
                           <TableHead>Prénom</TableHead>
-                          <TableHead>Raison sociale</TableHead>
+                          <TableHead>Téléphone</TableHead>
+                          <TableHead>Statut salarié</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {creanceData.garantiesPersonnelles.map((garantie, index) => (
+                        {creanceData.garantiesPersonnelles.map((garantie: any, index) => (
                           <TableRow key={index}>
-                            <TableCell>{garantie.GARPHYS_TYPGAR || '-'}</TableCell>
-                            <TableCell>{garantie.DEB_CODE || '-'}</TableCell>
-                            <TableCell>{garantie.DEB_NOM || '-'}</TableCell>
-                            <TableCell>{garantie.DEB_PREN || '-'}</TableCell>
-                            <TableCell>{garantie.DEB_RAIS_SOCIALE || '-'}</TableCell>
+                            <TableCell>{garantie.TYPGAR_PHYS_LIB || getTypeGarPersoLib(garantie.TYPGAR_PHYS_CODE) || '-'}</TableCell>
+                            <TableCell>{garantie.GARPHYS_NOM || '-'}</TableCell>
+                            <TableCell>{garantie.GARPHYS_PREN || '-'}</TableCell>
+                            <TableCell>{garantie.GARPHYS_TELDOM || garantie.GARPHYS_TEL || '-'}</TableCell>
+                            <TableCell>{garantie.STATSAL_LIB || getStatutSalLib(garantie.STATSAL_CODE) || '-'}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

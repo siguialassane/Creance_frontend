@@ -184,7 +184,7 @@ const NouvelleCreancePageInner = () => {
         creanceData.datePremiereEcheance = allFormValues.dateEcheance;
       }
       if (allFormValues.ordonnateur !== undefined) {
-        creanceData.ordonnateur = allFormValues.ordonnateur || '';
+        creanceData.ordonnateur = allFormValues.ordonnateur;
       }
       // Le statut est déjà en initiale (A, C, S) dans le formulaire, l'envoyer tel quel
       creanceData.statut = allFormValues.statut || "A";
@@ -205,7 +205,7 @@ const NouvelleCreancePageInner = () => {
 
       // Champs optionnels - Step 2
       if (allFormValues.periodicite !== undefined && allFormValues.periodicite) {
-        creanceData.periodicite = allFormValues.periodicite;
+        creanceData.periodicite = allFormValues.periodicite; // Code numérique FK vers AC_PERIODICITE (1, 3, 6, 12, 04)
       }
       if (allFormValues.nbEch !== undefined && allFormValues.nbEch !== null) {
         creanceData.nbEch = allFormValues.nbEch;
@@ -281,30 +281,25 @@ const NouvelleCreancePageInner = () => {
         if (watchedTypeGarantie === 'personnelles' || garantie.type === 'personnelles') {
           // Mapper vers le format API pour garanties personnelles
           garantiesPersonnelles.push({
-            TYPGAR_PHYS_CODE: garantie.type || '',
-            GARPHYS_CODE: garantie.numeroGarantie || garantie.code || '',
+            TYPGAR_PHYS_CODE: garantie.type || null,
             GARPHYS_NOM: garantie.nom || '',
             GARPHYS_PREN: garantie.prenoms || '',
-            GARPHYS_TEL: garantie.tel || '',
-            GARPHYS_ADR: garantie.adressePostale || garantie.adresse || '',
-            GARPHYS_PROFESSION: garantie.profession || '',
-            GARPHYS_EMPLOYEUR: garantie.employeur || '',
-            GARPHYS_REVENU: garantie.revenu || undefined,
-            CIV_CODE: garantie.civCode || '',
-            QUART_CODE: garantie.quartier || '',
-            VILLE_CODE: garantie.ville || '',
-            DEB_CODE: garantie.debCode || null,
+            GARPHYS_TEL: garantie.tel || null,
+            GARPHYS_ADR: garantie.adressePostale || null,
+            GARPHYS_PROFESSION: garantie.profession || null,
+            GARPHYS_EMPLOYEUR: garantie.employeur || null,
+            GARPHYS_REVENU: garantie.revenu || null,
+            STATSAL_CODE: garantie.statutSal || null,
+            CIV_CODE: garantie.civCode || null,
+            QUART_CODE: garantie.quartier || null,
           });
         } else if (watchedTypeGarantie === 'reelles' || garantie.type === 'reelles') {
           // Mapper vers le format API pour garanties réelles
           garantiesReelles.push({
-            TYPGAR_REEL_CODE: garantie.type || '',
-            GAR_REEL_DESCRIPTION: garantie.description || garantie.objetMontant || '',
-            GAR_REEL_VALEUR: garantie.valeur || garantie.objetMontant ? parseFloat(String(garantie.objetMontant)) : undefined,
-            GAR_REEL_ADRESSE: garantie.adresse || garantie.adressePostale || '',
-            GAR_REEL_SURFACE: garantie.surface ? parseFloat(String(garantie.surface)) : undefined,
-            CIRCONSCRIPTION_CODE: garantie.circonscription || '',
-            TITRE_FONCIER_NUM: garantie.titreFoncier || '',
+            TYPGAR_REEL_CODE: garantie.type || null,
+            GAR_REEL_DESCRIPTION: garantie.description || garantie.objetMontant || null,
+            GAR_REEL_VALEUR: garantie.valeur ? parseFloat(String(garantie.valeur)) : null,
+            TITRE_FONCIER_NUM: garantie.titreFoncier || null,
             TERRAIN_CODE: garantie.terrain || null,
             LOGEMENT_CODE: garantie.logement || null,
           });
@@ -321,13 +316,12 @@ const NouvelleCreancePageInner = () => {
 
       // Mapper les pièces jointes vers le format API
       const piecesMapped = pieces
-        .filter((p: any) => p.typePieceCode || p.numero || p.fichier) // Ne garder que les pièces avec au moins un champ rempli
+        .filter((p: any) => p.typePieceCode || p.numero)
         .map((piece: any) => ({
           TYPE_PIECE_CODE: piece.typePieceCode || '',
           PIECE_NUM: piece.numero || '',
           PIECE_DATE: piece.date || '',
           PIECE_DESCRIPTION: piece.description || '',
-          PIECE_FICHIER: piece.fichier || (piece.file ? piece.file.name : ''),
         }));
 
       if (piecesMapped.length > 0) {

@@ -52,4 +52,4 @@ connecte toi à l'api pour recuperer la liste des civilités dans le formulaire 
 ipconfig getifaddr en0
 
 
-git add . && git commit -m "Gestion des debiteurs (ajout-edit-suppression) avec domiciliation ok" && git push origin HEAD:main
+git add . && git commit -m "Gestion des creances ok" && git push origin HEAD:main

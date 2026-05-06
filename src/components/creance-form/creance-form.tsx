@@ -15,10 +15,12 @@ import { useEntitesSearchable } from "@/hooks/useEntitesSearchable";
 import { useQuartiersSearchable } from "@/hooks/useQuartiersSearchable";
 import { useDebiteursSearchable } from "@/hooks/useDebiteursSearchable";
 import { useOrdonnateursSearchable } from "@/hooks/useOrdonnateursSearchable";
+import { usePeriodicites } from "@/hooks/usePeriodicites";
 import { useTypeGarantieReellesSearchable } from "@/hooks/useTypeGarantieReellesSearchable";
 import { useTypeGarantiePersonnellesSearchable } from "@/hooks/useTypeGarantiePersonnellesSearchable";
 import { useTypePiecesSearchable } from "@/hooks/useTypePiecesSearchable";
 import { useCivilitesSearchable } from "@/hooks/useCivilitesSearchable";
+import { useStatutsSalarie } from "@/hooks/useStatutsSalarie";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -144,9 +146,10 @@ interface CreanceFormProps {
   onDataChange: (data: any) => void;
   onSubmit: (data: any) => void;
   readOnly?: boolean;
+  debiteurInfo?: { nom?: string; prenom?: string; raisonSociale?: string } | null;
 }
 
-const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, onDataChange, onSubmit, readOnly = false }, ref) => {
+const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, onDataChange, onSubmit, readOnly = false, debiteurInfo }, ref) => {
   const [stepData, setStepData] = useState({});
   const [typeGarantie, setTypeGarantie] = useState<string>("");
   const [garanties, setGaranties] = useState<any[]>(() => {
@@ -245,81 +248,59 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
 
   // Mettre à jour les garanties et pièces quand formData change (pour l'édition)
   useEffect(() => {
-    // Traiter les garanties réelles et personnelles depuis l'API
-    if (formData?.garantiesReelles && Array.isArray(formData.garantiesReelles) && formData.garantiesReelles.length > 0) {
+    const hasPersonnelles = formData?.garantiesPersonnelles && Array.isArray(formData.garantiesPersonnelles) && formData.garantiesPersonnelles.length > 0;
+    const hasReelles = formData?.garantiesReelles && Array.isArray(formData.garantiesReelles) && formData.garantiesReelles.length > 0;
+
+    if (hasReelles) {
       const garantiesReellesFormatted = formData.garantiesReelles.map((g: any, idx: number) => ({
         id: idx + 1,
-        type: g.GAREEL_TYPGAR || g.type || '',
+        type: g.TYPGAR_REEL_CODE || g.type || '',
         typeGarantie: 'reelles',
-        description: g.GAR_REEL_DESCRIPTION || g.description || '',
-        valeur: g.GAR_REEL_VALEUR || g.valeur || '',
-        adresse: g.GAR_REEL_ADRESSE || g.adresse || '',
-        surface: g.GAR_REEL_SURFACE || g.surface || '',
-        circonscription: g.CIRCONSCRIPTION_CODE || g.circonscription || '',
-        titreFoncier: g.TITRE_FONCIER_NUM || g.titreFoncier || '',
-        terrain: g.TERRAIN_CODE || g.terrain || '',
-        logement: g.LOGEMENT_CODE || g.logement || '',
+        description: g.GAREEL_LIB || g.GAR_REEL_DESCRIPTION || g.description || '',
+        valeur: g.GAREEL_OBJ_MONT || g.GAR_REEL_VALEUR || g.valeur || '',
+        titreFoncier: g.GAREEL_OBJ_NUM || g.TITRE_FONCIER_NUM || g.titreFoncier || '',
+        terrain: g.TER_CODE || g.TERRAIN_CODE || g.terrain || '',
+        logement: g.LOGE_CODE || g.LOGEMENT_CODE || g.logement || '',
+        dateInscription: g.GAREEL_DATINSCRIP || g.dateInscription || '',
         ...g
       }));
-      
-      // Si on a des garanties réelles, les ajouter ou remplacer
-      setGaranties((prev) => {
-        const hasReelles = prev.some(g => g.typeGarantie === 'reelles' || g.type === 'reelles');
-        if (hasReelles) {
-          // Remplacer les garanties réelles existantes
-          return [...prev.filter(g => g.typeGarantie !== 'reelles' && g.type !== 'reelles'), ...garantiesReellesFormatted];
-        } else {
-          return [...prev, ...garantiesReellesFormatted];
-        }
-      });
+      setGaranties(garantiesReellesFormatted);
+      setTypeGarantie('reelles');
+      setValue('typeGarantie', 'reelles');
     }
 
-    // Traiter les garanties personnelles depuis l'API
-    if (formData?.garantiesPersonnelles && Array.isArray(formData.garantiesPersonnelles) && formData.garantiesPersonnelles.length > 0) {
+    if (hasPersonnelles) {
       const garantiesPersonnellesFormatted = formData.garantiesPersonnelles.map((g: any, idx: number) => ({
-        id: (formData?.garantiesReelles?.length || 0) + idx + 1,
-        type: g.GARPHYS_TYPGAR || g.type || '',
+        id: idx + 1,
+        type: g.TYPGAR_PHYS_CODE || g.type || '',
         typeGarantie: 'personnelles',
-        nom: g.DEB_NOM || g.nom || '',
-        prenoms: g.DEB_PREN || g.prenoms || '',
-        tel: g.GARPHYS_TEL || g.tel || '',
-        adressePostale: g.GARPHYS_ADR || g.adressePostale || '',
-        profession: g.GARPHYS_PROFESSION || g.profession || '',
-        employeur: g.GARPHYS_EMPLOYEUR || g.employeur || '',
-        revenu: g.GARPHYS_REVENU || g.revenu || '',
+        nom: g.GARPHYS_NOM || g.nom || '',
+        prenoms: g.GARPHYS_PREN || g.prenoms || '',
+        tel: g.GARPHYS_TELDOM || g.GARPHYS_TEL || g.tel || '',
+        adressePostale: g.GARPHYS_ADRPOST || g.GARPHYS_ADR || g.adressePostale || '',
+        profession: g.PROFES_CODE || g.GARPHYS_PROFESSION || g.profession || '',
+        employeur: g.EMP_CODE || g.GARPHYS_EMPLOYEUR || g.employeur || '',
+        revenu: g.GARPHYS_SALBRUT || g.GARPHYS_REVENU || g.revenu || '',
+        statutSal: g.STATSAL_CODE || g.statutSal || '',
         civCode: g.CIV_CODE || g.civCode || '',
         quartier: g.QUART_CODE || g.quartier || '',
-        ville: g.VILLE_CODE || g.ville || '',
-        debCode: g.DEB_CODE || g.debCode || '',
-        numeroGarantie: g.GARPHYS_CODE || g.numeroGarantie || '',
         ...g
       }));
-      
-      // Si on a des garanties personnelles, les ajouter ou remplacer
-      setGaranties((prev) => {
-        const hasPersonnelles = prev.some(g => g.typeGarantie === 'personnelles' || (g.type !== 'reelles' && g.type));
-        if (hasPersonnelles) {
-          // Remplacer les garanties personnelles existantes
-          return [...prev.filter(g => g.typeGarantie !== 'personnelles' && (g.type === 'reelles' || !g.type)), ...garantiesPersonnellesFormatted];
-        } else {
-          return [...prev, ...garantiesPersonnellesFormatted];
-        }
-      });
+      setGaranties(garantiesPersonnellesFormatted);
+      setTypeGarantie('personnelles');
+      setValue('typeGarantie', 'personnelles');
     }
 
     // Traiter les pièces depuis l'API
     if (formData?.pieces && Array.isArray(formData.pieces) && formData.pieces.length > 0) {
       const piecesFormatted = formData.pieces.map((p: any, idx: number) => ({
         id: idx + 1,
-        typePieceCode: p.PIECE_TYPE || p.TYPE_PIECE_CODE || p.typePieceCode || '',
-        numero: p.PIECE_NUM || p.numero || '',
-        date: p.PIECE_DATEDEP || p.PIECE_DATE || p.date || '',
-        description: p.PIECE_DESCRIPTION || p.description || '',
-        fichier: p.PIECE_FICHIER || p.fichier || null,
-        file: p.file || null,
+        typePieceCode: p.TYPE_PIECE_CODE || p.TYPPIECE_CODE || p.typePieceCode || '',
+        numero: p.PIECE_REF || p.PIECE_NUM || p.numero || '',
+        date: p.PIECE_DATE_RECEPT || p.PIECE_DATE || p.PIECE_DATEDEP || p.date || '',
+        description: p.PIECE_LIB || p.PIECE_DESCRIPTION || p.description || '',
         ...p
       }));
-      
       setPieces(piecesFormatted);
     }
   }, [formData?.garantiesReelles, formData?.garantiesPersonnelles, formData?.pieces]);
@@ -330,8 +311,9 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
   const groupesCreanceSearchable = useGroupesCreanceSearchable();
   const objetsCreanceSearchable = useObjetsCreanceSearchable();
   
-  // Step 2: ordonnateurs
+  // Step 2: ordonnateurs + périodicités
   const ordonnateursSearchable = useOrdonnateursSearchable();
+  const { data: periodicites = [] } = usePeriodicites();
   
   // Step 5: entités, quartiers, types de garanties, types de pièces, civilités (pour garanties)
   const entitesSearchable = useEntitesSearchable();
@@ -340,6 +322,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
   const typeGarantiePersonnellesSearchable = useTypeGarantiePersonnellesSearchable();
   const typePiecesSearchable = useTypePiecesSearchable();
   const civilitesSearchable = useCivilitesSearchable();
+  const { data: statutsSalarie = [] } = useStatutsSalarie();
 
   // Utiliser les schémas depuis le fichier de validation centralisé
   const getSchemaForStep = useCallback((step: number) => {
@@ -367,7 +350,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
       duree: undefined,
       tauxInteretConventionnel: undefined,
       tauxInteretRetard: undefined,
-      ordonnateur: '',
+      ordonnateur: null,
       statut: 'A', // Par défaut "A" pour Actif (initiale)
       statutRecouvr: undefined, // undefined = non défini, true = RECOUVRABLE, false = NON RECOUVRABLE
       // Step 2 - Montants (Détails financiers)
@@ -607,7 +590,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         duree: currentValues.duree ?? memoizedFormData?.duree ?? undefined,
         tauxInteretConventionnel: currentValues.tauxInteretConventionnel ?? memoizedFormData?.tauxInteretConventionnel ?? undefined,
         tauxInteretRetard: currentValues.tauxInteretRetard ?? memoizedFormData?.tauxInteretRetard ?? undefined,
-        ordonnateur: currentValues.ordonnateur ?? memoizedFormData?.ordonnateur ?? '',
+        ordonnateur: currentValues.ordonnateur ?? memoizedFormData?.ordonnateur ?? null,
         statut: currentValues.statut ?? memoizedFormData?.statut ?? 'A', // Par défaut "A" pour Actif (initiale)
         statutRecouvr: currentValues.statutRecouvr ?? memoizedFormData?.statutRecouvr ?? undefined,
         // Step 2 - Montants (Détails financiers)
@@ -709,8 +692,20 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
   const getDebiteurLibelle = (id: string) => {
     if (!id) return '';
     const item = debiteursSearchable.items.find((d: any) => d.value === id || d.DEB_CODE?.toString() === id);
-    return item?.label || id;
-  }
+    if (item?.label) {
+      return item.label;
+    }
+    
+    // Utiliser les données du débiteur passées depuis la page parent (ex: données de la créance)
+    if (debiteurInfo) {
+      const { nom, prenom, raisonSociale } = debiteurInfo;
+      if (raisonSociale) return `${id} - ${raisonSociale}`;
+      if (nom) return `${id} - ${prenom ? prenom + ' ' : ''}${nom}`.trim();
+    }
+    
+    // Si non trouvé, retourner juste le code
+    return id;
+  };
 
   const getGroupeCreanceLibelle = (id: string): string => {
     if (!id) return '';
@@ -735,8 +730,8 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
       o.ORDO_CODE?.toString() === id.toString() || 
       o.code === id.toString()
     );
-    return (item?.label || item?.ORDO_NOM || item?.ORDO_LIB || id) as string;
-  }
+    return (item?.label || item?.ORDO_LIB || '') as string;
+  };
 
   const getEntiteLibelle = (id: string): string => {
     if (!id) return '';
@@ -915,7 +910,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-            Capital initial <span style={{ color: '#f97316' }}>*</span>
+            Capital initial
           </Label>
           <Controller
             name="capitalInitial"
@@ -1020,7 +1015,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-                    Date d'octroi <span style={{ color: '#f97316' }}>*</span>
+                    Date d'octroi
                   </Label>
           <Controller
                     name="dateDeblocage"
@@ -1046,7 +1041,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-                    Date de 1ère échéance <span style={{ color: '#f97316' }}>*</span>
+                    Date de 1ère échéance
                   </Label>
           <Controller
                     name="dateEcheance"
@@ -1097,29 +1092,28 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Périodicité</Label>
+                  <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>Périodicité <span style={{ color: '#f97316' }}>*</span></Label>
           <Controller
             name="periodicite"
             control={control}
             render={({ field }) => (
               readOnly ? (
                 <Input
-                          value={field.value === 'M' ? 'Mensuel' : field.value === 'T' ? 'Trimestriel' : field.value === 'S' ? 'Semestriel' : field.value === 'A' ? 'Annuel' : field.value}
-                          className="bg-gray-100 text-gray-700 flex-1"
+                  value={(periodicites as any[]).find((p) => p.PERIOD_CODE?.toString() === field.value?.toString())?.PERIOD_LIB || field.value || ''}
+                  className="bg-gray-100 text-gray-700 flex-1"
                   style={{ borderColor: !!errors.periodicite ? errorRed : primaryGreen }}
                   disabled
                 />
               ) : (
                 <select
                   {...field}
-                          className="flex h-10 w-full rounded-md border bg-gray-100 px-3 py-2 text-sm text-gray-700 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 flex-1"
+                  className="flex h-10 w-full rounded-md border bg-gray-100 px-3 py-2 text-sm text-gray-700 ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 flex-1"
                   style={{ borderColor: primaryGreen }}
                 >
                   <option value="">Sélectionner une périodicité</option>
-                          <option value="M">Mensuel (M)</option>
-                          <option value="T">Trimestriel (T)</option>
-                          <option value="S">Semestriel (S)</option>
-                          <option value="A">Annuel (A)</option>
+                  {(periodicites as any[]).map((p) => (
+                    <option key={p.PERIOD_CODE} value={p.PERIOD_CODE?.toString()}>{p.PERIOD_LIB}</option>
+                  ))}
                 </select>
               )
             )}
@@ -1185,7 +1179,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-                    Ordonnateur <span style={{ color: '#f97316' }}>*</span>
+                    Ordonnateur
                   </Label>
           <Controller
                     name="ordonnateur"
@@ -1194,7 +1188,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             render={({ field }) => (
               readOnly ? (
               <Input
-                          value={getOrdonnateurLibelle(field.value) || ''}
+                          value={getOrdonnateurLibelle(field.value || '')}
                           className="bg-gray-100 text-gray-700 flex-1"
                           style={{ borderColor: !!errors.ordonnateur ? errorRed : primaryGreen }}
                   disabled
@@ -1203,7 +1197,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                         <div className="flex-1">
                           <SearchableSelect
                             value={field.value || ""}
-                            onValueChange={field.onChange}
+                            onValueChange={(value) => field.onChange(value || null)}
                             items={ordonnateursSearchable.items}
                             placeholder="Sélectionner un ordonnateur"
                             emptyMessage="Aucun ordonnateur trouvé"
@@ -1228,7 +1222,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label className="whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-                    Statut recouvr <span style={{ color: '#f97316' }}>*</span>
+                    Statut recouvr
                   </Label>
           <Controller
                     name="statut"
@@ -1704,7 +1698,17 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
   );
 
   // Step 4: Pièces jointes
-  const renderStep4 = () => (
+  const renderStep4 = () => {
+    const hasRealPieces = pieces.some((p: any) => p.typePieceCode || p.numero || p.description);
+    if (readOnly && !hasRealPieces) {
+      return (
+        <div className="space-y-6">
+          <h2 className="text-lg font-bold mb-4" style={{ color: titleColor }}>Pièces jointes</h2>
+          <p className="text-gray-500 text-sm">Aucune pièce jointe enregistrée</p>
+        </div>
+      );
+    }
+    return (
     <div className="space-y-6">
       <h2 className="text-lg font-bold mb-4" style={{ color: titleColor }}>Pièces jointes</h2>
       
@@ -1791,33 +1795,6 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
               />
         </div>
 
-              <div className="space-y-2 md:col-span-2">
-                <Label style={{ color: labelColor }}>Fichier</Label>
-                {readOnly ? (
-              <Input
-                    value={piece.fichier || ''}
-                    className="bg-gray-100 text-gray-700"
-                    style={{ borderColor: primaryGreen }}
-                    disabled
-                  />
-                ) : (
-                  <Input
-                    type="file"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      handleFileChange(piece.id, file);
-                    }}
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    style={{ borderColor: primaryGreen }}
-                    className="focus:ring-2"
-                  />
-                )}
-                {piece.file && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Fichier sélectionné : {piece.file.name}
-                  </p>
-          )}
-        </div>
             </div>
           </div>
         ))}
@@ -1835,7 +1812,8 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
         )}
       </div>
     </div>
-  );
+    );
+  };
 
   const addGarantie = () => {
     const newId = garanties.length > 0 ? Math.max(...garanties.map(g => g.id)) + 1 : 1;
@@ -1858,15 +1836,10 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
       logement: '',
       code: '',
       tel: '',
-      ville: '',
       civCode: '',
-      debCode: '',
       revenu: '',
       description: '',
       valeur: '',
-      adresse: '',
-      surface: '',
-      circonscription: '',
       titreFoncier: '',
     }]);
   };
@@ -2032,15 +2005,28 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                 </div>
 
                 <div className="space-y-2">
-                  <Label style={{ color: labelColor }}>Statut sal.</Label>
-                  <Input
-                    value={garantie.statutSal || ''}
-                    onChange={(e) => updateGarantie(garantie.id, 'statutSal', e.target.value)}
-                    placeholder="Statut salarié"
-                    style={{ borderColor: primaryGreen }}
-                    className="focus:ring-2"
-                    disabled={readOnly}
-                  />
+                  <Label style={{ color: labelColor }}>Statut salarié</Label>
+                  {readOnly ? (
+                    <Input
+                      value={(statutsSalarie as any[]).find((s: any) => s.STATSAL_CODE === garantie.statutSal)?.STATSAL_LIB || garantie.statutSal || ''}
+                      className="bg-gray-100 text-gray-700"
+                      style={{ borderColor: primaryGreen }}
+                      disabled
+                    />
+                  ) : (
+                    <select
+                      value={garantie.statutSal || ''}
+                      onChange={(e) => updateGarantie(garantie.id, 'statutSal', e.target.value)}
+                      className="flex h-10 w-full rounded-md border px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      style={{ borderColor: primaryGreen }}
+                      disabled={readOnly}
+                    >
+                      <option value="">Sélectionner un statut</option>
+                      {(statutsSalarie as any[]).map((s: any) => (
+                        <option key={s.STATSAL_CODE} value={s.STATSAL_CODE}>{s.STATSAL_LIB}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 
@@ -2202,29 +2188,6 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label style={{ color: labelColor }}>Code ville</Label>
-                  <Input
-                    value={garantie.ville || ''}
-                    onChange={(e) => updateGarantie(garantie.id, 'ville', e.target.value)}
-                    placeholder="Code ville"
-                    style={{ borderColor: primaryGreen }}
-                    className="focus:ring-2"
-                    disabled={readOnly}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label style={{ color: labelColor }}>Code débiteur</Label>
-                  <Input
-                    value={garantie.debCode || ''}
-                    onChange={(e) => updateGarantie(garantie.id, 'debCode', e.target.value)}
-                    placeholder="Code débiteur (optionnel)"
-                    style={{ borderColor: primaryGreen }}
-                    className="focus:ring-2"
-                    disabled={readOnly}
-                  />
-                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4">
@@ -2355,45 +2318,9 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
                       />
                 </div>
 
-                <div className="space-y-2">
-                  <Label style={{ color: labelColor }}>Surface</Label>
-                      <Input
-                    type="number"
-                    value={garantie.surface || ''}
-                    onChange={(e) => updateGarantie(garantie.id, 'surface', e.target.value ? parseFloat(e.target.value) : '')}
-                    placeholder="Surface en m²"
-                    style={{ borderColor: primaryGreen }}
-                    className="focus:ring-2"
-                        disabled={readOnly}
-                      />
-                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label style={{ color: labelColor }}>Adresse</Label>
-                      <Input
-                    value={garantie.adresse || ''}
-                    onChange={(e) => updateGarantie(garantie.id, 'adresse', e.target.value)}
-                    placeholder="Adresse de la garantie"
-                    style={{ borderColor: primaryGreen }}
-                    className="focus:ring-2"
-                        disabled={readOnly}
-                      />
-                </div>
-
-                <div className="space-y-2">
-                  <Label style={{ color: labelColor }}>Code circonscription</Label>
-                      <Input
-                    value={garantie.circonscription || ''}
-                    onChange={(e) => updateGarantie(garantie.id, 'circonscription', e.target.value)}
-                    placeholder="Code circonscription"
-                    style={{ borderColor: primaryGreen }}
-                    className="focus:ring-2"
-                        disabled={readOnly}
-                      />
-                  {/* <p className="text-xs text-gray-500">Note: L'API pour les circonscriptions n'est pas encore disponible</p> */}
-                </div>
 
                 <div className="space-y-2">
                   <Label style={{ color: labelColor }}>Numéro titre foncier</Label>

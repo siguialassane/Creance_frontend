@@ -9,6 +9,8 @@ import CreanceForm from "@/components/creance-form/creance-form";
 import { useApiClient } from "@/hooks/useApiClient";
 import { CreanceService } from "@/services/creance.service";
 import { CreanceResponse } from "@/types/creance";
+import { getStatutRecouvrementLibelle } from "@/lib/constants/statut-recouvrement";
+import { ArrowLeft, Save } from "lucide-react";
 
 const EditerCreancePageInner = () => {
   const [step, setStep] = useState(1);
@@ -45,7 +47,7 @@ const EditerCreancePageInner = () => {
       dateDeblocage: apiData.CREAN_DATEFT || apiData.CREAN_DATE_DEBLOCAGE || '',
       dateEcheance: apiData.CREAN_DATECH || apiData.CREAN_DATE_ECHEANCE || '',
       nbEch: apiData.CREAN_NBECH || apiData.nbEch || undefined,
-      periodicite: apiData.CREAN_PERIODICITE || '',
+      periodicite: apiData.PERIOD_CODE || '',
       duree: apiData.CREAN_DUREE || undefined,
       tauxInteretConventionnel: apiData.CREAN_TAUXIC || apiData.CREAN_TAUX_IC || 0,
       tauxInteretRetard: apiData.CREAN_TAUXIR || apiData.CREAN_TAUX_IR || 0,
@@ -165,7 +167,7 @@ const EditerCreancePageInner = () => {
         creanceData.dateEcheance = allFormValues.dateEcheance;
       }
       if (allFormValues.ordonnateur !== undefined) {
-        creanceData.ordonnateur = allFormValues.ordonnateur || '';
+        creanceData.ordonnateur = allFormValues.ordonnateur || null;
       }
       creanceData.statut = allFormValues.statut || "A";
       
@@ -255,57 +257,46 @@ const EditerCreancePageInner = () => {
       garanties.forEach((garantie: any) => {
         if (watchedTypeGarantie === 'personnelles' || garantie.type === 'personnelles') {
           garantiesPersonnelles.push({
-            TYPGAR_PHYS_CODE: garantie.type || '',
-            GARPHYS_CODE: garantie.numeroGarantie || garantie.code || '',
+            TYPGAR_PHYS_CODE: garantie.typeCode || garantie.type || null,
             GARPHYS_NOM: garantie.nom || '',
             GARPHYS_PREN: garantie.prenoms || '',
-            GARPHYS_TEL: garantie.tel || '',
-            GARPHYS_ADR: garantie.adressePostale || garantie.adresse || '',
-            GARPHYS_PROFESSION: garantie.profession || '',
-            GARPHYS_EMPLOYEUR: garantie.employeur || '',
-            GARPHYS_REVENU: garantie.revenu || undefined,
-            CIV_CODE: garantie.civCode || '',
-            QUART_CODE: garantie.quartier || '',
-            VILLE_CODE: garantie.ville || '',
-            DEB_CODE: garantie.debCode || null,
+            GARPHYS_TEL: garantie.tel || null,
+            GARPHYS_ADR: garantie.adressePostale || null,
+            GARPHYS_PROFESSION: garantie.profession || null,
+            GARPHYS_EMPLOYEUR: garantie.employeur || null,
+            GARPHYS_REVENU: garantie.revenu || null,
+            STATSAL_CODE: garantie.statutSal || null,
+            CIV_CODE: garantie.civCode || null,
+            QUART_CODE: garantie.quartier || null,
           });
         } else if (watchedTypeGarantie === 'reelles' || garantie.type === 'reelles') {
           garantiesReelles.push({
-            TYPGAR_REEL_CODE: garantie.type || '',
-            GAR_REEL_DESCRIPTION: garantie.description || garantie.objetMontant || '',
-            GAR_REEL_VALEUR: garantie.valeur || garantie.objetMontant ? parseFloat(String(garantie.objetMontant)) : undefined,
-            GAR_REEL_ADRESSE: garantie.adresse || garantie.adressePostale || '',
-            GAR_REEL_SURFACE: garantie.surface ? parseFloat(String(garantie.surface)) : undefined,
-            CIRCONSCRIPTION_CODE: garantie.circonscription || '',
-            TITRE_FONCIER_NUM: garantie.titreFoncier || '',
+            TYPGAR_REEL_CODE: garantie.typeCode || garantie.type || null,
+            GAR_REEL_DESCRIPTION: garantie.description || garantie.objetMontant || null,
+            GAR_REEL_VALEUR: garantie.valeur ? parseFloat(String(garantie.valeur)) : null,
+            TITRE_FONCIER_NUM: garantie.titreFoncier || null,
             TERRAIN_CODE: garantie.terrain || null,
             LOGEMENT_CODE: garantie.logement || null,
           });
         }
       });
       
-      // Ajouter les garanties seulement si elles existent
-      if (garantiesPersonnelles.length > 0) {
-        creanceData.garantiesPersonnelles = garantiesPersonnelles;
-      }
-      if (garantiesReelles.length > 0) {
-        creanceData.garantiesReelles = garantiesReelles;
-      }
+      // Toujours inclure les garanties (même vides) pour que le backend puisse supprimer les anciennes
+      creanceData.garantiesPersonnelles = garantiesPersonnelles;
+      creanceData.garantiesReelles = garantiesReelles;
       
       // Mapper les pièces jointes vers le format API
       const piecesMapped = pieces
-        .filter((p: any) => p.typePieceCode || p.numero || p.fichier)
+        .filter((p: any) => p.typePieceCode || p.numero)
         .map((piece: any) => ({
           TYPE_PIECE_CODE: piece.typePieceCode || '',
           PIECE_NUM: piece.numero || '',
           PIECE_DATE: piece.date || '',
           PIECE_DESCRIPTION: piece.description || '',
-          PIECE_FICHIER: piece.fichier || (piece.file ? piece.file.name : ''),
         }));
       
-      if (piecesMapped.length > 0) {
-        creanceData.pieces = piecesMapped;
-      }
+      // Toujours inclure les pièces (même vides) pour que le backend puisse supprimer les anciennes
+      creanceData.pieces = piecesMapped;
       
       console.log("📤 Payload final envoyé au backend (UPDATE):", JSON.stringify(creanceData, null, 2));
       console.log("📎 Garanties personnelles:", garantiesPersonnelles);
@@ -416,6 +407,11 @@ const EditerCreancePageInner = () => {
                 formData={formData}
                 onDataChange={setFormData}
                 onSubmit={handleSubmit}
+                debiteurInfo={creanceData ? {
+                  nom: creanceData.DEB_NOM,
+                  prenom: creanceData.DEB_PREN,
+                  raisonSociale: creanceData.DEB_RAIS_SOCIALE,
+                } : null}
               />
             </div>
 
