@@ -215,9 +215,18 @@ export default function NouveauDebiteurPage() {
         }
       }
 
-      console.log("Payload avec normalisation:", payload);
-
-      // Appeler l'API pour créer le débiteur
+      console.log('🚀 Payload complet envoyé au backend (CRÉATION):', JSON.stringify(payload, null, 2));
+      
+      // Vérification des champs obligatoires pour personne physique
+      if (payload.typeDebiteur === 'P') {
+        const requiredFields = ['nom', 'prenoms', 'sexe'];
+        const missingFields = requiredFields.filter(field => !payload[field] || payload[field].trim() === '');
+        if (missingFields.length > 0) {
+          console.error('❌ Champs obligatoires manquants pour personne physique:', missingFields);
+          console.error('📋 Payload actuel:', payload);
+        }
+      }
+      
       const response = await DebiteurService.create(
         apiClient,
         payload as unknown as DebiteurCreateRequest
