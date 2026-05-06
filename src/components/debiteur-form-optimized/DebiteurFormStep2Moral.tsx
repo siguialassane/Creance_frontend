@@ -26,7 +26,7 @@ export function DebiteurFormStep2Moral({ control, errors, readOnly = false }: Pr
         <div className="space-y-2">
           <div className="flex items-center gap-2">
               <Label htmlFor="registreCommerce" className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '160px' }}>
-              Registre de commerce <span className="text-red-500">*</span>
+              Registre de commerce
             </Label>
             <Controller
             name="registreCommerce"
@@ -52,7 +52,7 @@ export function DebiteurFormStep2Moral({ control, errors, readOnly = false }: Pr
         <div className="space-y-2">
           <div className="flex items-center gap-2">
               <Label htmlFor="raisonSociale" className="text-sm font-medium" style={{ color: labelColor }}>
-            Raison sociale <span className="text-red-500">*</span>
+            Raison sociale
           </Label>
             <Controller
             name="raisonSociale"
@@ -102,7 +102,7 @@ export function DebiteurFormStep2Moral({ control, errors, readOnly = false }: Pr
         <div className="space-y-2">
           <div className="flex items-center gap-2">
               <Label htmlFor="formeJuridique" className="text-sm font-medium" style={{ color: labelColor }}>
-            Forme juridique <span className="text-red-500">*</span>
+            Forme juridique
           </Label>
             <Controller
             name="formeJuridique"
@@ -130,7 +130,7 @@ export function DebiteurFormStep2Moral({ control, errors, readOnly = false }: Pr
         <div className="space-y-2">
           <div className="flex items-center gap-2">
               <Label htmlFor="domaineActivite" className="text-sm font-medium" style={{ color: labelColor }}>
-            Domaine d'activité <span className="text-red-500">*</span>
+            Domaine d'activité
           </Label>
             <Controller
             name="domaineActivite"
@@ -159,7 +159,7 @@ export function DebiteurFormStep2Moral({ control, errors, readOnly = false }: Pr
         <div className="space-y-2">
           <div className="flex items-center gap-2">
               <Label htmlFor="nomGerant" className="text-sm font-medium" style={{ color: labelColor }}>
-            Nom du gérant <span className="text-red-500">*</span>
+            Nom du gérant
           </Label>
             <Controller
             name="nomGerant"
@@ -183,7 +183,7 @@ export function DebiteurFormStep2Moral({ control, errors, readOnly = false }: Pr
         <div className="space-y-2">
           <div className="flex items-center gap-2">
               <Label htmlFor="siegeSocial" className="text-sm font-medium" style={{ color: labelColor }}>
-            Siège social <span className="text-red-500">*</span>
+            Siège social
           </Label>
             <Controller
             name="siegeSocial"

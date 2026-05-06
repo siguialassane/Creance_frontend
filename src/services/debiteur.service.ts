@@ -54,7 +54,7 @@ export class DebiteurService {
     return response.data;
   }
 
-  static async update(apiClient: any, code: string, debiteur: Partial<DebiteurCreateRequest>): Promise<DebiteurApiResponse> {
+  static async update(apiClient: any, code: string | number, debiteur: Partial<DebiteurCreateRequest>): Promise<DebiteurApiResponse> {
     const cleanedDebiteur = this.cleanNumericFields(debiteur);
     const response = await apiClient.put(`${DebiteurService.BASE_URL}/${code}`, cleanedDebiteur);
     return response.data;

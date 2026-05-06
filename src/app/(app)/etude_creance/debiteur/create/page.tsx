@@ -168,26 +168,43 @@ export default function NouveauDebiteurPage() {
 
       // Domiciliations bancaires (tableau)
       if (formData.domiciliations && Array.isArray(formData.domiciliations)) {
-        // Filtrer les domiciliations valides (avec type et banqueAgence au minimum)
+        // Filtrer les domiciliations valides (au moins un champ rempli)
         const validDomiciliations = formData.domiciliations
           .filter((dom: any) => {
-            // Une domiciliation est valide si elle a au moins type et banqueAgence
-            return dom.type && dom.type.trim() !== "" && dom.banqueAgence && dom.banqueAgence.trim() !== "";
+            // Une domiciliation est valide si elle a au moins un champ rempli
+            return (
+              (dom.type && dom.type.trim() !== "") ||
+              (dom.numBenef && dom.numBenef.trim() !== "") ||
+              (dom.libelle && dom.libelle.trim() !== "") ||
+              (dom.banqueAgence && dom.banqueAgence.trim() !== "")
+            );
           })
           .map((dom: any) => {
-            const domiciliation: any = {
-              type: dom.type,
-              banqueAgence: dom.banqueAgence,
-            };
+            const domiciliation: any = {};
             
-            // Ajouter libelle seulement s'il est renseigné
-            if (dom.libelle && dom.libelle.trim() !== "") {
-              domiciliation.libelle = dom.libelle;
+            // Utiliser les noms Oracle attendus par le backend
+            if (dom.type && dom.type.trim() !== "") {
+              domiciliation.TYPDOM_CODE = dom.type;
             }
             
-            // Ajouter numeroCompte seulement s'il est renseigné
-            if (dom.numeroCompte && dom.numeroCompte.trim() !== "") {
-              domiciliation.numeroCompte = dom.numeroCompte;
+            if (dom.numBenef && dom.numBenef.trim() !== "") {
+              domiciliation.NUM_BENEF = dom.numBenef;
+            }
+            
+            if (dom.libelle && dom.libelle.trim() !== "") {
+              domiciliation.DOM_LIB = dom.libelle;
+            }
+            
+            if (dom.banqueAgence && dom.banqueAgence.trim() !== "") {
+              domiciliation.BQAG_CODE = dom.banqueAgence;
+            }
+            
+            if (dom.ancAgence && dom.ancAgence.trim() !== "") {
+              domiciliation.ANC_AG = dom.ancAgence;
+            }
+            
+            if (dom.villeCode && dom.villeCode.trim() !== "") {
+              domiciliation.VILLE_CODE = dom.villeCode;
             }
             
             return domiciliation;

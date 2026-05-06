@@ -113,16 +113,15 @@ const EditerDebiteurPageInner = () => {
 
       // Étape 3: Domiciliations (tableau)
       domiciliations: apiData.domiciliations && Array.isArray(apiData.domiciliations) && apiData.domiciliations.length > 0
-        ? apiData.domiciliations.map((dom: any) => {
-            // Extraire tous les champs possibles selon la structure API
-            return {
-              type: dom.TYPDOM_CODE || '',
-              numeroCompte: dom.DOM_NUM_COMPTE || dom.DOM_NUMERO_COMPTE || dom.DOM_NUM || '',
-              libelle: dom.DOM_LIB || dom.DOM_LIBELLE || '',
-              banque: dom.BQ_CODE || dom.BANQUE_CODE || dom.BQAG_BQ_CODE || '',
-              banqueAgence: dom.BQAG_NUM || dom.BQAG_CODE || dom.AGENCE_CODE || '',
-            };
-          })
+        ? apiData.domiciliations.map((dom: any) => ({
+            type: dom.TYPDOM_CODE || '',
+            numBenef: dom.NUM_BENEF || '',
+            libelle: dom.DOM_LIB || '',
+            banque: dom.BQ_CODE || dom.BQAG_BQ_CODE || '',
+            banqueAgence: dom.BQAG_CODE || '',
+            ancAgence: dom.ANC_AG || '',
+            villeCode: dom.VILLE_CODE || '',
+          }))
         : [],
     };
   };
@@ -335,18 +334,28 @@ const EditerDebiteurPageInner = () => {
           })
           .map((dom: any) => {
             const domiciliation: any = {
-              type: dom.type,
-              banqueAgence: dom.banqueAgence,
+              TYPDOM_CODE: dom.type,
+              BQAG_CODE: dom.banqueAgence,
             };
             
             // Ajouter libelle seulement s'il est renseigné
             if (dom.libelle && dom.libelle.trim() !== "") {
-              domiciliation.libelle = dom.libelle;
+              domiciliation.DOM_LIB = dom.libelle;
             }
             
-            // Ajouter numeroCompte seulement s'il est renseigné
-            if (dom.numeroCompte && dom.numeroCompte.trim() !== "") {
-              domiciliation.numeroCompte = dom.numeroCompte;
+            // Ajouter numBenef seulement s'il est renseigné
+            if (dom.numBenef && dom.numBenef.trim() !== "") {
+              domiciliation.NUM_BENEF = dom.numBenef;
+            }
+            
+            // Ajouter ancAgence seulement s'il est renseigné
+            if (dom.ancAgence && dom.ancAgence.trim() !== "") {
+              domiciliation.ANC_AG = dom.ancAgence;
+            }
+            
+            // Ajouter villeCode seulement s'il est renseigné
+            if (dom.villeCode && dom.villeCode.trim() !== "") {
+              domiciliation.VILLE_CODE = dom.villeCode;
             }
             
             return domiciliation;
@@ -358,7 +367,13 @@ const EditerDebiteurPageInner = () => {
       }
 
       console.log('Envoi de la mise à jour vers l\'API...');
-      const response = await DebiteurService.update(apiClient, debiteurId, payload);
+      console.log('🚀 Payload complet envoyé au backend:', JSON.stringify(payload, null, 2));
+      if (payload.domiciliations) {
+        console.log('📋 Domiciliations dans le payload:', payload.domiciliations);
+      } else {
+        console.log('📋 Aucune domiciliation dans le payload (correct)');
+      }
+      const response = await DebiteurService.update(apiClient, parseInt(debiteurId), payload);
       console.log('Réponse de l\'API:', response);
 
       if (response.status === "SUCCESS") {

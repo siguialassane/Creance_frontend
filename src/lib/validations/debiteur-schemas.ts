@@ -8,14 +8,12 @@ import { z } from "zod";
 // Étape 1: Informations générales
 export const step1Schema = z.object({
   codeDebiteur: z.string().optional(), // Auto-généré après validation
-  categorieDebiteur: z.string()
-    .min(1, "La catégorie débiteur est requise")
-    .max(3, "La catégorie débiteur ne peut pas dépasser 3 caractères"),
-  adressePostale: z.string().min(1, "L'adresse postale est requise"),
+  categorieDebiteur: z.string().optional(), // NULLABLE = Y dans la base
+  adressePostale: z.string().optional(), // NULLABLE = Y dans la base
   email: z
     .string()
-    .min(1, "L'email est requis")
-    .email("Email invalide (format attendu: exemple@domaine.com)"),
+    .email("Email invalide (format attendu: exemple@domaine.com)")
+    .optional(), // NULLABLE = Y dans la base
   telephone: z.string().optional(),
   numeroCell: z.string().optional(),
   localisation: z.string().optional(),
@@ -26,19 +24,19 @@ export const step1Schema = z.object({
 
 // Étape 2: Personne physique
 export const step2PhysiqueSchema = z.object({
-  civilite: z.string().min(1, "La civilité est requise"),
-  nom: z.string().min(1, "Le nom est requis"),
-  prenom: z.string().min(1, "Le prénom est requis"),
-  dateNaissance: z.string().min(1, "La date de naissance est requise"),
-  lieuNaissance: z.string().min(1, "Le lieu de naissance est requis"),
-  quartier: z.string().min(1, "Le quartier est requis"),
-  nationalite: z.string().min(1, "La nationalité est requise"),
-  fonction: z.string().min(1, "La fonction est requise"),
-  profession: z.string().min(1, "La profession est requise"),
-  employeur: z.string().min(1, "L'employeur est requis"),
-  statutSalarie: z.string().min(1, "Le statut salarié est requis"),
+  civilite: z.string().optional(), // NULLABLE = Y dans la base
+  nom: z.string().optional(), // NULLABLE = Y dans la base
+  prenom: z.string().optional(), // NULLABLE = Y dans la base
+  dateNaissance: z.string().optional(), // NULLABLE = Y dans la base
+  lieuNaissance: z.string().optional(), // NULLABLE = Y dans la base
+  quartier: z.string().optional(), // NULLABLE = Y dans la base
+  nationalite: z.string().optional(), // NULLABLE = Y dans la base
+  fonction: z.string().optional(), // NULLABLE = Y dans la base
+  profession: z.string().optional(), // NULLABLE = Y dans la base
+  employeur: z.string().optional(), // NULLABLE = Y dans la base
+  statutSalarie: z.string().optional(), // NULLABLE = Y dans la base
   matricule: z.string().optional(),
-  sexe: z.string().min(1, "Le sexe est requis"),
+  sexe: z.string().optional(),
   dateDeces: z.string().optional(),
   // Pièce d'identité (optionnel)
   naturePieceIdentite: z.string().optional(),
@@ -66,40 +64,25 @@ export const step2PhysiqueSchema = z.object({
 
 // Étape 2: Personne morale
 export const step2MoralSchema = z.object({
-  registreCommerce: z.string()
-    .min(1, "Le registre de commerce est requis")
-    .max(15, "Le registre de commerce ne peut pas dépasser 15 caractères"),
-  raisonSociale: z.string().min(1, "La raison sociale est requise"),
+  registreCommerce: z.string().optional(), // NULLABLE = Y dans la base
+  raisonSociale: z.string().optional(), // NULLABLE = Y dans la base
   capitalSocial: z.union([z.number(), z.string().transform((val) => val ? parseFloat(val) : undefined)]).optional(),
-  formeJuridique: z.string().min(1, "La forme juridique est requise"),
-  domaineActivite: z.string().min(1, "Le domaine d'activité est requis"),
-  siegeSocial: z.string().min(1, "Le siège social est requis"),
-  nomGerant: z.string().min(1, "Le nom du gérant est requis"),
+  formeJuridique: z.string().optional(), // NULLABLE = Y dans la base
+  domaineActivite: z.string().optional(), // NULLABLE = Y dans la base
+  siegeSocial: z.string().optional(), // NULLABLE = Y dans la base
+  nomGerant: z.string().optional(), // NULLABLE = Y dans la base
 });
 
 // Schéma pour une domiciliation individuelle
 const domiciliationItemSchema = z.object({
   type: z.string().optional(),
-  numeroCompte: z.string().optional(), // Optionnel selon l'exemple
+  numBenef: z.string().optional(),
   libelle: z.string().optional(),
   banqueAgence: z.string().optional(),
   banque: z.string().optional(), // Pas utilisé par le backend, seulement pour le filtre UI
-}).refine(
-  (data) => {
-    // Si la domiciliation est partiellement remplie, au moins type et banqueAgence doivent être présents
-    // Sinon, on considère la domiciliation comme vide et on l'ignore
-    const hasAnyValue = data.type || data.numeroCompte || data.libelle || data.banqueAgence;
-    if (hasAnyValue) {
-      // Si on commence à remplir, alors type et banqueAgence sont requis
-      return !!(data.type && data.type.trim() !== "" && data.banqueAgence && data.banqueAgence.trim() !== "");
-    }
-    return true; // Si tout est vide, on ignore cette domiciliation
-  },
-  {
-    message: "Le type et l'agence de banque sont requis pour une domiciliation",
-    path: ["banqueAgence"],
-  }
-);
+  ancAgence: z.string().optional(),
+  villeCode: z.string().optional(),
+});
 
 // Étape 3: Domiciliations (tableau)
 export const step3Schema = z.object({

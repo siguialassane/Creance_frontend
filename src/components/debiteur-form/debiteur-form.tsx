@@ -26,30 +26,30 @@ import { useUtilisateurs } from "@/hooks/useUtilisateurs";
 // Schémas de validation pour chaque étape
 const step1Schema = z.object({
   codeDebiteur: z.string().optional(), // Auto-généré après validation
-  categorieDebiteur: z.string().min(1, "La catégorie débiteur est requise"),
-  adressePostale: z.string().min(1, "L'adresse postale est requise"),
+  categorieDebiteur: z.string().optional(), // NULLABLE = Y dans la base
+  adressePostale: z.string().optional(), // NULLABLE = Y dans la base
   email: z.string()
-    .min(1, "L'email est requis")
-    .email("Email invalide (format attendu: exemple@domaine.com)"),
+    .email("Email invalide (format attendu: exemple@domaine.com)")
+    .optional(), // NULLABLE = Y dans la base
   telephone: z.string().optional(),
   numeroCell: z.string().optional(),
-  typeDebiteur: z.string().min(1, "Le type débiteur est requis"),
+  typeDebiteur: z.string().min(1, "Le type débiteur est requis"), // TYPDEB_CODE est obligatoire
 });
 
 const step2PhysiqueSchema = z.object({
-  civilite: z.string().min(1, "La civilité est requise"),
-  nom: z.string().min(1, "Le nom est requis"),
-  prenom: z.string().min(1, "Le prénom est requis"),
-  dateNaissance: z.string().min(1, "La date de naissance est requise"),
-  lieuNaissance: z.string().min(1, "Le lieu de naissance est requis"),
-  quartier: z.string().min(1, "Le quartier est requis"),
-  nationalite: z.string().min(1, "La nationalité est requise"),
-  fonction: z.string().min(1, "La fonction est requise"),
-  profession: z.string().min(1, "La profession est requise"),
-  employeur: z.string().min(1, "L'employeur est requis"),
-  statutSalarie: z.string().min(1, "Le statut salarié est requis"),
+  civilite: z.string().optional(), // NULLABLE = Y dans la base
+  nom: z.string().optional(), // NULLABLE = Y dans la base
+  prenom: z.string().optional(), // NULLABLE = Y dans la base
+  dateNaissance: z.string().optional(), // NULLABLE = Y dans la base
+  lieuNaissance: z.string().optional(), // NULLABLE = Y dans la base
+  quartier: z.string().optional(), // NULLABLE = Y dans la base
+  nationalite: z.string().optional(), // NULLABLE = Y dans la base
+  fonction: z.string().optional(), // NULLABLE = Y dans la base
+  profession: z.string().optional(), // NULLABLE = Y dans la base
+  employeur: z.string().optional(), // NULLABLE = Y dans la base
+  statutSalarie: z.string().optional(), // NULLABLE = Y dans la base
   matricule: z.string().optional(),
-  sexe: z.string().min(1, "Le sexe est requis"),
+  sexe: z.string().optional(),
   dateDeces: z.string().optional(),
   naturePieceIdentite: z.string().optional(),
   numeroPieceIdentite: z.string().optional(),
@@ -72,13 +72,13 @@ const step2PhysiqueSchema = z.object({
 });
 
 const step2MoralSchema = z.object({
-  registreCommerce: z.string().min(1, "Le registre de commerce est requis"),
-  raisonSociale: z.string().min(1, "La raison sociale est requise"),
+  registreCommerce: z.string().optional(), // NULLABLE = Y dans la base
+  raisonSociale: z.string().optional(), // NULLABLE = Y dans la base
   capitalSocial: z.string().optional(),
-  formeJuridique: z.string().min(1, "La forme juridique est requise"),
-  domaineActivite: z.string().min(1, "Le domaine d'activité est requis"),
-  siegeSocial: z.string().min(1, "Le siège social est requis"),
-  nomGerant: z.string().min(1, "Le nom du gérant est requis"),
+  formeJuridique: z.string().optional(), // NULLABLE = Y dans la base
+  domaineActivite: z.string().optional(), // NULLABLE = Y dans la base
+  siegeSocial: z.string().optional(), // NULLABLE = Y dans la base
+  nomGerant: z.string().optional(), // NULLABLE = Y dans la base
 });
 
 const step3Schema = z.object({

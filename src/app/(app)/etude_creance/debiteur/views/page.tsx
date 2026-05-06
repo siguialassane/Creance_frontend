@@ -209,6 +209,7 @@ const DebiteurPage = () => {
   const handleDeleteDebiteur = async (debiteur: Debiteur) => {
     if (confirm(`Êtes-vous sûr de vouloir supprimer le débiteur ${debiteur.codeDebiteur} ?`)) {
       try {
+        console.log('🗑️ Suppression débiteur:', debiteur.codeDebiteur, 'URL:', `/debiteurs/${debiteur.codeDebiteur}`);
         await DebiteurService.delete(apiClient, debiteur.codeDebiteur);
 
         // Mettre à jour la liste locale

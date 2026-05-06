@@ -277,7 +277,7 @@ interface AlertsSectionProps {
 function AlertsSection({ alertes }: AlertsSectionProps) {
   const alerts = [];
 
-  if (alertes.echeances7Jours.ready && alertes.echeances7Jours.nombre > 0) {
+  if (alertes?.echeances7Jours?.ready && alertes.echeances7Jours.nombre > 0) {
     alerts.push({
       type: "warning",
       icon: Calendar,
@@ -287,7 +287,7 @@ function AlertsSection({ alertes }: AlertsSectionProps) {
     });
   }
 
-  if (alertes.dossiersInactifs.ready && alertes.dossiersInactifs.nombre > 0) {
+  if (alertes?.dossiersInactifs?.ready && alertes.dossiersInactifs.nombre > 0) {
     alerts.push({
       type: "danger",
       icon: AlertTriangle,
@@ -297,7 +297,7 @@ function AlertsSection({ alertes }: AlertsSectionProps) {
     });
   }
 
-  if (alertes.promessesRetard.ready && alertes.promessesRetard.nombre > 0) {
+  if (alertes?.promessesRetard?.ready && alertes.promessesRetard.nombre > 0) {
     alerts.push({
       type: "info",
       icon: Clock,

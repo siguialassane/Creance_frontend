@@ -87,7 +87,7 @@ export function DebiteurFormStep1({ control, errors, isEditMode = false, readOnl
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '140px' }}>
-              Catégorie débiteur <span className="text-red-500">*</span>
+              Catégorie débiteur
             </label>
             <Controller
               name="categorieDebiteur"
@@ -211,7 +211,7 @@ export function DebiteurFormStep1({ control, errors, isEditMode = false, readOnl
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '140px' }}>
-              Adresse postale <span className="text-red-500">*</span>
+              Adresse postale
             </label>
             <Controller
               name="adressePostale"
@@ -258,7 +258,7 @@ export function DebiteurFormStep1({ control, errors, isEditMode = false, readOnl
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '140px' }}>
-              Email <span className="text-red-500">*</span>
+              Email
             </label>
             <Controller
               name="email"

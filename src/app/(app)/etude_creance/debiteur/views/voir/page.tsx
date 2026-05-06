@@ -112,16 +112,25 @@ const VoirDebiteurPageInner = () => {
 
       // Étape 3: Domiciliations (tableau)
       domiciliations: apiData.domiciliations && Array.isArray(apiData.domiciliations) && apiData.domiciliations.length > 0
-        ? apiData.domiciliations.map((dom: any) => {
-            // Extraire tous les champs possibles selon la structure API
-            return {
-              type: dom.TYPDOM_CODE || '',
-              numeroCompte: dom.DOM_NUM_COMPTE || dom.DOM_NUMERO_COMPTE || dom.DOM_NUM || '',
-              libelle: dom.DOM_LIB || dom.DOM_LIBELLE || '',
-              banque: dom.BQ_CODE || dom.BANQUE_CODE || dom.BQAG_BQ_CODE || '',
-              banqueAgence: dom.BQAG_NUM || dom.BQAG_CODE || dom.AGENCE_CODE || '',
-            };
-          })
+        ? apiData.domiciliations.map((dom: any) => ({
+            type: dom.TYPDOM_CODE || '',
+            numBenef: dom.NUM_BENEF || '',
+            libelle: dom.DOM_LIB || '',
+            banque: dom.BQ_CODE || dom.BQAG_BQ_CODE || '',
+            banqueAgence: dom.BQAG_CODE || '',
+            ancAgence: dom.ANC_AG || '',
+            villeCode: dom.VILLE_CODE || '',
+          }))
+        : apiData.DOMICILIATIONS && Array.isArray(apiData.DOMICILIATIONS) && apiData.DOMICILIATIONS.length > 0
+        ? apiData.DOMICILIATIONS.map((dom: any) => ({
+            type: dom.TYPDOM_CODE || '',
+            numBenef: dom.NUM_BENEF || '',
+            libelle: dom.DOM_LIB || '',
+            banque: dom.BQ_CODE || dom.BQAG_BQ_CODE || '',
+            banqueAgence: dom.BQAG_CODE || '',
+            ancAgence: dom.ANC_AG || '',
+            villeCode: dom.VILLE_CODE || '',
+          }))
         : [],
     };
   };
@@ -140,7 +149,12 @@ const VoirDebiteurPageInner = () => {
         console.log('Chargement du débiteur avec le code:', debiteurId);
         const response = await DebiteurService.getByCode(apiClient, debiteurId);
         console.log('Données du débiteur reçues:', response);
-
+        console.log('Structure des domiciliations dans la réponse API:', {
+          domiciliations: response.domiciliations,
+          DOMICILIATIONS: response.DOMICILIATIONS,
+          allKeys: Object.keys(response)
+        });
+        
         // Transformer les données API vers le format du formulaire
         const transformedData = transformApiDataToFormData(response);
         console.log('Données transformées pour le formulaire:', transformedData);

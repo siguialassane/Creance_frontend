@@ -50,7 +50,7 @@ export function DebiteurFormStep2Physical({ control, errors, readOnly = false }:
         <div>
           <div className="mb-2 flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-              Civilité <span className="text-red-500">*</span>
+              Civilité
             </label>
             <Controller
               name="civilite"
@@ -78,7 +78,7 @@ export function DebiteurFormStep2Physical({ control, errors, readOnly = false }:
         <div>
           <div className="mb-2 flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-              Nom <span className="text-red-500">*</span>
+              Nom
             </label>
             <Controller name="nom" control={control} render={({ field }) => (
               <input {...field} value={field.value || ""} placeholder="Ex: Koné" className={getFieldClassName(!!errors.nom) + " flex-1"} disabled={readOnly} />
@@ -90,7 +90,7 @@ export function DebiteurFormStep2Physical({ control, errors, readOnly = false }:
         <div>
           <div className="mb-2 flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-              Prénom <span className="text-red-500">*</span>
+              Prénom
             </label>
             <Controller name="prenom" control={control} render={({ field }) => (
               <input {...field} value={field.value || ""} placeholder="Ex: Amadou" className={getFieldClassName(!!errors.prenom) + " flex-1"} disabled={readOnly} />
@@ -105,7 +105,7 @@ export function DebiteurFormStep2Physical({ control, errors, readOnly = false }:
         <div>
           <div className="mb-2 flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-              Date de naissance <span className="text-red-500">*</span>
+              Date de naissance
             </label>
             <Controller name="dateNaissance" control={control} render={({ field }) => (
               <input 
@@ -139,7 +139,7 @@ export function DebiteurFormStep2Physical({ control, errors, readOnly = false }:
         <div>
           <div className="mb-2 flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-              Lieu de naissance <span className="text-red-500">*</span>
+              Lieu de naissance
             </label>
             <Controller name="lieuNaissance" control={control} render={({ field }) => (
               <input {...field} value={field.value || ""} placeholder="Ex: Abidjan" className={getFieldClassName(!!errors.lieuNaissance) + " flex-1"} disabled={readOnly} />
@@ -151,7 +151,7 @@ export function DebiteurFormStep2Physical({ control, errors, readOnly = false }:
         <div>
           <div className="mb-2 flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-              Quartier <span className="text-red-500">*</span>
+              Quartier
             </label>
             <Controller 
               name="quartier" 
@@ -188,7 +188,7 @@ export function DebiteurFormStep2Physical({ control, errors, readOnly = false }:
         <div>
           <div className="mb-2 flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-              Nationalité <span className="text-red-500">*</span>
+              Nationalité
             </label>
             <Controller name="nationalite" control={control} render={({ field }) => {
               // Debug: vérifier les données
@@ -256,7 +256,7 @@ export function DebiteurFormStep2Physical({ control, errors, readOnly = false }:
         <div>
           <div className="mb-2 flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-              Fonction <span className="text-red-500">*</span>
+              Fonction
             </label>
             <Controller 
               name="fonction" 
@@ -291,7 +291,7 @@ export function DebiteurFormStep2Physical({ control, errors, readOnly = false }:
         <div>
           <div className="mb-2 flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-              Profession <span className="text-red-500">*</span>
+              Profession
             </label>
             <Controller 
               name="profession" 
@@ -323,7 +323,7 @@ export function DebiteurFormStep2Physical({ control, errors, readOnly = false }:
         <div>
           <div className="mb-2 flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-              Employeur <span className="text-red-500">*</span>
+              Employeur
             </label>
             <Controller 
               name="employeur" 
@@ -355,7 +355,7 @@ export function DebiteurFormStep2Physical({ control, errors, readOnly = false }:
         <div>
           <div className="mb-2 flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-              Statut Salarié <span className="text-red-500">*</span>
+              Statut Salarié
             </label>
             <Controller name="statutSalarie" control={control} render={({ field }) => (
               <select {...field} className={getFieldClassName(!!errors.statutSalarie) + " flex-1"} disabled={readOnly} style={{ borderColor: primaryGreen, backgroundColor: '#f3f4f6' }}>
@@ -388,7 +388,7 @@ export function DebiteurFormStep2Physical({ control, errors, readOnly = false }:
         <div>
           <div className="mb-2 flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap flex-shrink-0" style={{ color: labelColor, minWidth: '120px' }}>
-              Sexe <span className="text-red-500">*</span>
+              Sexe
             </label>
             <Controller name="sexe" control={control} render={({ field }) => (
               <select {...field} className={getFieldClassName(!!errors.sexe) + " flex-1"} disabled={readOnly} style={{ borderColor: primaryGreen, backgroundColor: '#f3f4f6' }}>

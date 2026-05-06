@@ -46,9 +46,9 @@ export function useAgencesBanqueSearchable(banqueCode?: string | null) {
       
       // Transformer les données
       const items: SearchableSelectItem[] = (response.data?.content || []).map((agence: any) => ({
-        value: (agence.BQAG_NUM || agence.code || "").toString(),
-        label: `${agence.BQAG_NUM || agence.code || ""} - ${agence.BQAG_LIB || agence.libelle || ""}`,
-        ...agence,
+        value: (agence.BQAG_CODE || agence.BQAG_NUM || agence.code || "").toString(),
+        label: `${agence.BQAG_NUM || agence.BQAG_CODE || agence.code || ""} - ${agence.BQAG_LIB || agence.libelle || ""}`,
+        data: agence, // Garder les données originales
       }))
 
       return {

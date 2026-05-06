@@ -712,44 +712,44 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
     return item?.label || id;
   }
 
-  const getGroupeCreanceLibelle = (id: string) => {
+  const getGroupeCreanceLibelle = (id: string): string => {
     if (!id) return '';
     const item = groupesCreanceSearchable.items.find((g: any) => 
       g.value === id || g.GRP_CREAN_CODE === id || g.GC_CODE === id
     );
-    return item?.label || item?.GRP_CREAN_LIB || item?.GC_LIB || id;
+    return (item?.label || item?.GRP_CREAN_LIB || item?.GC_LIB || id || '') as string;
   }
 
-  const getObjetCreanceLibelle = (id: string) => {
+  const getObjetCreanceLibelle = (id: string): string => {
     if (!id) return '';
     const item = objetsCreanceSearchable.items.find((o: any) => 
       o.value === id || o.OBJ_CREAN_CODE === id || o.OC_CODE === id
     );
-    return item?.label || item?.OBJ_CREAN_LIB || item?.OC_LIB || id;
+    return (item?.label || item?.OBJ_CREAN_LIB || item?.OC_LIB || id || '') as string;
   }
 
-  const getOrdonnateurLibelle = (id: string) => {
+  const getOrdonnateurLibelle = (id: string): string => {
     if (!id) return '';
     const item = ordonnateursSearchable.items.find((o: any) => 
       o.value === id.toString() || 
       o.ORDO_CODE?.toString() === id.toString() || 
       o.code === id.toString()
     );
-    return item?.label || item?.ORDO_NOM || item?.ORDO_LIB || id;
+    return (item?.label || item?.ORDO_NOM || item?.ORDO_LIB || id) as string;
   }
 
-  const getEntiteLibelle = (id: string) => {
+  const getEntiteLibelle = (id: string): string => {
     if (!id) return '';
     const item = entitesSearchable.items.find((e: any) => 
       e.value === id || e.ENTITE_CODE === id || e.ENT_CODE === id
     );
-    return item?.label || item?.ENTITE_LIB || item?.ENT_LIB || id;
+    return (item?.label || item?.ENTITE_LIB || item?.ENT_LIB || id) as string;
   }
 
-  const getQuartierLibelle = (id: string) => {
+  const getQuartierLibelle = (id: string): string => {
     if (!id) return '';
     const item = quartiersSearchable.items.find((q: any) => q.value === id || q.QUART_CODE === id || q.Q_CODE === id);
-    return item?.label || item?.QUART_LIB || item?.Q_LIB || id;
+    return (item?.label || item?.QUART_LIB || item?.Q_LIB || id) as string;
   }
 
   const renderStep1 = () => (
@@ -812,7 +812,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             render={({ field }) => (
               readOnly ? (
                 <Input
-                  value={getGroupeCreanceLibelle(field.value)}
+                  value={getGroupeCreanceLibelle(field.value) || ''}
                   className="bg-gray-100 text-gray-700 flex-1"
                   style={{ borderColor: !!errors.groupeCreance ? errorRed : primaryGreen }}
                   disabled
@@ -855,7 +855,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
             render={({ field }) => (
               readOnly ? (
                 <Input
-                  value={getObjetCreanceLibelle(field.value)}
+                  value={getObjetCreanceLibelle(field.value) || ''}
                   className="bg-gray-100 text-gray-700 flex-1"
                   style={{ borderColor: !!errors.objetCreance ? errorRed : primaryGreen }}
                   disabled
@@ -920,7 +920,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
           <Controller
             name="capitalInitial"
             control={control}
-            rules={{ required: "Le capital initial est obligatoire", min: { value: 0.01, message: "Le capital initial doit être supérieur à 0" } }}
+            rules={{ required: false }}
             render={({ field }) => (
               <NumberInputField
                 value={field.value}
@@ -1025,7 +1025,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
           <Controller
                     name="dateDeblocage"
             control={control}
-                    rules={{ required: "La date d'octroi est obligatoire" }}
+                    rules={{ required: false }}
             render={({ field }) => (
               <Input
                 {...field}
@@ -1051,7 +1051,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
           <Controller
                     name="dateEcheance"
             control={control}
-                    rules={{ required: "La date de 1ère échéance est obligatoire" }}
+                    rules={{ required: false }}
             render={({ field }) => (
               <Input
                 {...field}
@@ -1190,11 +1190,11 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
           <Controller
                     name="ordonnateur"
             control={control}
-                    rules={{ required: "L'ordonnateur est obligatoire" }}
+                    rules={{ required: false }}
             render={({ field }) => (
               readOnly ? (
               <Input
-                          value={getOrdonnateurLibelle(field.value)}
+                          value={getOrdonnateurLibelle(field.value) || ''}
                           className="bg-gray-100 text-gray-700 flex-1"
                           style={{ borderColor: !!errors.ordonnateur ? errorRed : primaryGreen }}
                   disabled
@@ -1233,7 +1233,7 @@ const CreanceForm = forwardRef<any, CreanceFormProps>(({ currentStep, formData, 
           <Controller
                     name="statut"
             control={control}
-                    rules={{ required: "Le statut est obligatoire" }}
+                    rules={{ required: false }}
             render={({ field }) => (
                       readOnly ? (
               <Input

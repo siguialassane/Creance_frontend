@@ -80,10 +80,30 @@ export function SearchableSelect({
     })
   }, [displayValue, items, normalizedSearch])
 
-  // Trouver l'item sélectionné pour afficher son label
-  const selectedItem = items.find((item) => item.value === value)
+  // Trouver l'item sélectionné pour afficher son label (recalculé quand value ou items changent)
+  const selectedItem = React.useMemo(() => {
+    if (!value) return undefined
+    return items.find((item) => {
+      const itemValue = item.value?.toString()
+      const searchValue = value?.toString()
+      return itemValue === searchValue
+    })
+  }, [items, value])
+  
+  // Fonction pour afficher la valeur sélectionnée
+  const displaySelectedValue = React.useCallback(() => {
+    if (!value) return placeholder
+    
+    // Si l'item est trouvé dans la liste, utiliser son label
+    if (selectedItem) {
+      return displayValue ? displayValue(selectedItem) : selectedItem.label
+    }
+    
+    // Si l'item n'est pas trouvé mais qu'on a une valeur, afficher la valeur
+    return value
+  }, [value, placeholder, selectedItem, displayValue])
 
-  // Réinitialiser la recherche quand on ferme le popover (pas quand on l'ouvre pour éviter les fermetures)
+    // Réinitialiser la recherche quand on ferme le popover (pas quand on l'ouvre pour éviter les fermetures)
   React.useEffect(() => {
     if (!open) {
       setInternalSearch("")
@@ -98,6 +118,12 @@ export function SearchableSelect({
       }, 100)
     }
   }, [open, onSearchChange])
+  
+  // Forcer la mise à jour quand les items changent (utile pour la pagination)
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0)
+  React.useEffect(() => {
+    forceUpdate()
+  }, [items])
 
   // Gérer le changement de recherche
   const handleSearchChange = React.useCallback((newSearch: string) => {
@@ -195,9 +221,7 @@ export function SearchableSelect({
             }}
           >
             <span className="min-w-0 flex-1 truncate text-left">
-              {value
-                ? (displayValue ? displayValue(selectedItem!) : selectedItem?.label) || placeholder
-                : placeholder}
+              {displaySelectedValue()}
             </span>
             {isLoading && !open ? (
               <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin opacity-50" />
@@ -207,6 +231,7 @@ export function SearchableSelect({
           </Button>
           {value && !disabled && (
             <button
+              key="clear-selection"
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
@@ -319,12 +344,12 @@ export function SearchableSelect({
                 <span className="ml-2 text-sm text-muted-foreground">Chargement...</span>
               </div>
             ) : filteredItems.length === 0 ? (
-              <CommandEmpty>{emptyMessage}</CommandEmpty>
+              <CommandEmpty key="empty-message">{emptyMessage}</CommandEmpty>
             ) : (
               <CommandGroup>
-                {filteredItems.map((item) => (
+                {filteredItems.map((item, index) => (
                   <CommandItem
-                    key={item.value}
+                    key={`${item.value || `item-${index}`}-${index}`}
                     value={item.value}
                     onSelect={() => {
                       onValueChange(item.value === value ? "" : item.value)
@@ -346,6 +371,7 @@ export function SearchableSelect({
                 ))}
                 {hasMore && (
                   <CommandItem
+                    key="load-more"
                     disabled
                     className="flex items-center justify-center py-2"
                   >

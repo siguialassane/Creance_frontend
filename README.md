@@ -45,3 +45,11 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 connecte toi à l'api pour recuperer la liste des civilités dans le formulaire de debiteur 
 
 @http://192.168.1.105:8081/swagger-ui/index.html#/Civilités/list_10
+
+
+
+
+ipconfig getifaddr en0
+
+
+git add . && git commit -m "Gestion des debiteurs (ajout-edit-suppression) avec domiciliation ok" && git push origin HEAD:main
