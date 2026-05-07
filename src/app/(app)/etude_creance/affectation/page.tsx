@@ -1,6 +1,6 @@
 "use client"
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react"
+import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Search } from "lucide-react"
 import { toast } from "sonner"
@@ -165,7 +165,7 @@ function ReadonlyField({
   )
 }
 
-export default function AffectationPage() {
+function AffectationPageInner() {
   const apiClient = useApiClient()
   const searchParams = useSearchParams()
   const [codeCreance, setCodeCreance] = useState("")
@@ -618,5 +618,13 @@ export default function AffectationPage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+export default function AffectationPage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <AffectationPageInner />
+    </Suspense>
   )
 }
