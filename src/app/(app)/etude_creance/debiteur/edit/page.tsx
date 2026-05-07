@@ -113,15 +113,24 @@ const EditerDebiteurPageInner = () => {
 
       // Étape 3: Domiciliations (tableau)
       domiciliations: apiData.domiciliations && Array.isArray(apiData.domiciliations) && apiData.domiciliations.length > 0
-        ? apiData.domiciliations.map((dom: any) => ({
-            type: dom.TYPDOM_CODE || '',
-            numBenef: dom.NUM_BENEF || '',
-            libelle: dom.DOM_LIB || '',
-            banque: dom.BQ_CODE || dom.BQAG_BQ_CODE || '',
-            banqueAgence: dom.BQAG_CODE || '',
-            ancAgence: dom.ANC_AG || '',
-            villeCode: dom.VILLE_CODE || '',
-          }))
+        ? apiData.domiciliations.map((dom: any) => {
+            const domiciliation = {
+              type: dom.TYPDOM_CODE || '',
+              numBenef: dom.NUM_BENEF || '',
+              libelle: dom.DOM_LIB || '',
+              banque: dom.BQ_CODE || dom.BQAG_BQ_CODE || '',
+              banqueAgence: dom.BQAG_CODE || '',
+              ancAgence: dom.ANC_AG || '',
+              villeCode: dom.VILLE_CODE || '',
+            };
+            console.log('🔍 Transformation domiciliation:', {
+              original: dom,
+              transformed: domiciliation,
+              numBenefOriginal: dom.NUM_BENEF,
+              numBenefTransformed: domiciliation.numBenef
+            });
+            return domiciliation;
+          })
         : [],
     };
   };
@@ -161,6 +170,12 @@ const EditerDebiteurPageInner = () => {
         });
 
         setInitialFormData(transformedData);
+        
+        // Réinitialiser le formulaire avec les données chargées
+        if (Object.keys(transformedData).length > 0) {
+          form.reset(transformedData);
+          console.log('📝 Formulaire réinitialisé avec les données:', transformedData);
+        }
       } catch (error: any) {
         console.error('Erreur lors du chargement du débiteur:', error);
         toast.error(error.message || "Impossible de charger les données du débiteur");
@@ -344,8 +359,17 @@ const EditerDebiteurPageInner = () => {
             }
             
             // Ajouter numBenef seulement s'il est renseigné
+            console.log('🔍 Vérification numBenef pour domiciliation:', {
+              numBenef: dom.numBenef,
+              type: typeof dom.numBenef,
+              trimmed: dom.numBenef?.trim(),
+              isEmpty: !dom.numBenef || dom.numBenef.trim() === ""
+            });
             if (dom.numBenef && dom.numBenef.trim() !== "") {
               domiciliation.NUM_BENEF = dom.numBenef;
+              console.log('✅ NUM_BENEF ajouté au payload:', domiciliation.NUM_BENEF);
+            } else {
+              console.log('⚠️ NUM_BENEF non ajouté (vide ou non renseigné)');
             }
             
             // Ajouter ancAgence seulement s'il est renseigné

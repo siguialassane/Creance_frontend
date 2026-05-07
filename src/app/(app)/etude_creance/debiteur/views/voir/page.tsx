@@ -149,6 +149,7 @@ const VoirDebiteurPageInner = () => {
         console.log('Chargement du débiteur avec le code:', debiteurId);
         const response = await DebiteurService.getByCode(apiClient, debiteurId);
         console.log('Données du débiteur reçues:', response);
+        console.log('📊 Réponse API complète:', response);
         console.log('Structure des domiciliations dans la réponse API:', {
           domiciliations: response.domiciliations,
           DOMICILIATIONS: response.DOMICILIATIONS,
@@ -157,7 +158,11 @@ const VoirDebiteurPageInner = () => {
         
         // Transformer les données API vers le format du formulaire
         const transformedData = transformApiDataToFormData(response);
-        console.log('Données transformées pour le formulaire:', transformedData);
+        console.log('📝 Données transformées pour le formulaire:', transformedData);
+        console.log('🔍 Domiciliations transformées:', {
+          count: transformedData.domiciliations?.length || 0,
+          domiciliations: transformedData.domiciliations
+        });
 
         setInitialFormData(transformedData);
       } catch (error: any) {

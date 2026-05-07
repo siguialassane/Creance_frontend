@@ -72,8 +72,6 @@ connecte toi à l'api pour recuperer la liste des civilités dans le formulaire 
 @http://192.168.1.105:8081/swagger-ui/index.html#/Civilités/list_10
 
 
-
-
 ipconfig getifaddr en0
 
 
