@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -448,5 +448,9 @@ function EditPaiementPageInner() {
 }
 
 export default function EditPaiementPage() {
-    return <EditPaiementPageInner />
+    return (
+        <Suspense fallback={<div>Chargement...</div>}>
+            <EditPaiementPageInner />
+        </Suspense>
+    )
 }
