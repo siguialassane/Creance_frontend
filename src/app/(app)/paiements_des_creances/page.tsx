@@ -193,6 +193,7 @@ function PaiementsCreancesPageContent() {
 
   // Charger automatiquement la créance si le code est dans l'URL
   const hasAutoLoadedRef = useRef(false)
+  const isSubmittingRef = useRef(false)
 
   useEffect(() => {
     const codeFromUrl = searchParams.get('code')
@@ -241,9 +242,9 @@ function PaiementsCreancesPageContent() {
       setObjetLibelle(creanceData.OBJET_CREANCE_LIB || "")
 
       setPeriodiciteCode(creanceData.PERIOD_CODE || "")
-      const periodicite = periodicites?.find((p: any) => (p.PER_CODE || p.code) === creanceData.PERIOD_CODE)
+      const periodicite = periodicites?.find((p: any) => p.PERIOD_CODE === creanceData.PERIOD_CODE)
       if (periodicite) {
-        setPeriodiciteLibelle(periodicite.PER_LIB || periodicite.libelle || "")
+        setPeriodiciteLibelle(periodicite.PERIOD_LIB || "")
       }
 
       setMontantDebloque(formatNumber(creanceData.CREAN_MONT_DECAISSE))
@@ -262,14 +263,15 @@ function PaiementsCreancesPageContent() {
       setDatePremiereEch(formatDate(creanceData.CREAN_DATECH || creanceData.CREAN_DATE_DEBLOCAGE))
 
       // Date d'octroi - essayer CREAN_DATOCTROI puis CREAN_DATECREA
-      setDateOctroi(formatDate(creanceData.CREAN_DATOCTROI || creanceData.CREAN_DATECREA))
+      setDateOctroi(formatDate((creanceData.CREAN_DATOCTROI || creanceData.CREAN_DATE_CREAT) as string))
 
       setDuree(creanceData.CREAN_DUREE?.toString() || "")
       
-      // Solde débiteur
+      // Solde débiteur : SOLDE_EXIGIBLE (corrigé côté backend)
       const today = new Date()
       setSoldeDate(formatDateShort(today.toISOString()))
-      setSoldeMontant(formatNumber(creanceData.CREAN_TOT_SOLDE || 0))
+      const solde = creanceData.SOLDE_EXIGIBLE ?? 0
+      setSoldeMontant(formatNumber(solde) + " F CFA")
 
       toast.success("Créance chargée avec succès")
     } catch (error: any) {
@@ -310,16 +312,17 @@ function PaiementsCreancesPageContent() {
   }
 
   const handleEnregistrer = async () => {
-    // Validation de base
-    if (!codeCreance.trim()) {
-      toast.error("Veuillez d'abord rechercher une créance")
-      return
+    if (isSubmittingRef.current) return
+    isSubmittingRef.current = true
+
+    const validationError = (msg: string) => {
+      toast.error(msg)
+      isSubmittingRef.current = false
     }
 
-    if (!modePaiement) {
-      toast.error("Veuillez sélectionner un mode de paiement")
-      return
-    }
+    // Validation de base
+    if (!codeCreance.trim()) return validationError("Veuillez d'abord rechercher une créance")
+    if (!modePaiement) return validationError("Veuillez sélectionner un mode de paiement")
 
     // Convertir les montants formatés en nombres
     const montantValue = parseMontant(montant)
@@ -333,23 +336,10 @@ function PaiementsCreancesPageContent() {
     }
 
     if (isEffetMode()) {
-      // Validations pour le paiement par effet
-      if (!typeEffetCode) {
-        toast.error("Veuillez sélectionner un type d'effet")
-        return
-      }
-      if (!numeroCheque) {
-        toast.error("Veuillez saisir le numéro d'effet")
-        return
-      }
-      if (!banqueEmettriceCode) {
-        toast.error("Veuillez sélectionner une banque émettrice")
-        return
-      }
-      if (!montantValue || montantValue <= 0) {
-        toast.error("Veuillez saisir un montant valide")
-        return
-      }
+      if (!typeEffetCode) return validationError("Veuillez sélectionner un type d'effet")
+      if (!numeroCheque) return validationError("Veuillez saisir le numéro d'effet")
+      if (!banqueEmettriceCode) return validationError("Veuillez sélectionner une banque émettrice")
+      if (!montantValue || montantValue <= 0) return validationError("Veuillez saisir un montant valide")
 
       paiementData.libellePaiement = `Paiement par effet N° ${numeroCheque}`
       paiementData.montantPaiement = montantValue
@@ -360,11 +350,7 @@ function PaiementsCreancesPageContent() {
       paiementData.montantEffet = montantValue
 
     } else if (isEspeceMode()) {
-      // Validations pour le paiement par espèce
-      if (!montantPaiementValue || montantPaiementValue <= 0) {
-        toast.error("Veuillez saisir un montant valide")
-        return
-      }
+      if (!montantPaiementValue || montantPaiementValue <= 0) return validationError("Veuillez saisir un montant valide")
 
       paiementData.libellePaiement = libellePaiement || "Paiement en espèces"
       paiementData.montantPaiement = montantPaiementValue
@@ -373,10 +359,7 @@ function PaiementsCreancesPageContent() {
 
     // Validation paiement par aval
     if (typePayeur === "AVAL") {
-      if (!garantiePhysCode) {
-        toast.error("Veuillez sélectionner un aval (garantie physique)")
-        return
-      }
+      if (!garantiePhysCode) return validationError("Veuillez sélectionner un aval (garantie physique)")
       paiementData.garantiePhysCode = parseInt(garantiePhysCode)
     }
 
@@ -384,6 +367,7 @@ function PaiementsCreancesPageContent() {
     setSavingPaiement(true)
     try {
       const response = await PaiementCreanceService.create(apiClient, paiementData)
+
       console.log("Paiement enregistré:", response)
 
       // Le backend retourne {paieCode, effetNum, message}
@@ -401,6 +385,7 @@ function PaiementsCreancesPageContent() {
       toast.error(error.response?.data?.message || error.message || "Impossible d'enregistrer le paiement")
     } finally {
       setSavingPaiement(false)
+      isSubmittingRef.current = false
     }
   }
 
@@ -704,7 +689,7 @@ function PaiementsCreancesPageContent() {
                   <Label className="text-sm font-bold text-gray-700 w-28 flex-shrink-0 pr-1">Montant</Label>
                   <Input
                     value={soldeMontant}
-                    className="flex-1"
+                    className="flex-1 font-bold text-orange-600"
                     readOnly
                     disabled
                   />

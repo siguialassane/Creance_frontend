@@ -1,5 +1,30 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## 🆕 Dernières Mises à Jour (7 mai 2026)
+
+### ✅ Corrections Paiements et Reçus PDF
+
+Le système de paiements (créances, factures, frais) a été corrigé pour s'aligner avec le backend Oracle :
+
+#### Nouveautés
+- **Reçu PDF Combiné** : Téléchargement d'un seul PDF de 3 pages (créance + facture + frais)
+- **Service Backend** : Utilise JasperReports avec le template officiel SOGEFIHA
+- **Endpoint** : `GET /api/paiements/creance/{paieCode}/recu-combine`
+
+#### Fichiers Modifiés
+- `src/services/paiement.service.ts` : Ajout méthode `getRecuCombine()`
+- `src/components/modals/RecuPaiementModal.tsx` : Nouveau bouton "Reçu Combiné"
+
+#### Documentation
+- 📄 `CORRECTIONS_PAIEMENTS_FRONTEND.md` : Plan détaillé des corrections
+- 📄 `CORRECTIONS_APPLIQUEES.md` : Résumé des modifications appliquées
+- 📄 `GUIDE_TEST_PAIEMENTS.md` : Guide complet de test (6 scénarios)
+
+#### Tests
+Voir `GUIDE_TEST_PAIEMENTS.md` pour les scénarios de test complets.
+
+---
+
 ## Getting Started
 
 First, run the development server:
@@ -52,4 +77,4 @@ connecte toi à l'api pour recuperer la liste des civilités dans le formulaire 
 ipconfig getifaddr en0
 
 
-git add . && git commit -m "Gestion des creances ok" && git push origin HEAD:main
+git add . && git commit -m "Gestion des Paiements de creances avec reçu unique sur 3 pages ok" && git push origin HEAD:main

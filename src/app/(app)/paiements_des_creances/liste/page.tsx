@@ -10,7 +10,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useApiClient } from "@/hooks/useApiClient";
 import { PaiementService } from "@/services/paiement.service";
 import { PaiementHistoriqueService } from "@/services/paiement-historique.service";
+import { CreanceService } from "@/services/creance.service";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ArrowLeft, Eye, Pencil, Trash2, Printer } from "lucide-react";
 import {
@@ -71,7 +73,10 @@ const PaiementsListePageInner = () => {
     search: undefined,
   });
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredPaiements, setFilteredPaiements] = useState<Paiement[]>([]);
   const [creanceCode, setCreanceCode] = useState<string>("");
+  const [creanceData, setCreanceData] = useState<any>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const apiClient = useApiClient();
@@ -86,6 +91,30 @@ const PaiementsListePageInner = () => {
       router.push("/etude_creance/creance/views");
     }
   }, [searchParams, router]);
+
+  // Charger les données de la créance pour le solde
+  const loadCreance = async () => {
+    if (!creanceCode) return;
+    try {
+      const data = await CreanceService.getByCode(apiClient, creanceCode);
+      console.log("[DEBUG PAYMENTS LIST] Creance Data for", creanceCode, {
+        SOLDE_EXIGIBLE: data.SOLDE_EXIGIBLE,
+        CREAN_SOLDE_INIT: data.CREAN_SOLDE_INIT,
+        CREAN_TOT_SOLDE: data.CREAN_TOT_SOLDE,
+        CREAN_CAPIT_INIT: data.CREAN_CAPIT_INIT,
+        CREAN_MONT_A_REMB: data.CREAN_MONT_A_REMB,
+      });
+      setCreanceData(data);
+    } catch (error: any) {
+      console.error("Erreur lors du chargement de la créance:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (creanceCode) {
+      loadCreance();
+    }
+  }, [creanceCode]);
 
   // Transformation des données de l'API vers l'interface locale
   const transformApiDataToPaiement = (apiData: any): Paiement => {
@@ -139,7 +168,7 @@ const PaiementsListePageInner = () => {
             : [];
 
       const transformedPaiements = paiementsList.map(transformApiDataToPaiement);
-      
+
       // Pagination côté client pour l'historique complet
       const totalElements = transformedPaiements.length;
       const totalPages = Math.ceil(totalElements / (params.size || 20));
@@ -175,13 +204,12 @@ const PaiementsListePageInner = () => {
     }
   }, [paginationParams, creanceCode]);
 
-  // Formater la devise
+  // Formater la devise avec point comme séparateur de milliers
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "XOF",
+    const formatted = new Intl.NumberFormat("fr-FR", {
       minimumFractionDigits: 0,
     }).format(amount);
+    return formatted.replace(/\s/g, ".") + " F CFA";
   };
 
   // Handlers
@@ -199,8 +227,7 @@ const PaiementsListePageInner = () => {
   };
 
   const handleEditPaiement = (paiement: Paiement) => {
-    // TODO: Implémenter l'édition d'un paiement
-    toast.info("Fonctionnalité à venir");
+    router.push(`/etude_creance/paiement/edit?id=${paiement.identifiant}&creanceCode=${creanceCode}`);
   };
 
   const handleDeletePaiement = async (paiement: Paiement) => {
@@ -321,8 +348,8 @@ const PaiementsListePageInner = () => {
       cell: ({ row }) => {
         const statut = row.getValue("statut") as string;
         return (
-          <Badge variant={statut === "VALIDE" ? "default" : "outline"} className="font-medium">
-            {statut === "VALIDE" ? "Validé" : "En attente"}
+          <Badge variant={statut === "Validé" ? "default" : "outline"} className="font-medium">
+            {statut || "En attente"}
           </Badge>
         );
       },
@@ -404,6 +431,32 @@ const PaiementsListePageInner = () => {
     },
   ];
 
+  // Filtrer les paiements selon le terme de recherche
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredPaiements(paiements);
+      return;
+    }
+
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const filtered = paiements.filter((paiement) => {
+      const identifiantStr = paiement.identifiant?.toString() || "";
+      const typePaiementLibStr = paiement.typePaiementLib?.toString() || "";
+      const modePaiementLibStr = paiement.modePaiementLib?.toString() || "";
+      const montantStr = paiement.montant?.toString() || "";
+      const datePaiementStr = paiement.datePaiement?.toString() || "";
+      const statutStr = paiement.statut?.toString() || "";
+
+      return identifiantStr.toLowerCase().includes(lowerSearchTerm) ||
+             typePaiementLibStr.toLowerCase().includes(lowerSearchTerm) ||
+             modePaiementLibStr.toLowerCase().includes(lowerSearchTerm) ||
+             montantStr.includes(lowerSearchTerm) ||
+             datePaiementStr.toLowerCase().includes(lowerSearchTerm) ||
+             statutStr.toLowerCase().includes(lowerSearchTerm);
+    });
+    setFilteredPaiements(filtered);
+  }, [searchTerm, paiements]);
+
   // Gestion de la pagination
   const handlePageChange = (newPage: number) => {
     setPaginationParams({
@@ -451,20 +504,35 @@ const PaiementsListePageInner = () => {
         </Button>
       </div>
 
+      {/* Solde après régularisation */}
+      {creanceData && (
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-center justify-between">
+          <span className="font-semibold text-orange-700">Solde après régularisation :</span>
+          <span className="text-xl font-bold text-orange-600">
+            {formatCurrency(creanceData.SOLDE_EXIGIBLE || 0)}
+          </span>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>
-            {pagination.totalElements} paiement(s)
+            {filteredPaiements.length} paiement(s)
           </CardTitle>
         </CardHeader>
         <CardContent>
           <DataTable
-            columns={columns}
-            data={paiements}
-            loading={loading}
+            title=""
+            columns={columns as ColumnDef<unknown, unknown>[]}
+            data={filteredPaiements}
+            isTableLoading={loading}
             pagination={pagination}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
+            searchValue={searchTerm}
+            onSearchValueChange={setSearchTerm}
+            onPaginationChange={(params) => {
+              if (params.page !== undefined) handlePageChange(params.page);
+              if (params.size !== undefined) handlePageSizeChange(params.size);
+            }}
           />
         </CardContent>
       </Card>

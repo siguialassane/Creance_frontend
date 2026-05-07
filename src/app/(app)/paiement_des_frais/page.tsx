@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -99,6 +99,7 @@ export default function PaiementDesFraisPage() {
   const [garantiePhysCode, setGarantiePhysCode] = useState("")
   const [garantiesPhysiques, setGarantiesPhysiques] = useState<any[]>([])
   const [loadingGaranties, setLoadingGaranties] = useState(false)
+  const isSubmittingRef = useRef(false)
 
   // Date max pour les sélecteurs (aujourd'hui)
   const today = new Date().toISOString().split('T')[0]
@@ -266,9 +267,9 @@ export default function PaiementDesFraisPage() {
       setObjetLibelle(creanceData.OBJET_CREANCE_LIB || "")
 
       setPeriodiciteCode(creanceData.PERIOD_CODE || "")
-      const periodicite = periodicites?.find((p: any) => (p.PER_CODE || p.code) === creanceData.PERIOD_CODE)
+      const periodicite = periodicites?.find((p: any) => p.PERIOD_CODE === creanceData.PERIOD_CODE)
       if (periodicite) {
-        setPeriodiciteLibelle(periodicite.PER_LIB || periodicite.libelle || "")
+        setPeriodiciteLibelle(periodicite.PERIOD_LIB || "")
       }
 
       setMontantDebloque(formatNumber(creanceData.CREAN_MONT_DECAISSE))
@@ -284,9 +285,11 @@ export default function PaiementDesFraisPage() {
       setDateOctroi(formatDate(creanceData.CREAN_DATE_CREAT))
       setDuree(creanceData.CREAN_DUREE?.toString() || "")
       
+      // Solde débiteur : SOLDE_EXIGIBLE (corrigé côté backend)
       const today = new Date()
       setSoldeDate(formatDateShort(today.toISOString()))
-      setSoldeMontant(formatNumber(creanceData.CREAN_TOT_SOLDE || 0))
+      const solde = creanceData.SOLDE_EXIGIBLE ?? 0
+      setSoldeMontant(formatNumber(solde) + " F CFA")
 
       setCreanceCharge(true)
 
@@ -360,32 +363,21 @@ export default function PaiementDesFraisPage() {
   }
 
   const handlePayerFrais = async () => {
-    // Validation
-    if (!codeCreance.trim()) {
-      toast.error("Veuillez d'abord rechercher une créance")
-      return
+    if (isSubmittingRef.current) return
+    isSubmittingRef.current = true
+
+    const validationError = (msg: string) => {
+      toast.error(msg)
+      isSubmittingRef.current = false
     }
 
-    if (!fraisCode) {
-      toast.error("Veuillez sélectionner un frais à payer")
-      return
-    }
+    if (!codeCreance.trim()) return validationError("Veuillez d'abord rechercher une créance")
+    if (!fraisCode) return validationError("Veuillez sélectionner un frais à payer")
 
     const montantPayeValue = parseMontant(montantPaye)
-    if (!montantPayeValue || montantPayeValue <= 0) {
-      toast.error("Veuillez saisir un montant valide")
-      return
-    }
-
-    if (!modePaiement) {
-      toast.error("Veuillez sélectionner un mode de paiement")
-      return
-    }
-
-    if (!numeroRecuManuel.trim()) {
-      toast.error("Veuillez saisir le numéro de reçu manuel")
-      return
-    }
+    if (!montantPayeValue || montantPayeValue <= 0) return validationError("Veuillez saisir un montant valide")
+    if (!modePaiement) return validationError("Veuillez sélectionner un mode de paiement")
+    if (!numeroRecuManuel.trim()) return validationError("Veuillez saisir le numéro de reçu manuel")
 
     // Préparer les données
     const paiementData: any = {
@@ -399,25 +391,12 @@ export default function PaiementDesFraisPage() {
     }
 
     if (isEffetMode()) {
-      // Validations pour le paiement par effet
-      if (!typeEffetCode) {
-        toast.error("Veuillez sélectionner un type d'effet")
-        return
-      }
-      if (!numeroEffet) {
-        toast.error("Veuillez saisir le numéro d'effet")
-        return
-      }
-      if (!banqueAgence) {
-        toast.error("Veuillez sélectionner une banque émettrice")
-        return
-      }
+      if (!typeEffetCode) return validationError("Veuillez sélectionner un type d'effet")
+      if (!numeroEffet) return validationError("Veuillez saisir le numéro d'effet")
+      if (!banqueAgence) return validationError("Veuillez sélectionner une banque émettrice")
 
       const montantEffetValue = parseMontant(montantEffet)
-      if (!montantEffetValue || montantEffetValue <= 0) {
-        toast.error("Veuillez saisir un montant d'effet valide")
-        return
-      }
+      if (!montantEffetValue || montantEffetValue <= 0) return validationError("Veuillez saisir un montant d'effet valide")
 
       paiementData.typeEffet = typeEffetCode
       paiementData.numeroEffet = numeroEffet
@@ -427,10 +406,7 @@ export default function PaiementDesFraisPage() {
 
     // Validation paiement par aval
     if (typePayeur === "AVAL") {
-      if (!garantiePhysCode) {
-        toast.error("Veuillez sélectionner un aval (garantie physique)")
-        return
-      }
+      if (!garantiePhysCode) return validationError("Veuillez sélectionner un aval (garantie physique)")
       paiementData.garantiePhysCode = parseInt(garantiePhysCode)
     }
 
@@ -472,6 +448,7 @@ export default function PaiementDesFraisPage() {
       toast.error(error.response?.data?.message || error.message || "Impossible d'enregistrer le paiement")
     } finally {
       setSavingPaiement(false)
+      isSubmittingRef.current = false
     }
   }
 
@@ -673,7 +650,7 @@ export default function PaiementDesFraisPage() {
                   <Label className="text-sm font-bold text-gray-700 w-28 flex-shrink-0 pr-1">Montant</Label>
                   <Input
                     value={soldeMontant}
-                    className="flex-1"
+                    className="flex-1 font-bold text-orange-600"
                     readOnly
                     disabled
                   />

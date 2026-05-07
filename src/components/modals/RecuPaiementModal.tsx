@@ -235,160 +235,106 @@ export function RecuPaiementModal({ open, onClose, title, data }: RecuPaiementMo
     }
   }
 
+  const handleTelechargerRecuCombine = async () => {
+    if (!data.paieCode) {
+      toast.error("Code paiement non disponible pour le reçu combiné")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { PaiementService } = await import("@/services/paiement.service")
+      const blob = await PaiementService.getRecuCombine(
+        apiClient, 
+        parseInt(data.paieCode), 
+        'ALL'
+      )
+
+      const url_blob = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url_blob
+      link.download = `recu_combine_${data.paieCode}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url_blob)
+
+      toast.success("Reçu combiné téléchargé avec succès (3 pages)")
+    } catch (error: any) {
+      console.error('Erreur lors du téléchargement du reçu combiné:', error)
+      toast.error(error.response?.data?.message || error.message || 'Impossible de générer le reçu combiné')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-bold text-gray-800">
-              {title}
-            </DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="text-lg font-bold text-gray-800 text-center">
+            {title}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="py-6">
-          <div className="text-center mb-6">
-            <p className="text-sm text-gray-600">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">
               Paiement enregistré avec succès
-            </p>
+            </h3>
             {data.numeroPaiement && (
-              <p className="text-lg font-bold text-gray-800 mt-2">
-                N° {data.numeroPaiement}
+              <p className="text-lg text-gray-600">
+                Numéro de paiement : <span className="font-semibold text-gray-800">{data.numeroPaiement}</span>
               </p>
             )}
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">
-              Générer les reçus officiels (PDF)
-            </h3>
-
-            <div className="grid grid-cols-1 gap-3">
-              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded">
-                <span className="text-sm font-medium text-green-700">Exemplaire Client</span>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleImprimerTelecharger('debiteur', 'print')}
-                    disabled={loading}
-                    className="text-xs"
-                  >
-                    <Printer className="h-3 w-3 mr-1" />
-                    Imprimer
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleImprimerTelecharger('debiteur', 'download')}
-                    disabled={loading}
-                    className="text-xs"
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Télécharger
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded">
-                <span className="text-sm font-medium text-blue-700">Exemplaire Banque/Trésorerie</span>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleImprimerTelecharger('comptabilite', 'print')}
-                    disabled={loading}
-                    className="text-xs"
-                  >
-                    <Printer className="h-3 w-3 mr-1" />
-                    Imprimer
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleImprimerTelecharger('comptabilite', 'download')}
-                    disabled={loading}
-                    className="text-xs"
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Télécharger
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded">
-                <span className="text-sm font-medium text-red-700">Exemplaire Archives</span>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleImprimerTelecharger('archive', 'print')}
-                    disabled={loading}
-                    className="text-xs"
-                  >
-                    <Printer className="h-3 w-3 mr-1" />
-                    Imprimer
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleImprimerTelecharger('archive', 'download')}
-                    disabled={loading}
-                    className="text-xs"
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Télécharger
-                  </Button>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+              <div className="flex items-start justify-center gap-3">
+                
+                <div className="flex-1">
+                  <h4 className="font-semibold text-blue-900 mb-1">Reçu Officiel PDF</h4>
+                  <p className="text-sm text-blue-700">
+                    Document de 3 pages comprenant les exemplaires Client, Comptabilité et Archives
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-3 justify-center mt-6 pt-4 border-t">
-              <Button
-                onClick={handleImprimerTous}
-                disabled={loading}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Génération...
-                  </>
-                ) : (
-                  <>
-                    <Printer className="h-4 w-4 mr-2" />
-                    Imprimer les 3 exemplaires
-                  </>
-                )}
-              </Button>
-
-              <Button
-                onClick={handleTelechargerTous}
-                disabled={loading}
-                variant="outline"
-                className="border-blue-500 text-blue-600 hover:bg-blue-50"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Téléchargement...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Télécharger les 3 exemplaires
-                  </>
-                )}
-              </Button>
-            </div>
+            {data.paieCode ? (
+              <div className="flex justify-center mt-6">
+                <Button
+                  onClick={handleTelechargerRecuCombine}
+                  disabled={loading}
+                  size="lg"
+                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-base"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Génération du PDF en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-5 w-5 mr-2" />
+                      Télécharger le Reçu (PDF - 3 pages)
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-500">
+                  Le reçu sera disponible dans quelques instants...
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

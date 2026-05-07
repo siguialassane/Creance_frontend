@@ -96,6 +96,14 @@ const CreancePageInner = () => {
 
   // Transformation des données de l'API vers l'interface locale selon la documentation
   const transformApiDataToCreance = (apiData: any): Creance => {
+    console.log("[DEBUG CREANCE LIST] API Data for", apiData.CREAN_CODE, {
+      SOLDE_EXIGIBLE: apiData.SOLDE_EXIGIBLE,
+      CREAN_SOLDE_INIT: apiData.CREAN_SOLDE_INIT,
+      CREAN_TOT_SOLDE: apiData.CREAN_TOT_SOLDE,
+      CREAN_CAPIT_INIT: apiData.CREAN_CAPIT_INIT,
+      CREAN_MONT_A_REMB: apiData.CREAN_MONT_A_REMB,
+    });
+
     return {
       id: apiData.CREAN_CODE,
       numeroCreance: apiData.CREAN_CODE,
@@ -107,7 +115,9 @@ const CreancePageInner = () => {
       raisonSociale: apiData.DEB_RAIS_SOCIALE || '',
       typeDebiteur: apiData.TYPDEB_CODE || 'P', // 'P' pour personne physique, 'M' pour personne morale
       capitalInitial: apiData.CREAN_CAPIT_INIT || 0,
-      soldeInit: apiData.CREAN_SOLDE_INIT || apiData.CREAN_TOT_SOLDE || 0, // Solde à recouvrer selon la doc
+      soldeInit: apiData.SOLDE_EXIGIBLE !== undefined && apiData.SOLDE_EXIGIBLE !== null
+        ? apiData.SOLDE_EXIGIBLE
+        : (apiData.CREAN_SOLDE_INIT || apiData.CREAN_TOT_SOLDE || 0), // Solde actuel après paiements
       montantARembourser: apiData.CREAN_MONT_A_REMB || 0,
       montantImpaye: apiData.CREAN_MONT_IMPAYE || 0,
       totalSolde: apiData.CREAN_TOT_SOLDE || 0,
