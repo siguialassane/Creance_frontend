@@ -282,14 +282,6 @@ export function DebiteurFormStep3({ control, errors, readOnly = false, watch, se
                           value={fieldCtrl.value || ""}
                           placeholder="Ex: 123456"
                           disabled={readOnly}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            const numValue = parseInt(value);
-                            if (!isNaN(numValue) && numValue > 999999) {
-                              toast.warning("Le N° Bénéficiaire ne peut pas dépasser 999999");
-                            }
-                            fieldCtrl.onChange(value);
-                          }}
                           className={`h-9 text-sm ${
                             domiciliationErrors?.numBenef 
                               ? 'border-red-500 bg-red-50' 

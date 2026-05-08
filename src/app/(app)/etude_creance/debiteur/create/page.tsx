@@ -188,7 +188,7 @@ export default function NouveauDebiteurPage() {
             }
             
             if (dom.numBenef && dom.numBenef.trim() !== "") {
-              domiciliation.NUM_BENEF = dom.numBenef;
+              domiciliation.DOM_CODE = dom.numBenef;
             }
             
             if (dom.libelle && dom.libelle.trim() !== "") {

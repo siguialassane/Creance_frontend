@@ -116,7 +116,7 @@ const EditerDebiteurPageInner = () => {
         ? apiData.domiciliations.map((dom: any) => {
             const domiciliation = {
               type: dom.TYPDOM_CODE || '',
-              numBenef: dom.NUM_BENEF || '',
+              numBenef: dom.DOM_CODE || '',
               libelle: dom.DOM_LIB || '',
               banque: dom.BQ_CODE || dom.BQAG_BQ_CODE || '',
               banqueAgence: dom.BQAG_CODE || '',
@@ -126,7 +126,7 @@ const EditerDebiteurPageInner = () => {
             console.log('🔍 Transformation domiciliation:', {
               original: dom,
               transformed: domiciliation,
-              numBenefOriginal: dom.NUM_BENEF,
+              DOM_CODE: dom.DOM_CODE,
               numBenefTransformed: domiciliation.numBenef
             });
             return domiciliation;
@@ -366,10 +366,10 @@ const EditerDebiteurPageInner = () => {
               isEmpty: !dom.numBenef || dom.numBenef.trim() === ""
             });
             if (dom.numBenef && dom.numBenef.trim() !== "") {
-              domiciliation.NUM_BENEF = dom.numBenef;
-              console.log('✅ NUM_BENEF ajouté au payload:', domiciliation.NUM_BENEF);
+              domiciliation.DOM_CODE = dom.numBenef;
+              console.log('✅ DOM_CODE ajouté au payload:', domiciliation.DOM_CODE);
             } else {
-              console.log('⚠️ NUM_BENEF non ajouté (vide ou non renseigné)');
+              console.log('⚠️ DOM_CODE non ajouté (vide ou non renseigné)');
             }
             
             // Ajouter ancAgence seulement s'il est renseigné

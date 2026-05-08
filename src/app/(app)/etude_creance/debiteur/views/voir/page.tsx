@@ -114,7 +114,7 @@ const VoirDebiteurPageInner = () => {
       domiciliations: apiData.domiciliations && Array.isArray(apiData.domiciliations) && apiData.domiciliations.length > 0
         ? apiData.domiciliations.map((dom: any) => ({
             type: dom.TYPDOM_CODE || '',
-            numBenef: dom.NUM_BENEF || '',
+            numBenef: dom.DOM_CODE || '',
             libelle: dom.DOM_LIB || '',
             banque: dom.BQ_CODE || dom.BQAG_BQ_CODE || '',
             banqueAgence: dom.BQAG_CODE || '',
@@ -124,7 +124,7 @@ const VoirDebiteurPageInner = () => {
         : apiData.DOMICILIATIONS && Array.isArray(apiData.DOMICILIATIONS) && apiData.DOMICILIATIONS.length > 0
         ? apiData.DOMICILIATIONS.map((dom: any) => ({
             type: dom.TYPDOM_CODE || '',
-            numBenef: dom.NUM_BENEF || '',
+            numBenef: dom.DOM_CODE || '',
             libelle: dom.DOM_LIB || '',
             banque: dom.BQ_CODE || dom.BQAG_BQ_CODE || '',
             banqueAgence: dom.BQAG_CODE || '',

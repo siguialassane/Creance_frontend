@@ -45,6 +45,7 @@ export function useDebiteurMultiStepForm({
   // La validation se fera manuellement pour chaque étape avec les schémas Zod
   const form = useForm({
     defaultValues: {
+      typeDebiteur: "",
       ...normalizedInitialData,
       domiciliations: normalizedInitialData.domiciliations || [],
     },

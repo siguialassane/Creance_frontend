@@ -75,7 +75,7 @@ connecte toi à l'api pour recuperer la liste des civilités dans le formulaire 
 ipconfig getifaddr en0
 
 
-git add . && git commit -m "Gestion des Paiements de creances avec reçu unique sur 3 pages ok" && git push origin HEAD:main
-
 
 git pull origin main --no-rebase
+
+git add . && git commit -m "Gestion des Paiements de creances avec reçu unique sur 3 pages ok" && git push origin HEAD:main
