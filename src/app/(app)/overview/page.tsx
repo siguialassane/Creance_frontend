@@ -475,13 +475,14 @@ function MonthlyChart({ data }: MonthlyChartProps) {
 
 export default function DashboardPage() {
   const apiClient = useApiClient();
-  const { data: session, status } = useSessionWrapper();
   const router = useRouter();
   const [filters, setFilters] = React.useState<DashboardFilters>({});
   const [selectedMonth, setSelectedMonth] = React.useState<string>("");
   const [selectedYear, setSelectedYear] = React.useState<string>("");
 
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
+  // Authentification désactivée - charger le dashboard sans vérifier la session
+  // const { data: session, status } = useSessionWrapper();
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
 
   // Générer la liste des années (de 2020 à l'année actuelle + 1)
   const currentYear = new Date().getFullYear();
@@ -497,12 +498,12 @@ export default function DashboardPage() {
   } = useQuery({
     queryKey: ["dashboard", filters],
     queryFn: () => DashboardService.getDashboard(apiClient, filters),
-    enabled: isSessionReady,
+    // enabled: isSessionReady, // Désactivé - charger sans authentification
     retry: 1,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 
-  const dashboardData = dashboardResponse?.data;
+  const dashboardData = dashboardResponse?.data as DashboardData;
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const month = e.target.value;

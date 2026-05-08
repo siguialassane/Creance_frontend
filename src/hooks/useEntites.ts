@@ -23,7 +23,7 @@ export function useEntites(options: UseEntitesOptions = {}) {
   const apiClient = useApiClient();
   const { data: session, status } = useSessionWrapper();
   const { enabled = true } = options;
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
 
   return useQuery({
     queryKey: entiteKeys.lists(),
@@ -31,10 +31,11 @@ export function useEntites(options: UseEntitesOptions = {}) {
       const res = await EntiteService.getAll(apiClient);
       // Le backend retourne ApiResult<PaginationResponse> via /entites
       // ou ApiResult<List> via /entites/all. On extrait proprement.
-      const data = res.data?.content || res.data?.data || res.data || res;
+      const data = (res as any)?.data?.content || (res as any)?.data?.data || (res as any)?.data || res;
       return Array.isArray(data) ? data : (Array.isArray(data?.content) ? data.content : []);
     },
-    enabled: enabled && isSessionReady,
+    // enabled: enabled && isSessionReady, // Désactivé
+    enabled: enabled,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });

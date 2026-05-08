@@ -28,7 +28,7 @@ export function useBanquesPaginated(params: PaginationParams = {}) {
   return useQuery({
     queryKey: banqueKeys.paginated(params),
     queryFn: () => BanqueService.getAll(apiClient, params),
-    enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken,
+    // enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken, // Désactivé,
     retry: (failureCount, error: unknown) => {
       if ((error as ApiError)?.response?.status === 401) {
         return false;
@@ -67,11 +67,11 @@ export function useBanques() {
         return [];
       }
     },
-    enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken,
+    // enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken, // Désactivé,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: Infinity,
-    cacheTime: Infinity,
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,

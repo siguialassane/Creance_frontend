@@ -36,7 +36,7 @@ export function useAgencesBanquePaginated(params: PaginationParams = {}) {
 
       return AgenceBanqueService.getAll(apiClient, requestParams).then((res) => res.data);
     },
-    enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken,
+    // // enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken, // Désactivé, // Désactivé
     retry: (failureCount, error: unknown) => {
       if ((error as ApiError)?.response?.status === 401) {
         return false;
@@ -64,11 +64,11 @@ export function useAgencesBanque(options: UseAgencesBanqueOptions = {}) {
     queryKey: agenceBanqueKeys.lists(),
     queryFn: async () => {
       const res = await AgenceBanqueService.getAllLegacy(apiClient);
-      const data = res.data?.content || res.data?.data || res.data || res;
+      const data = (res as any)?.data?.content || (res as any)?.data?.data || (res as any)?.data || res;
       console.log('✅ Données agences banque chargées depuis l\'API:', data);
       return Array.isArray(data) ? data : [];
     },
-    enabled: enabled && isSessionReady,
+    // enabled: enabled && isSessionReady, // Désactivé
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });

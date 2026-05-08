@@ -34,7 +34,7 @@ const DEBITEUR_FORM_DATA_KEY = ["debiteur-form-data"];
 export function useDebiteurFormData() {
   const apiClient = useApiClient();
   const { data: session, status } = useSessionWrapper();
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
 
   return useQuery({
     queryKey: DEBITEUR_FORM_DATA_KEY,
@@ -113,7 +113,7 @@ export function useDebiteurFormData() {
 
       return formData;
     },
-    enabled: isSessionReady,
+    enabled: true,
     staleTime: Infinity, // Les données sont statiques, pas besoin de les recharger
     gcTime: 1000 * 60 * 60, // Garder en cache pendant 1 heure
     refetchOnWindowFocus: false,

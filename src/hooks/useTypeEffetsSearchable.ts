@@ -12,7 +12,7 @@ import { SearchableSelectItem } from "@/components/ui/searchable-select"
 export function useTypeEffetsSearchable() {
   const apiClient = useApiClient()
   const { data: session, status } = useSessionWrapper()
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
   
   const [search, setSearch] = useState("")
 
@@ -63,7 +63,7 @@ export function useTypeEffetsSearchable() {
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: isSessionReady,
+    enabled: true,
     staleTime: 2 * 60 * 1000,
     initialPageParam: 0,
   })

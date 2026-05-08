@@ -8,7 +8,7 @@ import { PaginationParams } from "@/types/pagination"
 export function useFraissSearchable(codeCreance?: string) {
   const apiClient = useApiClient()
   const { data: session, status } = useSessionWrapper()
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
   const [search, setSearch] = useState("")
 
   const {
@@ -62,7 +62,7 @@ export function useFraissSearchable(codeCreance?: string) {
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: isSessionReady,
+    enabled: true,
     staleTime: 2 * 60 * 1000,
     initialPageParam: 0,
   })

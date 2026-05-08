@@ -21,7 +21,7 @@ export function useTypesActe() {
   return useQuery({
     queryKey: typeActeKeys.lists(),
     queryFn: () => TypeActeService.getAll(apiClient).then((res) => res.data),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    // // enabled: status === 'authenticated' && !!(session as any)?.accessToken, // Désactivé, // Désactivé
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {
         return false;
@@ -39,7 +39,8 @@ export function useTypeActe(code: string) {
   return useQuery({
     queryKey: typeActeKeys.detail(code),
     queryFn: () => TypeActeService.getByCode(apiClient, code),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!code,
+    // enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!code, // Désactivé
+    enabled: !!code,
   });
 }
 
@@ -50,7 +51,8 @@ export function useSearchTypesActe(searchTerm: string) {
   return useQuery({
     queryKey: typeActeKeys.search(searchTerm),
     queryFn: () => TypeActeService.search(apiClient, searchTerm).then((res) => res.data),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!searchTerm,
+    // enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!searchTerm, // Désactivé
+    enabled: !!searchTerm,
     staleTime: 1000 * 60 * 2, // 2 minutes pour les recherches
   });
 }

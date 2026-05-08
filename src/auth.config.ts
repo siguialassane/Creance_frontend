@@ -119,12 +119,8 @@ export const authConfig = {
   ],
   callbacks: {
     authorized({ auth, request }) {
-      const { pathname } = request.nextUrl;
-      if (pathname.startsWith("/api/auth")) {
-        return true;
-      }
-
-      return !!auth?.user;
+      // DÉSACTIVÉ - Autoriser toutes les requêtes sans authentification
+      return true;
     },
     async jwt({ token, user, trigger, session }) {
       // Initial sign in
@@ -177,6 +173,4 @@ export const authConfig = {
   },
   trustHost: true,
 } satisfies NextAuthConfig;
-
-
 

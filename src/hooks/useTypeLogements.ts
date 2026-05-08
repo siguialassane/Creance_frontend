@@ -21,7 +21,7 @@ export function useTypeLogements() {
   return useQuery({
     queryKey: typeLogementKeys.lists(),
     queryFn: () => TypeLogementService.getAll(apiClient).then((res) => res.data),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    // enabled: status === 'authenticated' && !!(session as any)?.accessToken, // Désactivé,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {
         return false;

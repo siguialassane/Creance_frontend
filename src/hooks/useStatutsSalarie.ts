@@ -22,7 +22,7 @@ export function useStatutsSalarie(options: UseStatutsSalarieOptions = {}) {
   const apiClient = useApiClient();
   const { data: session, status } = useSessionWrapper();
   const { enabled = true } = options;
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
 
   return useQuery({
     queryKey: statutSalarieKeys.lists(),
@@ -34,7 +34,8 @@ export function useStatutsSalarie(options: UseStatutsSalarieOptions = {}) {
       console.log('✅ Données statuts salarié chargées depuis l\'API:', data);
       return Array.isArray(data) ? data : [];
     },
-    enabled: enabled && isSessionReady,
+    // enabled: enabled && isSessionReady, // Désactivé
+    enabled: enabled,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });

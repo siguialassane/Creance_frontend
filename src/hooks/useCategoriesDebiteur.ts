@@ -22,15 +22,15 @@ export const useCategoriesDebiteur = () => {
     queryKey: categorieDebiteurKeys.lists(),
     queryFn: async () => {
       const res = await CategorieDebiteurService.getAll(apiClient);
-      const data = res.data?.content || res.data?.data || res.data || res;
+      const data = (res as any)?.data?.content || (res as any)?.data?.data || (res as any)?.data || res;
       console.log('✅ Données catégories débiteur chargées depuis l\'API:', data);
       return Array.isArray(data) ? data : [];
     },
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    // // enabled: status === 'authenticated' && !!(session as any)?.accessToken, // Désactivé, // Désactivé
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: Infinity,
-    cacheTime: Infinity,
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
@@ -44,7 +44,8 @@ export function useCategorieDebiteur(code: string) {
   return useQuery({
     queryKey: categorieDebiteurKeys.detail(code),
     queryFn: () => CategorieDebiteurService.getByCode(apiClient, code),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!code,
+    // enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!code, // Désactivé
+    enabled: !!code,
   });
 }
 
@@ -55,7 +56,8 @@ export function useSearchCategoriesDebiteur(searchTerm: string) {
   return useQuery({
     queryKey: categorieDebiteurKeys.search(searchTerm),
     queryFn: () => CategorieDebiteurService.search(apiClient, searchTerm).then((res) => res.data),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!searchTerm,
+    // enabled: status === 'authenticated' && !!(session as any)?.accessToken && !!searchTerm, // Désactivé
+    enabled: !!searchTerm,
     staleTime: 1000 * 60 * 2, // 2 minutes pour les recherches
   });
 }

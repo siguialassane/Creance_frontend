@@ -22,7 +22,7 @@ export function useFonctions(options: UseFonctionsOptions = {}) {
   const apiClient = useApiClient();
   const { data: session, status } = useSessionWrapper();
   const { enabled = true } = options;
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
 
   return useQuery({
     queryKey: fonctionKeys.lists(),
@@ -45,7 +45,8 @@ export function useFonctions(options: UseFonctionsOptions = {}) {
         throw error;
       }
     },
-    enabled: enabled && isSessionReady,
+    // enabled: enabled && isSessionReady, // Désactivé
+    enabled: enabled,
     retry: 1, // Réduire à 1 retry pour éviter les délais trop longs
     retryDelay: 1000, // Délai de 1 seconde entre les retries
     staleTime: 5 * 60 * 1000, // 5 minutes

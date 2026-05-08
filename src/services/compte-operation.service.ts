@@ -6,7 +6,7 @@ export class CompteOperationService {
   static async getAll(apiClient: any, params?: { page?: number; size?: number }): Promise<CompteOperationApiResponse> {
     const response = await apiClient.get(`${CompteOperationService.BASE_URL}`, {
       params: params || { page: 0, size: 1000 }, // Pagination côté client, charger tous les éléments
-      timeout: 30000,
+      timeout: 60000,
     });
     return response.data;
   }

@@ -26,11 +26,11 @@ export const useTypesDebiteur = () => {
       console.log('✅ Données types débiteur chargées depuis l\'API:', data);
       return Array.isArray(data) ? data : [];
     },
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    // enabled: status === 'authenticated' && !!(session as any)?.accessToken, // Désactivé,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: Infinity,
-    cacheTime: Infinity,
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,

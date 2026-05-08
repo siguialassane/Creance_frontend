@@ -43,7 +43,7 @@ export function useTypeGarantiePersonnellesSearchable() {
       };
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    // enabled: status === 'authenticated' && !!(session as any)?.accessToken, // Désactivé,
     initialPageParam: 0,
   });
 

@@ -6,7 +6,7 @@ export class ExerciceService {
   static async getAll(apiClient: any, params?: { page?: number; size?: number }): Promise<ExerciceApiResponse> {
     const response = await apiClient.get(`${ExerciceService.BASE_URL}`, {
       params: params || { page: 0, size: 1000 }, // Pagination côté client, charger tous les éléments
-      timeout: 30000,
+      timeout: 60000,
     });
     return response.data;
   }

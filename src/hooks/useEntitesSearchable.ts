@@ -13,7 +13,7 @@ import { fetchPaginatedData } from "@/lib/api"
 export function useEntitesSearchable() {
   const apiClient = useApiClient()
   const { data: session, status } = useSessionWrapper()
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
   
   const [search, setSearch] = useState("")
 
@@ -95,7 +95,8 @@ export function useEntitesSearchable() {
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: isSessionReady,
+    // enabled: isSessionReady, // Désactivé
+    enabled: true,
     staleTime: 2 * 60 * 1000, // 2 minutes
     initialPageParam: 0,
   })

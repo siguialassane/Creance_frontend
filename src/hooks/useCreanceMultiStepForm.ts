@@ -140,9 +140,9 @@ export function useCreanceMultiStepForm({
     } catch (error) {
       // Si la validation Zod échoue, on doit définir les erreurs manuellement
       if (error instanceof z.ZodError) {
-        console.log("Validation Zod échouée pour step", currentStep, error.errors);
+        console.log("Validation Zod échouée pour step", currentStep, error.issues);
         // Transformer les erreurs Zod en erreurs react-hook-form
-        error.errors.forEach((err) => {
+        error.issues.forEach((err: any) => {
           const path = err.path.join(".");
           form.setError(path as any, {
             type: "validation",

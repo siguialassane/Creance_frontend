@@ -13,7 +13,7 @@ import { fetchPaginatedData } from "@/lib/api"
 export function useOrdonnateursSearchable() {
   const apiClient = useApiClient()
   const { data: session, status } = useSessionWrapper()
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
   
   const [search, setSearch] = useState("")
 
@@ -50,9 +50,9 @@ export function useOrdonnateursSearchable() {
           } else if (Array.isArray(response.data?.content)) {
             // Format paginé: data.content est un tableau
             dataArray = response.data.content;
-          } else if (Array.isArray(response.data?.data)) {
+          } else if (Array.isArray((response.data as any)?.data)) {
             // Format alternatif: data.data est un tableau
-            dataArray = response.data.data;
+            dataArray = (response.data as any).data;
           } else if (response.data) {
             // Cas où response.data n'est ni un tableau ni un objet avec content/data
             // Essayer de trouver un tableau ailleurs
@@ -81,7 +81,17 @@ export function useOrdonnateursSearchable() {
         } catch (e) {
           // Si la pagination ne fonctionne pas, utiliser getAll sans pagination
           const response = await OrdonnateurService.getAll(apiClient as any)
-          const allData = response.data?.content || response.data?.data || response.data || []
+          let allData: any[] = []
+          const responseData = response.data
+          if (Array.isArray(responseData)) {
+            allData = responseData
+          } else if (responseData && typeof responseData === 'object' && 'content' in responseData) {
+            allData = (responseData as any).content || []
+          } else if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+            allData = (responseData as any).data || []
+          } else {
+            allData = []
+          }
           const allItems: SearchableSelectItem[] = Array.isArray(allData)
             ? allData.map((ordo: any) => ({
                 value: (ordo.ORDO_CODE || ordo.code || "").toString(),
@@ -122,7 +132,7 @@ export function useOrdonnateursSearchable() {
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: isSessionReady,
+    enabled: true,
     staleTime: 2 * 60 * 1000, // 2 minutes
     initialPageParam: 0,
   })

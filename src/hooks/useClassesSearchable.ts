@@ -13,7 +13,7 @@ import { fetchPaginatedData } from "@/lib/api"
 export function useClassesSearchable() {
   const apiClient = useApiClient()
   const { data: session, status } = useSessionWrapper()
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
   
   const [search, setSearch] = useState("")
 
@@ -54,7 +54,7 @@ export function useClassesSearchable() {
         } catch (e) {
           // Si la pagination ne fonctionne pas, utiliser getAll sans pagination
           const response = await ClasseService.getAll(apiClient as any)
-          const allData = response.data?.content || response.data?.data || response.data || []
+          const allData = response.data || []
           const allItems: SearchableSelectItem[] = Array.isArray(allData)
             ? allData.map((classe: any) => ({
                 value: classe.CLAS_CODE || classe.code || "",
@@ -95,7 +95,7 @@ export function useClassesSearchable() {
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: isSessionReady,
+    enabled: true,
     staleTime: 2 * 60 * 1000, // 2 minutes
     initialPageParam: 0,
   })

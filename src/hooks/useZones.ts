@@ -35,7 +35,7 @@ export function useZones() {
         return [];
       }
     },
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    // enabled: status === 'authenticated' && !!(session as any)?.accessToken, // Désactivé,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {
         return false;
@@ -44,7 +44,7 @@ export function useZones() {
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: Infinity,
-    cacheTime: Infinity,
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,

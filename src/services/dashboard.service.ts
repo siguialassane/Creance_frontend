@@ -82,7 +82,7 @@ export class DashboardService {
   static async getDashboard(
     apiClient: ApiClient,
     filters?: DashboardFilters
-  ): Promise<ApiResponse<DashboardData>> {
+  ): Promise<{ data: DashboardData; message: string; status: string; timestamp: string }> {
     const params = new URLSearchParams();
     
     if (filters?.mois) {

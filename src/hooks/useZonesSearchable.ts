@@ -11,7 +11,7 @@ import { SearchableSelectItem } from "@/components/ui/searchable-select"
 export function useZonesSearchable() {
   const apiClient = useApiClient()
   const { data: session, status } = useSessionWrapper()
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
 
   const [search, setSearch] = useState("")
 
@@ -23,7 +23,7 @@ export function useZonesSearchable() {
       const rawData = response.data?.data || []
       return Array.isArray(rawData) ? rawData : []
     },
-    enabled: isSessionReady,
+    enabled: true,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })

@@ -11,7 +11,7 @@ import { SearchableSelectItem } from "@/components/ui/searchable-select"
 export function useEmployeursSearchable() {
   const apiClient = useApiClient()
   const { data: session, status } = useSessionWrapper()
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
   
   const [search, setSearch] = useState("")
 
@@ -59,7 +59,7 @@ export function useEmployeursSearchable() {
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: isSessionReady,
+    enabled: true,
     staleTime: 2 * 60 * 1000,
     initialPageParam: 0,
   })

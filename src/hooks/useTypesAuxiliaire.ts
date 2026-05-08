@@ -21,7 +21,7 @@ export function useTypesAuxiliaire() {
   return useQuery({
     queryKey: typeAuxiliaireKeys.lists(),
     queryFn: () => TypeAuxiliaireService.getAll(apiClient).then((res) => res.data),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    // enabled: status === 'authenticated' && !!(session as any)?.accessToken, // Désactivé,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {
         return false;

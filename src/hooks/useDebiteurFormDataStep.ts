@@ -74,7 +74,7 @@ export function useDebiteurFormDataStep1() {
         typesDebiteur: extractData(typesRes),
       };
     },
-    enabled: isSessionReady,
+    enabled: true,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 60,
     refetchOnWindowFocus: false,
@@ -91,7 +91,7 @@ export function useDebiteurFormDataStep1() {
 export function useDebiteurFormDataStep2(enabled: boolean = true) {
   const apiClient = useApiClient();
   const { data: session, status } = useSessionWrapper();
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
 
   return useQuery({
     queryKey: STEP2_KEY,
@@ -113,42 +113,42 @@ export function useDebiteurFormDataStep2(enabled: boolean = true) {
         }),
         apiClient.get('/quartiers', {
           params: { page: 0, size: 200 },
-          timeout: 30000, // Timeout spécifique pour cette requête
+          timeout: 60000, // Timeout augmenté pour les requêtes Oracle lentes
         }).catch((err) => {
           console.error('❌ [useDebiteurFormDataStep2] Erreur quartiers:', err);
           return { data: { data: { content: [] } } };
         }),
         apiClient.get('/nationalites', {
           params: { page: 0, size: 100 },
-          timeout: 30000,
+          timeout: 60000,
         }).catch((err) => {
           console.error('❌ [useDebiteurFormDataStep2] Erreur nationalites:', err);
           return { data: { data: { content: [] } } };
         }),
         apiClient.get('/fonctions', {
           params: { page: 0, size: 50 }, // Réduire à 50 pour accélérer (recherche disponible)
-          timeout: 30000,
+          timeout: 60000,
         }).catch((err) => {
           console.error('❌ [useDebiteurFormDataStep2] Erreur fonctions:', err);
           return { data: { data: { content: [] } } };
         }),
         apiClient.get('/professions', {
           params: { page: 0, size: 50 }, // Réduire à 50 pour accélérer (recherche disponible)
-          timeout: 30000,
+          timeout: 60000,
         }).catch((err) => {
           console.error('❌ [useDebiteurFormDataStep2] Erreur professions:', err);
           return { data: { data: { content: [] } } };
         }),
         apiClient.get('/employeurs', {
           params: { page: 0, size: 50 }, // Réduire à 50 pour accélérer (recherche disponible)
-          timeout: 30000,
+          timeout: 60000,
         }).catch((err) => {
           console.error('❌ [useDebiteurFormDataStep2] Erreur employeurs:', err);
           return { data: { data: { content: [] } } };
         }),
         apiClient.get('/statut-salaries', {
           params: { page: 0, size: 100 },
-          timeout: 30000,
+          timeout: 60000,
         }).catch((err) => {
           console.error('❌ [useDebiteurFormDataStep2] Erreur statut-salaries:', err);
           return { data: { data: { content: [] } } };
@@ -187,7 +187,7 @@ export function useDebiteurFormDataStep2(enabled: boolean = true) {
         statutsSalarie: extractData(statutsRes),
       };
     },
-    enabled: isSessionReady && enabled,
+    enabled: true && enabled,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 60,
     refetchOnWindowFocus: false,
@@ -204,7 +204,7 @@ export function useDebiteurFormDataStep2(enabled: boolean = true) {
 export function useDebiteurFormDataStep3(enabled: boolean = true) {
   const apiClient = useApiClient();
   const { data: session, status } = useSessionWrapper();
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken;
 
   return useQuery({
     queryKey: STEP3_KEY,
@@ -223,7 +223,7 @@ export function useDebiteurFormDataStep3(enabled: boolean = true) {
         agencesBanque: extractData(agencesRes),
       };
     },
-    enabled: isSessionReady && enabled,
+    enabled: true && enabled,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 60,
     refetchOnWindowFocus: false,

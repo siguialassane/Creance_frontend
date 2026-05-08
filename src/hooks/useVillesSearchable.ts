@@ -12,7 +12,7 @@ import { SearchableSelectItem } from "@/components/ui/searchable-select"
 export function useVillesSearchable() {
   const apiClient = useApiClient()
   const { data: session, status } = useSessionWrapper()
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
   
   const [search, setSearch] = useState("")
 
@@ -40,7 +40,7 @@ export function useVillesSearchable() {
           size: params.size,
           ...(params.search && { search: params.search }),
         },
-        timeout: 30000,
+        timeout: 60000,
       })
       
       // Transformer les données de l'API
@@ -67,7 +67,7 @@ export function useVillesSearchable() {
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: isSessionReady,
+    enabled: true,
     staleTime: 2 * 60 * 1000,
     initialPageParam: 0,
   })

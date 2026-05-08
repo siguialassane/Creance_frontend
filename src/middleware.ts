@@ -6,6 +6,3 @@ export const config = {
     "/((?!api|_next|.*\\..*|login).*)",
   ],
 };
-
-
-

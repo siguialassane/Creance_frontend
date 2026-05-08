@@ -24,7 +24,7 @@ export function usePostesComptables() {
       const data = res.data;
       return Array.isArray(data) ? data : [];
     }),
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    // enabled: status === 'authenticated' && !!(session as any)?.accessToken, // Désactivé,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {
         return false;

@@ -12,7 +12,7 @@ import { SearchableSelectItem } from "@/components/ui/searchable-select"
 export function useAgencesBanqueSearchable(banqueCode?: string | null) {
   const apiClient = useApiClient()
   const { data: session, status } = useSessionWrapper()
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
   
   const [search, setSearch] = useState("")
 
@@ -58,7 +58,7 @@ export function useAgencesBanqueSearchable(banqueCode?: string | null) {
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: isSessionReady, // Charger même sans banque pour lister toutes les agences
+    enabled: true, // Charger même sans banque pour lister toutes les agences
     staleTime: 2 * 60 * 1000,
     initialPageParam: 0,
   })

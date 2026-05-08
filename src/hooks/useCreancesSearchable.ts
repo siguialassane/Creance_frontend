@@ -12,7 +12,7 @@ import { SearchableSelectItem } from "@/components/ui/searchable-select"
 export function useCreancesSearchable() {
     const apiClient = useApiClient()
     const { data: session, status } = useSessionWrapper()
-    const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
+    // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
 
     const [search, setSearch] = useState("")
 
@@ -31,7 +31,8 @@ export function useCreancesSearchable() {
                 page: pageParam,
                 size: 20,
                 search: search || undefined,
-                sort: 'dateCreation,desc' // Trier par date de création par défaut
+                sortBy: 'dateCreation',
+                sortDirection: 'DESC' // Trier par date de création par défaut
             }
 
             const response = await CreanceService.getAll(apiClient, params)
@@ -56,7 +57,7 @@ export function useCreancesSearchable() {
             }
         },
         getNextPageParam: (lastPage) => lastPage.nextPage,
-        enabled: isSessionReady,
+        enabled: true,
         staleTime: 2 * 60 * 1000,
         initialPageParam: 0,
     })

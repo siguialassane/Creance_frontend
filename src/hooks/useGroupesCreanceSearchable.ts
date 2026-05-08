@@ -13,7 +13,7 @@ import { fetchPaginatedData } from "@/lib/api"
 export function useGroupesCreanceSearchable() {
   const apiClient = useApiClient()
   const { data: session, status } = useSessionWrapper()
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
   
   const [search, setSearch] = useState("")
 
@@ -40,7 +40,7 @@ export function useGroupesCreanceSearchable() {
           const response = await fetchPaginatedData<any>("/groupes-creance", params)
           
           // Transformer les données - utiliser les vrais noms de champs de l'API
-          const items: SearchableSelectItem[] = (response.data?.content || []).map((groupe: any) => ({
+          const items: SearchableSelectItem[] = ((response as any).data?.content || []).map((groupe: any) => ({
             value: groupe.GRP_CREAN_CODE || groupe.GC_CODE || groupe.code || "",
             label: `${groupe.GRP_CREAN_CODE || groupe.GC_CODE || groupe.code} - ${groupe.GRP_CREAN_LIB || groupe.GC_LIB || groupe.libelle || ""}`,
             ...groupe,
@@ -54,7 +54,7 @@ export function useGroupesCreanceSearchable() {
         } catch (e) {
           // Si la pagination ne fonctionne pas, utiliser getAll sans pagination
           const response = await GroupeCreanceService.getAll(apiClient as any)
-          const allData = response.data?.content || response.data?.data || response.data || []
+          const allData = response.data || []
           const allItems: SearchableSelectItem[] = Array.isArray(allData)
             ? allData.map((groupe: any) => ({
                 value: groupe.GRP_CREAN_CODE || groupe.GC_CODE || groupe.code || "",
@@ -95,7 +95,7 @@ export function useGroupesCreanceSearchable() {
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: isSessionReady,
+    enabled: true,
     staleTime: 2 * 60 * 1000, // 2 minutes
     initialPageParam: 0,
   })

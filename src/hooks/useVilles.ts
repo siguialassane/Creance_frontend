@@ -27,7 +27,7 @@ export function useVillesPaginated(params: PaginationParams = {}) {
   return useQuery({
     queryKey: villeKeys.paginated(params),
     queryFn: () => VilleService.getAll(apiClient, params),
-    enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken,
+    // enabled: status === 'authenticated' && !!(session as { accessToken?: string })?.accessToken, // Désactivé,
     retry: (failureCount, error: unknown) => {
       if ((error as { response?: { status?: number } })?.response?.status === 401) {
         return false;
@@ -60,7 +60,7 @@ export function useVilles() {
         return [];
       }
     },
-    enabled: status === 'authenticated' && !!(session as any)?.accessToken,
+    // enabled: status === 'authenticated' && !!(session as any)?.accessToken, // Désactivé,
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401) {
         return false;

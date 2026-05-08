@@ -13,7 +13,7 @@ import { fetchPaginatedData } from "@/lib/api"
 export function useObjetsCreanceSearchable() {
   const apiClient = useApiClient()
   const { data: session, status } = useSessionWrapper()
-  const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
+  // const isSessionReady = status === 'authenticated' && !!(session as any)?.accessToken
   
   const [search, setSearch] = useState("")
 
@@ -40,7 +40,7 @@ export function useObjetsCreanceSearchable() {
           const response = await fetchPaginatedData<any>("/objets-creance", params)
           
           // Transformer les données - utiliser les vrais noms de champs de l'API
-          const items: SearchableSelectItem[] = (response.data?.content || []).map((objet: any) => ({
+          const items: SearchableSelectItem[] = ((response as any).data?.content || []).map((objet: any) => ({
             value: objet.OBJ_CREAN_CODE || objet.OC_CODE || objet.code || "",
             label: `${objet.OBJ_CREAN_CODE || objet.OC_CODE || objet.code} - ${objet.OBJ_CREAN_LIB || objet.OC_LIB || objet.libelle || ""}`,
             ...objet,
@@ -54,7 +54,7 @@ export function useObjetsCreanceSearchable() {
         } catch (e) {
           // Si la pagination ne fonctionne pas, utiliser getAll sans pagination
           const response = await ObjetCreanceService.getAll(apiClient as any)
-          const allData = response.data?.content || response.data?.data || response.data || []
+          const allData = response.data || []
           const allItems: SearchableSelectItem[] = Array.isArray(allData)
             ? allData.map((objet: any) => ({
                 value: objet.OBJ_CREAN_CODE || objet.OC_CODE || objet.code || "",
@@ -95,7 +95,7 @@ export function useObjetsCreanceSearchable() {
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: isSessionReady,
+    enabled: true,
     staleTime: 2 * 60 * 1000, // 2 minutes
     initialPageParam: 0,
   })
