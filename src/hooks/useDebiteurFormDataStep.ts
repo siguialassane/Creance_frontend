@@ -113,42 +113,42 @@ export function useDebiteurFormDataStep2(enabled: boolean = true) {
         }),
         apiClient.get('/quartiers', {
           params: { page: 0, size: 200 },
-          timeout: 60000, // Timeout augmenté pour les requêtes Oracle lentes
+          timeout: 100000, // Timeout augmenté pour les requêtes Oracle lentes
         }).catch((err) => {
           console.error('❌ [useDebiteurFormDataStep2] Erreur quartiers:', err);
           return { data: { data: { content: [] } } };
         }),
         apiClient.get('/nationalites', {
           params: { page: 0, size: 100 },
-          timeout: 60000,
+          timeout: 100000,
         }).catch((err) => {
           console.error('❌ [useDebiteurFormDataStep2] Erreur nationalites:', err);
           return { data: { data: { content: [] } } };
         }),
         apiClient.get('/fonctions', {
           params: { page: 0, size: 50 }, // Réduire à 50 pour accélérer (recherche disponible)
-          timeout: 60000,
+          timeout: 100000,
         }).catch((err) => {
           console.error('❌ [useDebiteurFormDataStep2] Erreur fonctions:', err);
           return { data: { data: { content: [] } } };
         }),
         apiClient.get('/professions', {
           params: { page: 0, size: 50 }, // Réduire à 50 pour accélérer (recherche disponible)
-          timeout: 60000,
+          timeout: 100000,
         }).catch((err) => {
           console.error('❌ [useDebiteurFormDataStep2] Erreur professions:', err);
           return { data: { data: { content: [] } } };
         }),
         apiClient.get('/employeurs', {
           params: { page: 0, size: 50 }, // Réduire à 50 pour accélérer (recherche disponible)
-          timeout: 60000,
+          timeout: 100000,
         }).catch((err) => {
           console.error('❌ [useDebiteurFormDataStep2] Erreur employeurs:', err);
           return { data: { data: { content: [] } } };
         }),
         apiClient.get('/statut-salaries', {
           params: { page: 0, size: 100 },
-          timeout: 60000,
+          timeout: 100000,
         }).catch((err) => {
           console.error('❌ [useDebiteurFormDataStep2] Erreur statut-salaries:', err);
           return { data: { data: { content: [] } } };

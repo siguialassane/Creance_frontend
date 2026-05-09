@@ -6,7 +6,7 @@ export class FonctionService {
   static async getAll(apiClient: any, params?: { page?: number; size?: number; search?: string }): Promise<FonctionApiResponse> {
     const response = await apiClient.get(`${FonctionService.BASE_URL}`, {
       params: params || { page: 0, size: 1000 }, // Pagination côté client, charger tous les éléments par défaut
-      timeout: 60000,
+      timeout: 100000,
     });
     return response.data;
   }

@@ -7,7 +7,7 @@ export type ApiClient = AxiosInstance;
 // Configuration de base pour Axios
 export const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api",
-  timeout: 60000, // Augmenté à 60 secondes pour les requêtes Oracle lentes
+  timeout: 100000, // 100 secondes pour les requêtes Oracle lentes
   headers: {
     "Content-Type": "application/json",
   },
