@@ -40,7 +40,7 @@ export function useVillesSearchable() {
           size: params.size,
           ...(params.search && { search: params.search }),
         },
-        timeout: 60000,
+        timeout: 100000,
       })
       
       // Transformer les données de l'API

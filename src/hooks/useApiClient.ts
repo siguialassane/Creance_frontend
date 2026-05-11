@@ -15,7 +15,7 @@ export function useApiClient() {
     if (!clientRef.current) {
       const client = axios.create({
         baseURL,
-        timeout: 60000, // 60 secondes pour les requêtes lentes (Oracle, grandes listes)
+        timeout: 100000, // 100 secondes pour les requêtes lentes (Oracle, grandes listes)
         headers: {
           "Content-Type": "application/json",
         },
