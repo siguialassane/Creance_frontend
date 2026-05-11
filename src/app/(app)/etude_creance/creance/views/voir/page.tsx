@@ -173,7 +173,7 @@ const VoirCreancePageInner = () => {
             <div>
               <h1 className="text-2xl font-semibold mb-2" style={{ color: '#28A325' }}>Consultation de Créance</h1>
               <p className="text-base text-gray-600">
-                Consultez les détails de la créance {formData.numeroCreance || creanceId}
+                Consultez les détails de la créance <span className="font-bold text-gray-800">{formData.numeroCreance || creanceId}</span>
               </p>
             </div>
             <div className="flex items-center gap-3">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,19 +8,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { RecuPaiementModal } from "@/components/modals/RecuPaiementModal"
 import { useApiClient } from "@/hooks/useApiClient"
+import { useSearchParams } from "next/navigation"
 import { useTypeEffetsSearchable } from "@/hooks/useTypeEffetsSearchable"
-import { useBanquesSearchable } from "@/hooks/useBanquesSearchable"
+import { useAgencesBanqueSearchable } from "@/hooks/useAgencesBanqueSearchable"
 import { useSessionWrapper } from "@/hooks/useSessionWrapper"
 import { CreanceService } from "@/services/creance.service"
-import { PaiementFraisService } from "@/services/paiement-frais.service"
+import { PaiementFraisService, ModePaiementFrais } from "@/services/paiement-frais.service"
 import { CreanceResponse } from "@/types/creance"
 import { usePeriodicites } from "@/hooks/usePeriodicites"
 import { Eye, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
-export default function PaiementDesFraisPage() {
+function PaiementDesFraisPageInner() {
   const apiClient = useApiClient()
   const { data: session } = useSessionWrapper()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [savingFrais, setSavingFrais] = useState(false)
   const [savingPaiement, setSavingPaiement] = useState(false)
@@ -32,10 +34,10 @@ export default function PaiementDesFraisPage() {
 
   // Hooks pour les sélections
   const typeEffetsSearchable = useTypeEffetsSearchable()
-  const banquesSearchable = useBanquesSearchable()
+  const agencesSearchable = useAgencesBanqueSearchable(null)
 
   // États pour la section CREANCE
-  const [codeCreance, setCodeCreance] = useState("")
+  const [codeCreance, setCodeCreance] = useState(searchParams.get('code') || "")
   const [debiteurCode, setDebiteurCode] = useState("")
   const [debiteurLibelle, setDebiteurLibelle] = useState("")
   const [groupeCreanceCode, setGroupeCreanceCode] = useState("")
@@ -86,7 +88,7 @@ export default function PaiementDesFraisPage() {
   })
 
   // États pour le mode de paiement
-  const [modePaiement, setModePaiement] = useState<"EFFET" | "ESPECE" | "">("")
+  const [modePaiement, setModePaiement] = useState<ModePaiementFrais | "">("")
 
   // États pour le paiement par effet
   const [typeEffetCode, setTypeEffetCode] = useState("")
@@ -100,9 +102,20 @@ export default function PaiementDesFraisPage() {
   const [garantiesPhysiques, setGarantiesPhysiques] = useState<any[]>([])
   const [loadingGaranties, setLoadingGaranties] = useState(false)
   const isSubmittingRef = useRef(false)
+  const autoLoadedRef = useRef(false)
 
   // Date max pour les sélecteurs (aujourd'hui)
   const today = new Date().toISOString().split('T')[0]
+
+  // Auto-charger si code créance passé en URL
+  useEffect(() => {
+    const code = searchParams.get('code')
+    if (code && !autoLoadedRef.current) {
+      autoLoadedRef.current = true
+      setCodeCreance(code)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Fonction pour détecter le type de paiement sélectionné
   const isEffetMode = () => {
@@ -377,13 +390,11 @@ export default function PaiementDesFraisPage() {
     const montantPayeValue = parseMontant(montantPaye)
     if (!montantPayeValue || montantPayeValue <= 0) return validationError("Veuillez saisir un montant valide")
     if (!modePaiement) return validationError("Veuillez sélectionner un mode de paiement")
-    if (!numeroRecuManuel.trim()) return validationError("Veuillez saisir le numéro de reçu manuel")
-
     // Préparer les données
     const paiementData: any = {
       creanceCode: codeCreance,
       fraisCode: parseInt(fraisCode),
-      recuManuel: numeroRecuManuel,
+      ...(numeroRecuManuel.trim() && { recuManuel: numeroRecuManuel }),
       montantPaye: montantPayeValue,
       datePaiement: datePaiementFrais,
       modePaiement: modePaiement,
@@ -890,46 +901,36 @@ export default function PaiementDesFraisPage() {
             {/* Section Mode de Paiement */}
             <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Mode de Paiement</h3>
-              <div className="flex gap-5">
-                <label className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  modePaiement === "EFFET"
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
-                }`}>
-                  <input
-                    type="radio"
-                    name="modePaiement"
-                    value="EFFET"
-                    checked={modePaiement === "EFFET"}
-                    onChange={(e) => setModePaiement(e.target.value as any)}
-                    className="w-5 h-5 text-orange-500 focus:ring-orange-500 focus:ring-2"
-                  />
-                  <span className={`ml-3 text-base font-medium ${
-                    modePaiement === "EFFET" ? 'text-orange-700' : 'text-gray-700'
+              <div className="flex flex-wrap gap-3">
+                {([
+                  { value: "ESPECE",   label: "Espèces" },
+                  { value: "CHEQUE",   label: "Chèque" },
+                  { value: "TRAITE",   label: "Traite" },
+                  { value: "VIREMENT", label: "Virement" },
+                  { value: "EFFET",    label: "Effet" },
+                  { value: "BANQUE",   label: "Banque" },
+                  { value: "OVP",      label: "OVP" },
+                ] as { value: ModePaiementFrais; label: string }[]).map(({ value, label }) => (
+                  <label key={value} className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                    modePaiement === value
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
                   }`}>
-                    Paiement par Effet
-                  </span>
-                </label>
-
-                <label className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  modePaiement === "ESPECE"
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
-                }`}>
-                  <input
-                    type="radio"
-                    name="modePaiement"
-                    value="ESPECE"
-                    checked={modePaiement === "ESPECE"}
-                    onChange={(e) => setModePaiement(e.target.value as any)}
-                    className="w-5 h-5 text-orange-500 focus:ring-orange-500 focus:ring-2"
-                  />
-                  <span className={`ml-3 text-base font-medium ${
-                    modePaiement === "ESPECE" ? 'text-orange-700' : 'text-gray-700'
-                  }`}>
-                    Paiement par Espèce
-                  </span>
-                </label>
+                    <input
+                      type="radio"
+                      name="modePaiement"
+                      value={value}
+                      checked={modePaiement === value}
+                      onChange={(e) => setModePaiement(e.target.value as ModePaiementFrais)}
+                      className="w-4 h-4 text-orange-500 focus:ring-orange-500 focus:ring-2"
+                    />
+                    <span className={`ml-2 text-sm font-medium ${
+                      modePaiement === value ? 'text-orange-700' : 'text-gray-700'
+                    }`}>
+                      {label}
+                    </span>
+                  </label>
+                ))}
               </div>
             </div>
 
@@ -1037,21 +1038,21 @@ export default function PaiementDesFraisPage() {
                     />
                   </div>
 
-                  {/* Banque Emettrice */}
+                  {/* Agence bancaire émettrice */}
                   <div className="flex items-center gap-2 w-full">
-                    <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Banque Emettrice</Label>
+                    <Label className="text-sm font-bold text-gray-700 w-32 flex-shrink-0 pr-1">Agence Emettrice</Label>
                     <SearchableSelect
                       value={banqueAgence}
                       onValueChange={(value) => setBanqueAgence(value)}
-                      items={banquesSearchable.items}
-                      placeholder="Sélectionner une banque"
-                      emptyMessage="Aucune banque trouvée"
-                      searchPlaceholder="Rechercher une banque..."
-                      isLoading={banquesSearchable.isLoading}
-                      hasMore={banquesSearchable.hasMore}
-                      onLoadMore={banquesSearchable.loadMore}
-                      isFetchingMore={banquesSearchable.isFetchingMore}
-                      onSearchChange={banquesSearchable.setSearch}
+                      items={agencesSearchable.items}
+                      placeholder="Sélectionner une agence"
+                      emptyMessage="Aucune agence trouvée"
+                      searchPlaceholder="Rechercher une agence..."
+                      isLoading={agencesSearchable.isLoading}
+                      hasMore={agencesSearchable.hasMore}
+                      onLoadMore={agencesSearchable.loadMore}
+                      isFetchingMore={agencesSearchable.isFetchingMore}
+                      onSearchChange={agencesSearchable.setSearch}
                       className="flex-1"
                     />
                   </div>
@@ -1103,5 +1104,13 @@ export default function PaiementDesFraisPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function PaiementDesFraisPage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <PaiementDesFraisPageInner />
+    </Suspense>
   )
 }

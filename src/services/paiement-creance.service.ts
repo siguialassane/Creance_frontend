@@ -81,4 +81,13 @@ export class PaiementCreanceService {
         const response = await apiClient.get(`${PaiementCreanceService.BASE_URL}/creance/${creanceCode}/garanties`);
         return response.data;
     }
+
+    /**
+     * Annule un paiement de créance
+     * Conforme à la procédure backend : INSERT annulation (TYPAIE_CODE='03', montant négatif) + UPDATE original + INSERT régularisation inverse
+     */
+    static async annuler(apiClient: ApiClient, paieCode: number | string, motif?: string): Promise<any> {
+        const response = await apiClient.post(`${PaiementCreanceService.BASE_URL}/${paieCode}/annuler`, { motif: motif || "" });
+        return response.data;
+    }
 }

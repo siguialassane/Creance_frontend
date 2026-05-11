@@ -14,7 +14,7 @@ import { CreanceService } from "@/services/creance.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ArrowLeft, Eye, Pencil, Trash2, Printer } from "lucide-react";
+import { Plus, ArrowLeft, Eye, Pencil, Trash2, Printer, Ban, Loader2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -24,6 +24,10 @@ import {
 import { PaginationParams, PaginationInfo } from "@/types/pagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RecuPaiementModal } from "@/components/modals/RecuPaiementModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { PaiementCreanceService } from "@/services/paiement-creance.service";
+import { PaiementFraisService } from "@/services/paiement-frais.service";
 
 // Interface pour les paiements
 interface Paiement {
@@ -52,6 +56,9 @@ interface Paiement {
   typeFraisLib?: string;
   // Pour les factures
   contratCode?: string;
+  // Annulation
+  paieCodeAnnul?: string | null;
+  isAnnulation?: boolean;
 }
 
 const PaiementsListePageInner = () => {
@@ -145,6 +152,8 @@ const PaiementsListePageInner = () => {
       typeFraisCode: apiData.TYPFRAIS_CODE || apiData.typeFraisCode,
       typeFraisLib: apiData.TYPFRAIS_LIB || apiData.typeFraisLib,
       contratCode: apiData.CONTRAT_CODE || apiData.contratCode,
+      paieCodeAnnul: apiData.PAIE_CODE_ANNUL ?? null,
+      isAnnulation: apiData.TYPAIE_CODE === '03' || apiData.isAnnulation === true,
     };
   };
 
@@ -237,6 +246,39 @@ const PaiementsListePageInner = () => {
 
   const [showRecuDialog, setShowRecuDialog] = useState(false);
   const [selectedPaiement, setSelectedPaiement] = useState<Paiement | null>(null);
+
+  // États pour l'annulation
+  const [showAnnulationModal, setShowAnnulationModal] = useState(false);
+  const [paiementToAnnuler, setPaiementToAnnuler] = useState<Paiement | null>(null);
+  const [motifAnnulation, setMotifAnnulation] = useState("");
+  const [annuling, setAnnuling] = useState(false);
+
+  const handleOpenAnnulation = (paiement: Paiement) => {
+    setPaiementToAnnuler(paiement)
+    setMotifAnnulation("")
+    setShowAnnulationModal(true)
+  }
+
+  const handleConfirmAnnulation = async () => {
+    if (!paiementToAnnuler) return
+    setAnnuling(true)
+    try {
+      if (paiementToAnnuler.typePaiement === "FRAIS" && paiementToAnnuler.fraisCode) {
+        await PaiementFraisService.annuler(apiClient, paiementToAnnuler.fraisCode, motifAnnulation)
+      } else if (paiementToAnnuler.paieCode) {
+        await PaiementCreanceService.annuler(apiClient, paiementToAnnuler.paieCode, motifAnnulation)
+      }
+      toast.success("Paiement annulé avec succès")
+      setShowAnnulationModal(false)
+      setPaiementToAnnuler(null)
+      loadPaiements(paginationParams)
+      loadCreance() // Recharger le solde de la créance
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error.message || "Impossible d'annuler ce paiement")
+    } finally {
+      setAnnuling(false)
+    }
+  }
 
   const handlePrintRecu = (paiement: Paiement) => {
     // Pour les paiements de frais, on utilise fraisCode, sinon effetNum ou paieCode
@@ -347,8 +389,14 @@ const PaiementsListePageInner = () => {
       header: "Statut",
       cell: ({ row }) => {
         const statut = row.getValue("statut") as string;
+        const badgeClass =
+          statut === "Validé"   ? "bg-green-100 text-green-800 border-green-200" :
+          statut === "Payé"     ? "bg-blue-100 text-blue-800 border-blue-200" :
+          statut === "Partiel"  ? "bg-yellow-100 text-yellow-800 border-yellow-200" :
+          statut === "Non validé" ? "bg-red-100 text-red-800 border-red-200" :
+          "bg-gray-100 text-gray-600 border-gray-200";
         return (
-          <Badge variant={statut === "Validé" ? "default" : "outline"} className="font-medium">
+          <Badge variant="outline" className={`font-medium ${badgeClass}`}>
             {statut || "En attente"}
           </Badge>
         );
@@ -409,21 +457,23 @@ const PaiementsListePageInner = () => {
                   <p>Modifier</p>
                 </TooltipContent>
               </Tooltip>
-              {/* <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeletePaiement(paiement)}
-                    className="h-8 w-8 p-0 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Supprimer</p>
-                </TooltipContent>
-              </Tooltip> */}
+              {!paiement.isAnnulation && !paiement.paieCodeAnnul && (paiement.paieCode || paiement.fraisCode) && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleOpenAnnulation(paiement)}
+                      className="h-8 w-8 p-0 hover:bg-red-50"
+                    >
+                      <Ban className="h-4 w-4 text-red-600" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Annuler le paiement</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
           </TooltipProvider>
         );
@@ -536,6 +586,53 @@ const PaiementsListePageInner = () => {
           />
         </CardContent>
       </Card>
+
+      {/* Modal d'annulation */}
+      <Dialog open={showAnnulationModal} onOpenChange={setShowAnnulationModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Annuler le paiement</DialogTitle>
+            <DialogDescription aria-describedby={undefined}>
+              Annulation du paiement #{paiementToAnnuler?.paieCode || paiementToAnnuler?.fraisCode}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-gray-700">
+              Vous êtes sur le point d'annuler le paiement{" "}
+              <span className="font-bold">
+                #{paiementToAnnuler?.paieCode || paiementToAnnuler?.fraisCode}
+              </span>.
+              Cette opération est irréversible et créera un paiement d'annulation avec un montant négatif.
+            </p>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">Motif d'annulation</label>
+              <Textarea
+                value={motifAnnulation}
+                onChange={(e) => setMotifAnnulation(e.target.value)}
+                placeholder="Saisir le motif (optionnel)..."
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowAnnulationModal(false)} disabled={annuling}>
+              Fermer
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmAnnulation}
+              disabled={annuling}
+            >
+              {annuling ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Annulation...</>
+              ) : (
+                "Confirmer l'annulation"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog pour imprimer les reçus */}
       {selectedPaiement && (

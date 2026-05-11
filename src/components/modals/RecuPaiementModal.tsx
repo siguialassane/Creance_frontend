@@ -236,30 +236,36 @@ export function RecuPaiementModal({ open, onClose, title, data }: RecuPaiementMo
   }
 
   const handleTelechargerRecuCombine = async () => {
-    if (!data.paieCode) {
-      toast.error("Code paiement non disponible pour le reçu combiné")
-      return
-    }
-
     setLoading(true)
     try {
-      const { PaiementService } = await import("@/services/paiement.service")
-      const blob = await PaiementService.getRecuCombine(
-        apiClient, 
-        parseInt(data.paieCode), 
-        'ALL'
-      )
+      let blob: Blob
+      let fileName: string
+
+      if (data.fraisCode) {
+        // Frais payé → GET /paiements/frais/{fraisCode}/recu-combine
+        const { PaiementFraisService } = await import("@/services/paiement-frais.service")
+        blob = await PaiementFraisService.getRecuCombine(apiClient, parseInt(data.fraisCode))
+        fileName = `recu_frais_${data.fraisCode}.pdf`
+      } else if (data.paieCode) {
+        // Paiement créance → endpoint existant
+        const { PaiementService } = await import("@/services/paiement.service")
+        blob = await PaiementService.getRecuCombine(apiClient, parseInt(data.paieCode), 'ALL')
+        fileName = `recu_combine_${data.paieCode}.pdf`
+      } else {
+        toast.error("Identifiant de paiement non disponible")
+        return
+      }
 
       const url_blob = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url_blob
-      link.download = `recu_combine_${data.paieCode}.pdf`
+      link.download = fileName
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url_blob)
 
-      toast.success("Reçu combiné téléchargé avec succès (3 pages)")
+      toast.success("Reçu téléchargé avec succès (3 pages)")
     } catch (error: any) {
       console.error('Erreur lors du téléchargement du reçu combiné:', error)
       toast.error(error.response?.data?.message || error.message || 'Impossible de générer le reçu combiné')
@@ -307,7 +313,7 @@ export function RecuPaiementModal({ open, onClose, title, data }: RecuPaiementMo
               </div>
             </div>
 
-            {data.paieCode ? (
+            {(data.fraisCode || data.paieCode) ? (
               <div className="flex justify-center mt-6">
                 <Button
                   onClick={handleTelechargerRecuCombine}

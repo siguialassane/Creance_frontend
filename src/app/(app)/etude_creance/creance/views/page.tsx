@@ -12,7 +12,7 @@ import { CreanceService } from "@/services/creance.service";
 import { CreanceResponse } from "@/types/creance";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Pencil, Trash2, Plus, CreditCard } from "lucide-react";
+import { Eye, Pencil, Trash2, Plus, CreditCard, Receipt, Loader2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -24,6 +24,7 @@ import { getStatutRecouvrementLibelle, getStatutRecouvrementVariant } from "@/li
 import { ExportButton } from "@/components/ui/export-button";
 import { FilterButton } from "@/components/ui/filter-button";
 import { CreanceFilterPanel } from "@/components/ui/creance-filter-panel";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 // Types pour les créances (mapping de CreanceResponse à l'interface locale)
 interface Creance {
@@ -84,6 +85,7 @@ const CreancePageInner = () => {
   const router = useRouter();
   const apiClient = useApiClient();
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; creance: Creance | null; loading: boolean }>({ open: false, creance: null, loading: false });
   const [filters, setFilters] = useState<{
     statutRecouvrement?: string;
     groupeCreance?: string;
@@ -196,50 +198,43 @@ const CreancePageInner = () => {
     router.push(`/etude_creance/creance/edit?id=${creance.id}`);
   };
 
-  const handleDeleteCreance = async (creance: Creance) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer la créance ${creance.numeroCreance} ?`)) {
-      try {
-        const response = await CreanceService.delete(apiClient, creance.id);
-        console.log("📥 Réponse du backend (suppression):", response);
+  const handleDeleteCreance = (creance: Creance) => {
+    setDeleteModal({ open: true, creance, loading: false });
+  };
 
-        // Le backend retourne status: "SUCCESS" ou status: "ERROR"
-        const responseData = response as any;
-        if (responseData.status === "SUCCESS" || response.success === true) {
-          // Utiliser le message de data.message si disponible, sinon celui de response.message
-          const successMessage = responseData.data?.message || responseData.message || `La créance ${creance.numeroCreance} a été supprimée avec succès.`;
-          toast.success(successMessage);
-          
-          // Rafraîchir le tableau au lieu de juste filtrer
-          await loadCreances(paginationParams);
-        } else {
-          // Gérer les erreurs métier retournées par le backend
-          const errorMessage = responseData.data?.message || responseData.message || "Erreur lors de la suppression de la créance";
-          throw new Error(errorMessage);
-        }
-      } catch (error: any) {
-        console.error('Erreur lors de la suppression:', error);
-        
-        // Gérer les erreurs HTTP et les erreurs métier
-        let errorMessage = "Impossible de supprimer la créance";
-        
-        if (error.response?.data) {
-          // Erreur avec réponse du backend
-          const backendError = error.response.data;
-          console.log("📥 Erreur backend:", backendError);
-          
-          if (backendError.status === "ERROR" || backendError.status === "FAILED") {
-            errorMessage = backendError.data?.message || backendError.message || errorMessage;
-          } else if (backendError.message) {
-            errorMessage = backendError.message;
-          } else if (backendError.error?.message) {
-            errorMessage = backendError.error.message;
-          }
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-        
-        toast.error(errorMessage);
+  const handleConfirmDelete = async () => {
+    if (!deleteModal.creance) return;
+    setDeleteModal((prev) => ({ ...prev, loading: true }));
+    try {
+      const response = await CreanceService.delete(apiClient, deleteModal.creance.id);
+      console.log("📥 Réponse du backend (suppression):", response);
+      const responseData = response as any;
+      if (responseData.status === "SUCCESS" || response.success === true) {
+        const successMessage = responseData.data?.message || responseData.message || `La créance ${deleteModal.creance.numeroCreance} a été supprimée avec succès.`;
+        toast.success(successMessage);
+        setDeleteModal({ open: false, creance: null, loading: false });
+        await loadCreances(paginationParams);
+      } else {
+        const errorMessage = responseData.data?.message || responseData.message || "Erreur lors de la suppression de la créance";
+        throw new Error(errorMessage);
       }
+    } catch (error: any) {
+      console.error('Erreur lors de la suppression:', error);
+      let errorMessage = "Impossible de supprimer la créance";
+      if (error.response?.data) {
+        const backendError = error.response.data;
+        if (backendError.status === "ERROR" || backendError.status === "FAILED") {
+          errorMessage = backendError.data?.message || backendError.message || errorMessage;
+        } else if (backendError.message) {
+          errorMessage = backendError.message;
+        } else if (backendError.error?.message) {
+          errorMessage = backendError.error.message;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage);
+      setDeleteModal((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -448,6 +443,37 @@ const CreancePageInner = () => {
 
   return (
     <div className="h-full flex flex-col bg-white">
+      {/* Modal de confirmation de suppression */}
+      <Dialog open={deleteModal.open} onOpenChange={(open) => !deleteModal.loading && setDeleteModal({ open, creance: deleteModal.creance, loading: false })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Supprimer la créance</DialogTitle>
+            <DialogDescription aria-describedby={undefined}>
+              Suppression définitive de la créance #{deleteModal.creance?.numeroCreance}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <p className="text-sm text-gray-700">
+              Êtes-vous sûr de vouloir supprimer la créance{" "}
+              <span className="font-bold">#{deleteModal.creance?.numeroCreance}</span> ?{" "}
+              Cette opération est irréversible.
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteModal({ open: false, creance: null, loading: false })} disabled={deleteModal.loading}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete} disabled={deleteModal.loading}>
+              {deleteModal.loading ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Suppression...</>
+              ) : (
+                "Supprimer"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <CreanceFilterPanel
         open={filterPanelOpen}
         onOpenChange={setFilterPanelOpen}

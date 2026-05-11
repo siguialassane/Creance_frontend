@@ -65,4 +65,12 @@ export class PaiementFactureService {
         const response = await apiClient.get(`${PaiementFactureService.BASE_URL}/contrat/${contratCode}/info`);
         return response.data;
     }
+
+    /**
+     * Récupère les données du reçu combiné (3 pages) pour un paiement de facture/loyer
+     */
+    static async getRecuCombine(apiClient: ApiClient, paieCode: number): Promise<any> {
+        const response = await apiClient.get(`${PaiementFactureService.BASE_URL}/${paieCode}/recu-combine`);
+        return response.data;
+    }
 }
